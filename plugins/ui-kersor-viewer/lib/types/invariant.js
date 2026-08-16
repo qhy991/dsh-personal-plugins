@@ -1,0 +1,25 @@
+/**
+ * Package-owned invariant companion for `@deepseek-ai/dsh-client-ui-kersor-viewer`.
+ * @module @deepseek-ai/dsh-client-ui-kersor-viewer/invariant
+ */
+const PACKAGE_NAME = '@deepseek-ai/dsh-client-ui-kersor-viewer';
+/** KerSor viewer companion plugin name. */
+export const name = 'client-ui-kersor-viewer-invariant';
+/** Service required before the companion can reserve package ownership. */
+export const inject = ['invariants'];
+/**
+ * No runtime invariant: the panel's one mutable relation — the per-run folded
+ * view observable — lives in the browser process, out of reach of the host
+ * invariant service, and the node half emits no cordis events and holds no
+ * cross-plugin state. The host-side fold is covered by the host package's
+ * fold spec.
+ */
+const install = () => { };
+/**
+ * Register this package's invariant companion.
+ * @param ctx - Cordis context carrying the invariant service.
+ * @returns the installed registration's disposer after setup succeeds.
+ */
+export const apply = (ctx) => Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install));
+/* jscpd:ignore-end */
+//# sourceMappingURL=invariant.js.map
