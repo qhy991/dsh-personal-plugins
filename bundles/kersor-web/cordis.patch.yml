@@ -1,0 +1,8 @@
+# Read-only KerSor Web surface. The optional launcher is deliberately absent:
+# deployments add it separately only after registering a finite Mission list.
+- insert:
+    - id: kersor-viewer
+      name: '@deepseek-ai/dsh-kersor-viewer'
+
+    - id: ui-kersor-viewer
+      name: '@deepseek-ai/dsh-client-ui-kersor-viewer'

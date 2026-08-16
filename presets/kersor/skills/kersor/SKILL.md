@@ -26,7 +26,8 @@ Before changing a KerSor checkout, read `$kersor_root/AGENTS.md`. Before running
 - For a kernel file or task directory, preflight the direct route with `python3 "$bridge" compose optimize --path <path> --json`.
 - For a bundled case, list or match cases first, then use `python3 "$bridge" compose build --case <id> --json`.
 - For environment diagnosis, use `python3 "$bridge" doctor --runtime auto`.
-- For status, resume, trace, campaign, research, export, or a named workflow, read the matching `$kersor_root/commands/<name>.md` protocol.
+- For status, call the `kersor_status` tool first. It reads canonical Session and Attempt Result stores and renders the live round, workflow, best measured speedup, target, fit, and recent decisions.
+- For resume, trace, campaign, research, export, or a named workflow, read the matching `$kersor_root/commands/<name>.md` protocol. Use `kersor_status` before resume or diagnosis so the current session—not chat memory—sets the starting point.
 
 The composer emits a `/kersor:<command>` string as validated parameter binding. It is not a shell command. Execute the matching command protocol with the tools available in DSH, preserving its gates, evidence files, confirmation points, budgets, and stop semantics.
 

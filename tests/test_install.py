@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -26,7 +28,46 @@ STANDARD = """# The `standard` agent preset.
       You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
 - id: tool-bash
   name: '@deepseek-ai/dsh-tool-bash'
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
 """
+
+
+FAKE_KERSOR_CORE = '''
+import json
+from pathlib import Path
+
+class AttemptResultError(ValueError):
+    pass
+
+class SessionStore:
+    def __init__(self, session_dir):
+        self.session_dir = Path(session_dir)
+    @property
+    def storage_kind(self):
+        if (self.session_dir / "session-config.json").is_file() and (self.session_dir / "state.json").is_file():
+            return "v2"
+        if (self.session_dir / "state.md").is_file():
+            return "legacy"
+        return "missing"
+    def snapshot(self):
+        config = json.loads((self.session_dir / "session-config.json").read_text())
+        state = json.loads((self.session_dir / "state.json").read_text())
+        return {**config, **state}
+
+class AttemptResultStore:
+    def __init__(self, run_dir):
+        self.run_dir = Path(run_dir)
+        self.path = self.run_dir / "attempt-result.json"
+    @property
+    def storage_kind(self):
+        return "canonical" if self.path.is_file() else "missing"
+    def snapshot(self, allow_legacy=True):
+        try:
+            return json.loads(self.path.read_text())
+        except Exception as error:
+            raise AttemptResultError(str(error)) from error
+'''
 
 
 class InstallTests(unittest.TestCase):
@@ -44,6 +85,10 @@ class InstallTests(unittest.TestCase):
         (self.kersor / "AGENTS.md").write_text("# Rules\n", encoding="utf-8")
         (self.kersor / "scripts" / "compose.py").write_text("", encoding="utf-8")
         (self.kersor / "scripts" / "doctor.sh").write_text("", encoding="utf-8")
+        (self.kersor / "kersor_core").mkdir()
+        (self.kersor / "kersor_core" / "__init__.py").write_text(
+            FAKE_KERSOR_CORE, encoding="utf-8"
+        )
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -65,7 +110,9 @@ class InstallTests(unittest.TestCase):
         composition = (destination / "agent.cordis.yml").read_text(encoding="utf-8")
         self.assertIn("The `kersor` agent preset", composition)
         self.assertIn(INSTALLER.KERSOR_LINE, composition)
+        self.assertIn("name: './plugins/kersor-status.mjs'", composition)
         self.assertNotIn(str(self.kersor), composition)
+        self.assertTrue((destination / "plugins" / "kersor-status.mjs").is_file())
         self.assertEqual(
             (destination / ".local" / "kersor-root").read_text(encoding="utf-8"),
             f"{self.kersor.resolve()}\n",
@@ -112,6 +159,122 @@ class InstallTests(unittest.TestCase):
     def test_renderer_fails_when_upstream_anchor_changes(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "persona anchor changed"):
             INSTALLER.render_composition("- id: persona\n")
+
+    def make_status_project(self) -> Path:
+        """Create a small v2 project whose stores exercise the bridge contract."""
+        project = self.root / "project"
+        session = project / ".kersor" / "20260817-120000"
+        run = session / "run-1"
+        run.mkdir(parents=True)
+        (session / "session-config.json").write_text(
+            json.dumps(
+                {
+                    "max_workflows": 4,
+                    "mode": "auto",
+                    "kernel_path": "kernel.cu",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (session / "state.json").write_text(
+            json.dumps(
+                {
+                    "phase": "optimizing",
+                    "current_round": 2,
+                    "target_speedup": 1.5,
+                    "backend": "cuda",
+                    "kernel_language": "cuda",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (session / "round-1-selection.json").write_text(
+            json.dumps({"selected_workflow": {"name": "baseline"}}),
+            encoding="utf-8",
+        )
+        (session / "round-1-summary.md").write_text(
+            "# Round 1\n\nCONTINUE: measure another workflow.\n", encoding="utf-8"
+        )
+        (run / "attempt-result.json").write_text(
+            json.dumps({"metric_contract": {"speedup": 1.25}}),
+            encoding="utf-8",
+        )
+        (session / "round-2-selection.json").write_text(
+            json.dumps({"selected_workflow": {"name": "adaexplore"}}),
+            encoding="utf-8",
+        )
+        (session / "round-2-fit.json").write_text(
+            json.dumps({"fit_confidence": "high"}), encoding="utf-8"
+        )
+        return project
+
+    def test_status_bridge_uses_structured_kersor_stores(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "status",
+                "--path",
+                str(project),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        value = json.loads(completed.stdout)
+        self.assertTrue(value["found"])
+        self.assertEqual(value["phase"], "optimizing")
+        self.assertEqual(value["workflow"], "adaexplore")
+        self.assertEqual(value["best_speedup"], 1.25)
+        self.assertEqual(value["target_met"], False)
+        self.assertEqual(value["rounds"][0]["decision"].split(":", 1)[0], "CONTINUE")
+
+    @unittest.skipIf(shutil.which("node") is None, "Node.js is required by DSH")
+    def test_status_tool_executes_and_rejects_workspace_escape(self) -> None:
+        project = self.make_status_project()
+        outside = self.root / "outside"
+        outside.mkdir()
+        plugin = ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs"
+        script = r'''
+import { pathToFileURL } from 'node:url'
+const plugin = await import(pathToFileURL(process.env.PLUGIN_PATH).href)
+let tool
+plugin.apply({ tools: { register(value) { tool = value } } })
+const signal = new AbortController().signal
+const exec = { signal, agent: { session: { header: { cwd: process.env.WORKSPACE } } } }
+const value = await tool.execute({}, exec)
+const content = tool.output.render({}, value)
+const meta = tool.output.presentationMeta({}, value)
+const card = tool.presentResult({}, { content, isError: false, meta })
+let escaped = false
+try { await tool.execute({ path: process.env.OUTSIDE }, exec) } catch { escaped = true }
+console.log(JSON.stringify({ name: tool.name, value, content, meta, card, escaped }))
+'''
+        environment = dict(os.environ)
+        environment.update(
+            {
+                "KERSOR_ROOT": str(self.kersor),
+                "PLUGIN_PATH": str(plugin),
+                "WORKSPACE": str(project),
+                "OUTSIDE": str(outside),
+            }
+        )
+        completed = subprocess.run(
+            ["node", "--input-type=module", "--eval", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=environment,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = json.loads(completed.stdout)
+        self.assertEqual(result["name"], "kersor_status")
+        self.assertIn("1.25x", result["content"][0]["text"])
+        self.assertEqual(result["card"]["title"], "KerSor · optimizing · r2/4 · 1.25x")
+        self.assertTrue(result["escaped"])
 
 
 if __name__ == "__main__":

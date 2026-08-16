@@ -20,7 +20,13 @@ PERSONA_LINE = (
     "Your working directory is {{cwd}}."
 )
 KERSOR_LINE = (
-    "      Use the kersor skill for KerSor tasks; its bridge resolves the configured checkout."
+    "      Use the kersor skill and kersor_status tool for KerSor tasks; "
+    "the bridge resolves the configured checkout."
+)
+TOOL_SKILL_ENTRY = "- id: tool-skill\n  name: '@deepseek-ai/dsh-tool-skill'"
+KERSOR_STATUS_ENTRY = (
+    "- id: kersor-status\n"
+    "  name: './plugins/kersor-status.mjs'"
 )
 
 
@@ -76,6 +82,11 @@ def render_composition(standard_source: str) -> str:
             "standard preset persona anchor changed; inspect the current DSH preset "
             "before updating this renderer"
         )
+    if standard_source.count(TOOL_SKILL_ENTRY) != 1:
+        raise RuntimeError(
+            "standard preset skill-tool anchor changed; inspect the current DSH preset "
+            "before updating this renderer"
+        )
     lines = standard_source.splitlines()
     if not lines:
         raise RuntimeError("standard preset is empty")
@@ -83,6 +94,11 @@ def render_composition(standard_source: str) -> str:
     rendered = "\n".join(lines).replace(
         PERSONA_LINE,
         f"{PERSONA_LINE}\n{KERSOR_LINE}",
+        1,
+    )
+    rendered = rendered.replace(
+        TOOL_SKILL_ENTRY,
+        f"{TOOL_SKILL_ENTRY}\n\n{KERSOR_STATUS_ENTRY}",
         1,
     )
     return rendered.rstrip("\n") + "\n"
@@ -109,6 +125,7 @@ def stage_install(parent: Path, composition: str, kersor_root: Path) -> Path:
     stage = Path(tempfile.mkdtemp(prefix=".kersor-install-", dir=parent))
     shutil.copy2(ASSET_ROOT / "preset.yml", stage / "preset.yml")
     shutil.copytree(ASSET_ROOT / "skills", stage / "skills")
+    shutil.copytree(ASSET_ROOT / "plugins", stage / "plugins")
     shutil.copytree(
         ASSET_ROOT / "bin",
         stage / "bin",

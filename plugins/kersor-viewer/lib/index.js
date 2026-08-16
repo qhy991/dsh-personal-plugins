@@ -1,6 +1,6 @@
 import { Service } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
-import { open, readdir } from "node:fs/promises";
+import { open, readFile, readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { watch } from "node:fs";
@@ -967,6 +967,22 @@ function createRunView(runId, runDir, sessionDir) {
 */
 /** Default roots scanned in addition to configured ones. */
 const DEFAULT_KERSOR_ROOTS = [path.join(homedir(), ".local", "share", "kersor"), path.join(homedir(), "Agent4Kernel", "KerSor", ".kersor")];
+async function configuredCheckout() {
+	const fromEnvironment = process.env.KERSOR_ROOT?.trim();
+	if (fromEnvironment) return path.resolve(expandHome(fromEnvironment));
+	const dshHome = process.env.DSH_HOME?.trim();
+	const pointer = path.join(dshHome ? expandHome(dshHome) : path.join(homedir(), ".dsh"), ".agent-presets", "kersor", ".local", "kersor-root");
+	try {
+		const recorded = (await readFile(pointer, "utf8")).trim();
+		return recorded ? path.resolve(expandHome(recorded)) : void 0;
+	} catch {
+		return;
+	}
+}
+function expandHome(value) {
+	if (value === "~") return homedir();
+	return value.startsWith("~/") ? path.join(homedir(), value.slice(2)) : value;
+}
 async function exists(entry) {
 	try {
 		await readdir(entry);
@@ -1024,10 +1040,12 @@ async function scanSession(sessionDir, root, into) {
 * @returns run refs; ordering is unspecified (the service sorts for display).
 */
 async function scanRoots(roots, includeDefaults) {
-	const all = [...new Set(includeDefaults ? [...roots, ...DEFAULT_KERSOR_ROOTS] : [...roots])];
+	const checkout = includeDefaults ? await configuredCheckout() : void 0;
+	const defaults = includeDefaults ? [...DEFAULT_KERSOR_ROOTS, ...checkout === void 0 ? [] : [path.join(checkout, ".kersor")]] : [];
+	const all = [...new Set([...roots, ...defaults])];
 	const found = [];
 	for (const root of all) {
-		const expanded = root.startsWith("~/") ? path.join(homedir(), root.slice(2)) : root;
+		const expanded = expandHome(root);
 		let sessions;
 		try {
 			sessions = await readdir(expanded);
@@ -1288,7 +1306,23 @@ let KersorViewerService = (() => {
 				this.tracked.delete(runDir);
 			}
 			for (const ref of found) {
-				if (this.tracked.has(ref.runDir)) continue;
+				const existing = this.tracked.get(ref.runDir);
+				if (existing !== void 0) {
+					if (existing.ref.discovery !== ref.discovery) {
+						if (existing.ref.discovery !== "active" && ref.discovery === "active") continue;
+						existing.ref = ref;
+						if (ref.discovery !== "active") {
+							existing.tailer?.stop();
+							existing.tailer = void 0;
+							existing.view.status = terminalStatus(ref);
+							this.rootCtx.emit("kersor/event", {
+								kind: "run",
+								run: existing.view
+							});
+						} else this.attachTailer(existing);
+					}
+					continue;
+				}
 				const tracked = {
 					ref,
 					view: createRunView(ref.runId, ref.runDir, ref.sessionDir),
@@ -1322,6 +1356,8 @@ let KersorViewerService = (() => {
 					foldEvent(view, JSON.parse(line));
 				} catch {}
 			}
+			if (view.status !== "completed" && view.status !== "failed") view.status = terminalStatus(ref);
+			if (this.tracked.get(ref.runDir) !== tracked) return;
 			this.rootCtx.emit("kersor/event", {
 				kind: "run",
 				run: view
@@ -1365,6 +1401,9 @@ function rank(ref) {
 	if (ref.discovery === "active") return 2;
 	if (ref.discovery === "failed") return 1;
 	return 0;
+}
+function terminalStatus(ref) {
+	return ref.discovery === "failed" ? "failed" : "completed";
 }
 //#endregion
 export { KersorViewerService, KersorViewerService as default };

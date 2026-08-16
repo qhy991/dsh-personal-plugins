@@ -1,0 +1,21 @@
+{
+  "name": "@qhy991/dsh-kersor-web",
+  "description": "Read-only KerSor run viewer and sidebar composition for the DSH web profile",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/dsh-client-ui-kersor-viewer": "file:../../plugins/ui-kersor-viewer",
+    "@deepseek-ai/dsh-kersor": "file:../../plugins/kersor",
+    "@deepseek-ai/dsh-kersor-viewer": "file:../../plugins/kersor-viewer"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "cordis.patch.yml"
+  ]
+}

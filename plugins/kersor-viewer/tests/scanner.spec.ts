@@ -81,4 +81,25 @@ describe('run discovery', () => {
     const found = await scanRoots([path.join(tmpdir(), 'kersor-no-such-root-xyz')], false)
     expect(found).toEqual([])
   })
+
+  it('reuses the checkout pointer written by the installed KerSor preset', async () => {
+    const dshHome = await tempRoot()
+    const checkout = await tempRoot()
+    const session = await makeSession(path.join(checkout, '.kersor'), 'sess-recorded')
+    const runDir = path.join(session, 'autonomous-runs', '20260817T010000Z')
+    await mkdir(path.join(runDir, '.runtime'), { recursive: true })
+    const pointer = path.join(dshHome, '.agent-presets', 'kersor', '.local')
+    await mkdir(pointer, { recursive: true })
+    await writeFile(path.join(pointer, 'kersor-root'), `${checkout}\n`)
+
+    const previous = process.env.DSH_HOME
+    process.env.DSH_HOME = dshHome
+    try {
+      const found = await scanRoots([], true)
+      expect(found.some(ref => ref.runDir === runDir)).toBe(true)
+    } finally {
+      if (previous === undefined) delete process.env.DSH_HOME
+      else process.env.DSH_HOME = previous
+    }
+  })
 })

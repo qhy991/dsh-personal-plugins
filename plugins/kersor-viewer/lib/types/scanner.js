@@ -4,7 +4,7 @@
  * `autonomous-runs/` child; each child directory is one run.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
-import { readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 /** Default roots scanned in addition to configured ones. */
@@ -12,6 +12,25 @@ export const DEFAULT_KERSOR_ROOTS = [
     path.join(homedir(), '.local', 'share', 'kersor'),
     path.join(homedir(), 'Agent4Kernel', 'KerSor', '.kersor'),
 ];
+async function configuredCheckout() {
+    const fromEnvironment = process.env.KERSOR_ROOT?.trim();
+    if (fromEnvironment)
+        return path.resolve(expandHome(fromEnvironment));
+    const dshHome = process.env.DSH_HOME?.trim();
+    const pointer = path.join(dshHome ? expandHome(dshHome) : path.join(homedir(), '.dsh'), '.agent-presets', 'kersor', '.local', 'kersor-root');
+    try {
+        const recorded = (await readFile(pointer, 'utf8')).trim();
+        return recorded ? path.resolve(expandHome(recorded)) : undefined;
+    }
+    catch {
+        return undefined;
+    }
+}
+function expandHome(value) {
+    if (value === '~')
+        return homedir();
+    return value.startsWith('~/') ? path.join(homedir(), value.slice(2)) : value;
+}
 async function exists(entry) {
     try {
         await readdir(entry);
@@ -76,10 +95,14 @@ async function scanSession(sessionDir, root, into) {
  * @returns run refs; ordering is unspecified (the service sorts for display).
  */
 export async function scanRoots(roots, includeDefaults) {
-    const all = [...new Set(includeDefaults ? [...roots, ...DEFAULT_KERSOR_ROOTS] : [...roots])];
+    const checkout = includeDefaults ? await configuredCheckout() : undefined;
+    const defaults = includeDefaults
+        ? [...DEFAULT_KERSOR_ROOTS, ...(checkout === undefined ? [] : [path.join(checkout, '.kersor')])]
+        : [];
+    const all = [...new Set([...roots, ...defaults])];
     const found = [];
     for (const root of all) {
-        const expanded = root.startsWith('~/') ? path.join(homedir(), root.slice(2)) : root;
+        const expanded = expandHome(root);
         let sessions;
         try {
             sessions = await readdir(expanded);

@@ -137,8 +137,30 @@ let KersorViewerService = (() => {
                 this.tracked.delete(runDir);
             }
             for (const ref of found) {
-                if (this.tracked.has(ref.runDir))
+                const existing = this.tracked.get(ref.runDir);
+                if (existing !== undefined) {
+                    if (existing.ref.discovery !== ref.discovery) {
+                        // Lifecycle is monotonic. A summary can be momentarily unreadable
+                        // while it is replaced, but a terminal run must not become active
+                        // again because of that transient scan result.
+                        if (existing.ref.discovery !== 'active' && ref.discovery === 'active')
+                            continue;
+                        existing.ref = ref;
+                        if (ref.discovery !== 'active') {
+                            existing.tailer?.stop();
+                            existing.tailer = undefined;
+                            // A waiting summary is terminal even when the event stream has no
+                            // workflow.completed frame. Summary-backed discovery is the
+                            // authoritative lifecycle shown in the inventory.
+                            existing.view.status = terminalStatus(ref);
+                            this.rootCtx.emit('kersor/event', { kind: 'run', run: existing.view });
+                        }
+                        else {
+                            this.attachTailer(existing);
+                        }
+                    }
                     continue;
+                }
                 const view = createRunView(ref.runId, ref.runDir, ref.sessionDir);
                 const tracked = { ref, view, tailer: undefined };
                 this.tracked.set(ref.runDir, tracked);
@@ -173,6 +195,11 @@ let KersorViewerService = (() => {
                     // partial or non-JSON line: skip
                 }
             }
+            if (view.status !== 'completed' && view.status !== 'failed') {
+                view.status = terminalStatus(ref);
+            }
+            if (this.tracked.get(ref.runDir) !== tracked)
+                return;
             this.rootCtx.emit('kersor/event', { kind: 'run', run: view });
         }
         attachTailer(tracked) {
@@ -215,6 +242,9 @@ function rank(ref) {
     if (ref.discovery === 'failed')
         return 1;
     return 0;
+}
+function terminalStatus(ref) {
+    return ref.discovery === 'failed' ? 'failed' : 'completed';
 }
 /** Cordis plugin entry: the service class itself (class plugin, default export). */
 export default KersorViewerService;

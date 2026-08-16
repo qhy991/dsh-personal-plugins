@@ -4,12 +4,16 @@
 from __future__ import annotations
 
 import subprocess
+import shutil
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEXT_SUFFIXES = {"", ".md", ".py", ".yml", ".yaml", ".json", ".txt"}
+TEXT_SUFFIXES = {
+    "", ".css", ".js", ".json", ".md", ".mjs", ".py", ".ts", ".tsx",
+    ".txt", ".yaml", ".yml",
+}
 
 
 def frontmatter(path: Path) -> dict[str, str]:
@@ -78,12 +82,25 @@ def metadata_violations() -> list[str]:
 
 def main() -> int:
     """Run static checks and the standard-library regression suite."""
+    node = shutil.which("node")
+    if node is None:
+        print("check: Node.js is required to validate DSH plugins", file=sys.stderr)
+        return 1
+
     violations = metadata_violations()
     if violations:
         print("check: violations found", file=sys.stderr)
         for violation in violations:
             print(f"  - {violation}", file=sys.stderr)
         return 1
+
+    syntax = subprocess.run(
+        [node, "--check", str(ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs")],
+        cwd=ROOT,
+        check=False,
+    )
+    if syntax.returncode != 0:
+        return syntax.returncode
 
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],

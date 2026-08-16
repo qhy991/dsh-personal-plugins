@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-kersor-viewer",
-  "description": "KerSor autonomous-workflow host service: run discovery, events.jsonl tailing, and the folded view pushed to browser consumers",
+  "description": "KerSor autonomous-workflow host service: run discovery, events.jsonl tailing, and folded-view snapshot remotes",
   "version": "0.1.0-rc.5",
   "publishConfig": {
     "access": "public"
@@ -42,10 +42,13 @@
     "watch": "tsdown --watch"
   },
   "license": "MIT",
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-typert-protocol": "workspace:^"
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-invariants": ">=0.1.0-rc.5 <0.2.0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.1.0-rc.5 <0.2.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
