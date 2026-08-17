@@ -82,11 +82,47 @@ with `--handoff` pointing to that seal; any hash, syntax, metadata, taxonomy, or
 semantic failure means `needs_revision` and canonical `stalled`, not a patch or
 retry. Any extra staging file or directory is mixed provenance.
 
-Do not accept a prose-only baseline. Before selection or authoring,
-`test-method.md` must record the exact correctness and benchmark commands that
-were executed in the current Session, their exit status, measured objective,
-and a short stdout excerpt. A historical cycle count copied into Markdown is
-not execution evidence.
+Do not accept a prose-only baseline. After Session creation and before
+selection or authoring, record and verify the baseline through KerSor's
+Session-owned witness:
+
+```bash
+python3 "$kersor_root/scripts/baseline-witness.py" record \
+  --session "$SESSION_DIR" --project-root "$TASK_DIR"
+python3 "$kersor_root/scripts/baseline-witness.py" verify \
+  --session "$SESSION_DIR"
+```
+
+`test-method.md` owns the exact correctness and benchmark commands. The
+immutable witness binds their post-Session execution to the Session config and
+kernel hash. Output produced before Session creation, or a historical cycle
+count copied into Markdown, is not execution evidence. A failed witness is a
+hard stop; do not select, author, dispatch, or mutate the candidate.
+
+After KerSor's dispatch-args, harness-binding, and output-ownership gates pass,
+convert the sealed Proposal to the one portable DSH wire contract before
+calling the Workflow tool:
+
+```bash
+node "$kersor_root/scripts/prepare-dsh-workflow.mjs" \
+  --script "$PROPOSAL_DIR/workflow.js" \
+  --args-file "$RUN_DIR/dispatch-args.json" \
+  --out "$RUN_DIR/dsh-workflow.json" \
+  --report "$RUN_DIR/dsh-compatibility.json"
+```
+
+Read the generated envelope and call the Workflow tool exactly once as
+`Workflow({meta: envelope.meta, script: envelope.script, args: envelope.args})`.
+Never pass `scriptPath`, invoke a nested `workflow()` helper, or translate the
+Proposal ad hoc. If compatibility preparation or the Workflow call fails, do
+not rewrite the author-owned script, retry dispatch, or optimize directly as
+the parent. Transition the Session to canonical `stalled`, record the failure,
+and stop at that fresh boundary.
+
+Task tests, reference implementations, problem definitions, and benchmark
+harnesses are immutable oracles. A workflow may return a candidate or exercise
+a candidate-aware Session-local seam; neither child nor parent may copy-edit an
+oracle to manufacture such a seam.
 
 ## Operating rules
 

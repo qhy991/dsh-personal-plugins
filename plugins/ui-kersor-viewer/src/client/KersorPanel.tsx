@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from 'react'
 import { IconChevronRightOutline14, StateDot, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { KersorCallView, KersorPhaseView, KersorRunStatus, KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
-import type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type { KersorClassicGate, KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorTaskId } from '@deepseek-ai/dsh-kersor/types'
 import type { KersorViewerState } from './store.ts'
 import type { KersorViewerKey } from './locales.ts'
@@ -79,6 +79,13 @@ function speedup(value: number): string {
   return Number.isInteger(value) ? value.toFixed(1) : value.toFixed(2)
 }
 
+const GATE_KEYS = {
+  pass: 'session.gate.pass',
+  fail: 'session.gate.fail',
+  pending: 'session.gate.pending',
+  not_required: 'session.gate.notRequired',
+} as const satisfies Record<KersorClassicGate, KersorViewerKey>
+
 function displayTime(value: string): string | undefined {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return undefined
@@ -129,6 +136,16 @@ function ClassicSessionRow({ session, t }: {
         {session.allow_workflow_authoring === true
           ? <span className={css.authoringBadge}>{t('session.authoring', {
               budget: session.workflow_authoring_budget ?? '—',
+            })}</span>
+          : null}
+        {session.allow_workflow_authoring === true && session.baseline_witness != null
+          ? <span className={css.gateBadge} data-gate={session.baseline_witness}>{t('session.baselineGate', {
+              status: t(GATE_KEYS[session.baseline_witness]),
+            })}</span>
+          : null}
+        {session.allow_workflow_authoring === true && session.dsh_compatibility != null
+          ? <span className={css.gateBadge} data-gate={session.dsh_compatibility}>{t('session.dshGate', {
+              status: t(GATE_KEYS[session.dsh_compatibility]),
             })}</span>
           : null}
         {activity !== undefined ? <span>{t('session.lastActivity', { time: activity })}</span> : null}

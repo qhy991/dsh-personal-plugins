@@ -7,6 +7,7 @@
  */
 export type KersorClassicLifecycle = 'active' | 'completed' | 'stalled' | 'cancelled';
 export type KersorClassicHealth = 'active' | 'stale' | 'needs_resume' | 'terminal' | 'unknown';
+export type KersorClassicGate = 'pass' | 'fail' | 'pending' | 'not_required';
 export type KersorClassicStatus = 'terminal-complete' | 'terminal-stalled' | 'terminal-cancelled' | 'resumable' | 'in-progress' | 'pre-round-1';
 /** One recent optimization Session projected by the canonical KerSor stores. */
 export interface KersorClassicSession {
@@ -34,6 +35,8 @@ export interface KersorClassicSession {
     /** Latest canonical COMPLETE/CONTINUE/STALLED line, when a round has decided. */
     readonly decision?: string | null;
     readonly fit_confidence?: string | null;
+    readonly baseline_witness?: KersorClassicGate | null;
+    readonly dsh_compatibility?: KersorClassicGate | null;
     readonly best_speedup?: number | null;
     readonly warnings: readonly string[];
 }

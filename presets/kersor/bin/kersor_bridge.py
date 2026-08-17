@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -109,6 +110,43 @@ def numeric(value: object) -> float | None:
     return number if number == number and abs(number) != float("inf") else None
 
 
+def baseline_gate(root: Path, session_dir: Path) -> str:
+    """Project the canonical baseline verifier without reimplementing its rules."""
+    config = read_json_object(session_dir / "session-config.json")
+    extensions = config.get("extensions")
+    required = (
+        isinstance(extensions, dict)
+        and extensions.get("baseline_witness_required") is True
+    )
+    if not required:
+        return "not_required"
+    if not (session_dir / "baseline-witness.json").is_file():
+        return "pending"
+    verifier = root / "scripts" / "baseline-witness.py"
+    if not verifier.is_file():
+        return "fail"
+    try:
+        completed = subprocess.run(
+            [sys.executable, str(verifier), "verify", "--session", str(session_dir)],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return "fail"
+    return "pass" if completed.returncode == 0 else "fail"
+
+
+def dsh_compatibility_gate(session_dir: Path, round_number: int) -> str:
+    """Read the DSH adapter's canonical per-round compatibility report."""
+    report = read_json_object(
+        session_dir / f"run-{round_number}" / "dsh-compatibility.json"
+    )
+    verdict = report.get("verdict")
+    return verdict if verdict in {"pass", "fail"} else "pending"
+
+
 def candidate_rounds(session_dir: Path) -> list[int]:
     """List rounds that have an Attempt directory or a completed summary."""
     rounds: set[int] = set()
@@ -187,6 +225,8 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "started_at": None,
             "workflow": None,
             "fit_confidence": None,
+            "baseline_witness": None,
+            "dsh_compatibility": None,
             "best_speedup": None,
             "rounds": [],
             "warnings": warnings,
@@ -280,6 +320,8 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "started_at": optional_string("started_at"),
         "workflow": selected_workflow(session_dir, round_number),
         "fit_confidence": fit_confidence,
+        "baseline_witness": baseline_gate(root, session_dir),
+        "dsh_compatibility": dsh_compatibility_gate(session_dir, round_number),
         "best_speedup": best_speedup,
         "rounds": rounds,
         "warnings": warnings,
@@ -423,6 +465,8 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "workflow": value.get("workflow"),
         "decision": latest_decision,
         "fit_confidence": value.get("fit_confidence"),
+        "baseline_witness": value.get("baseline_witness"),
+        "dsh_compatibility": value.get("dsh_compatibility"),
         "best_speedup": value.get("best_speedup"),
         "warnings": warnings,
     }

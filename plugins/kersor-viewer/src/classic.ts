@@ -16,6 +16,7 @@ const execFileAsync = promisify(execFile)
 
 export type KersorClassicLifecycle = 'active' | 'completed' | 'stalled' | 'cancelled'
 export type KersorClassicHealth = 'active' | 'stale' | 'needs_resume' | 'terminal' | 'unknown'
+export type KersorClassicGate = 'pass' | 'fail' | 'pending' | 'not_required'
 export type KersorClassicStatus =
   | 'terminal-complete'
   | 'terminal-stalled'
@@ -50,6 +51,8 @@ export interface KersorClassicSession {
   /** Latest canonical COMPLETE/CONTINUE/STALLED line, when a round has decided. */
   readonly decision?: string | null
   readonly fit_confidence?: string | null
+  readonly baseline_witness?: KersorClassicGate | null
+  readonly dsh_compatibility?: KersorClassicGate | null
   readonly best_speedup?: number | null
   readonly warnings: readonly string[]
 }

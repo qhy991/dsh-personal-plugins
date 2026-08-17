@@ -11,7 +11,7 @@ import type { KersorRunRef } from './scanner.ts'
 // `./types` subpath, as the Typert generator's boundary rule requires.
 export type { KersorRunStatus, KersorCallStatus, KersorCallKind, KersorCallView, KersorPhaseView, KersorRunView } from './fold.ts'
 export type { KersorRunDiscovery, KersorRunRef } from './scanner.ts'
-export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts'
+export type { KersorClassicGate, KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts'
 
 /** Inventory or folded-run frame pushed to browser consumers. */
 export type KersorViewerFrame =

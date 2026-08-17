@@ -32,7 +32,7 @@ KerSor 始终是唯一状态所有者。bridge 导入 KerSor 规范的 `SessionS
 
 带 `workflow_status: "waiting"` 的 summary 在发现层属于终态：KerSor controller 已停止并写入 summary，只是 workflow 正在等待外部输入，而非语义完成。
 
-经典 Session 卡片把 KerSor 的规范 phase 与建议性 health 分开：阈值内存在稳定 artifact 活动是 `active`；陈旧的干净 `CONTINUE` 边界是 `needs_resume`；其他未结束的陈旧工作是 `stale`；终态是 `terminal`。经过时间绝不改写 phase。有界投影还携带 language/backend、integration pattern、workflow authoring gate／预算与最新的规范协议决策，使路由漂移和终止原因无需打开 Session 文件即可发现。投影同时携带最后稳定 artifact 时间；若绝对内核路径已失效，面板只显示不含路径的状态提醒，不把旧本地路径泄漏到浏览器。
+经典 Session 卡片把 KerSor 的规范 phase 与建议性 health 分开：阈值内存在稳定 artifact 活动是 `active`；陈旧的干净 `CONTINUE` 边界是 `needs_resume`；其他未结束的陈旧工作是 `stale`；终态是 `terminal`。经过时间绝不改写 phase。有界投影还携带 language/backend、integration pattern、workflow authoring gate／预算、Session 自有的基线见证、DSH Workflow 兼容性与最新的规范协议决策，使路由或 dispatch 漂移和终止原因无需打开 Session 文件即可发现。投影同时携带最后稳定 artifact 时间；若绝对内核路径已失效，面板只显示不含路径的状态提醒，不把旧本地路径泄漏到浏览器。
 
 ## 结构
 

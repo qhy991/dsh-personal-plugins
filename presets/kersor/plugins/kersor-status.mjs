@@ -37,6 +37,8 @@ const STATUS_SCHEMA = {
     started_at: nullable({ type: 'string' }),
     workflow: nullable({ type: 'string' }),
     fit_confidence: nullable({ type: 'string' }),
+    baseline_witness: nullable({ type: 'string' }),
+    dsh_compatibility: nullable({ type: 'string' }),
     best_speedup: nullable({ type: 'number' }),
     rounds: {
       type: 'array',
@@ -60,7 +62,8 @@ const STATUS_SCHEMA = {
     'backend', 'kernel_language', 'integration_pattern',
     'allow_workflow_authoring', 'workflow_authoring_budget',
     'kernel_path', 'started_at', 'workflow',
-    'fit_confidence', 'best_speedup', 'rounds', 'warnings',
+    'fit_confidence', 'baseline_witness', 'dsh_compatibility',
+    'best_speedup', 'rounds', 'warnings',
   ],
 }
 
@@ -91,6 +94,13 @@ function authoring(value) {
     : 'enabled'
 }
 
+function gate(value) {
+  if (value === 'pass') return 'pass'
+  if (value === 'fail') return 'fail'
+  if (value === 'pending') return 'pending'
+  return 'not required'
+}
+
 export function renderStatus(value) {
   if (!value.found) {
     const warnings = value.warnings.length > 0
@@ -111,6 +121,10 @@ export function renderStatus(value) {
     '| Language / Backend | Integration pattern | Workflow authoring |',
     '| --- | --- | --- |',
     `| ${display(value.kernel_language)} / ${display(value.backend)} | ${display(value.integration_pattern)} | ${authoring(value)} |`,
+    '',
+    '| Baseline witness | DSH compatibility |',
+    '| --- | --- |',
+    `| ${gate(value.baseline_witness)} | ${gate(value.dsh_compatibility)} |`,
   )
 
   const recent = value.rounds.slice(-5)
@@ -151,7 +165,7 @@ async function workspaceTarget(exec) {
 export function createTool() {
   return {
     name: 'kersor_status',
-    description: 'Read the current KerSor session phase, routing contract, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
+    description: 'Read the current KerSor session phase, routing contract, baseline/DSH gates, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -172,6 +186,8 @@ export function createTool() {
         integration_pattern: value.integration_pattern,
         allow_workflow_authoring: value.allow_workflow_authoring,
         workflow_authoring_budget: value.workflow_authoring_budget,
+        baseline_witness: value.baseline_witness,
+        dsh_compatibility: value.dsh_compatibility,
         session_dir: value.session_dir,
         started_at: value.started_at,
       }),

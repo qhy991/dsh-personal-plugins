@@ -334,7 +334,8 @@
 }
 
 .routeBadge,
-.authoringBadge {
+.authoringBadge,
+.gateBadge {
   padding: 0 5px;
   border-radius: 5px;
   background: var(--dsw-alias-bg-base);
@@ -347,6 +348,18 @@
 
 .authoringBadge {
   color: var(--dsw-alias-state-business-primary);
+}
+
+.gateBadge[data-gate='pass'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.gateBadge[data-gate='fail'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.gateBadge[data-gate='pending'] {
+  color: var(--dsw-alias-state-warn-label);
 }
 
 .classicFoot {

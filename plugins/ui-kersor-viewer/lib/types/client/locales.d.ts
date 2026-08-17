@@ -15,6 +15,12 @@ export declare const zh: {
     readonly 'session.best': "最佳 {speedup}x";
     readonly 'session.target': "目标 {speedup}x";
     readonly 'session.authoring': "可创作 · 预算 {budget}";
+    readonly 'session.baselineGate': "基线见证：{status}";
+    readonly 'session.dshGate': "DSH 兼容：{status}";
+    readonly 'session.gate.pass': "通过";
+    readonly 'session.gate.fail': "失败";
+    readonly 'session.gate.pending': "待验证";
+    readonly 'session.gate.notRequired': "无需";
     readonly 'session.workflow': "Workflow：{workflow}";
     readonly 'session.fit': "适配度：{confidence}";
     readonly 'session.noWorkflow': "尚未选择 Workflow";
@@ -66,6 +72,12 @@ export declare const en: {
     readonly 'session.best': "Best {speedup}x";
     readonly 'session.target': "Target {speedup}x";
     readonly 'session.authoring': "Authoring · budget {budget}";
+    readonly 'session.baselineGate': "Baseline witness: {status}";
+    readonly 'session.dshGate': "DSH compatibility: {status}";
+    readonly 'session.gate.pass': "pass";
+    readonly 'session.gate.fail': "fail";
+    readonly 'session.gate.pending': "pending";
+    readonly 'session.gate.notRequired': "not required";
     readonly 'session.workflow': "Workflow: {workflow}";
     readonly 'session.fit': "Fit: {confidence}";
     readonly 'session.noWorkflow': "No Workflow selected yet";

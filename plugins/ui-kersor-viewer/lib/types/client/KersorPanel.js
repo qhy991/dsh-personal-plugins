@@ -61,6 +61,12 @@ function classicDotState(health, lifecycle) {
 function speedup(value) {
     return Number.isInteger(value) ? value.toFixed(1) : value.toFixed(2);
 }
+const GATE_KEYS = {
+    pass: 'session.gate.pass',
+    fail: 'session.gate.fail',
+    pending: 'session.gate.pending',
+    not_required: 'session.gate.notRequired',
+};
 function displayTime(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime()))
@@ -94,6 +100,14 @@ function ClassicSessionRow({ session, t }) {
                         : null, session.allow_workflow_authoring === true
                         ? _jsx("span", { className: css.authoringBadge, children: t('session.authoring', {
                                 budget: session.workflow_authoring_budget ?? '—',
+                            }) })
+                        : null, session.allow_workflow_authoring === true && session.baseline_witness != null
+                        ? _jsx("span", { className: css.gateBadge, "data-gate": session.baseline_witness, children: t('session.baselineGate', {
+                                status: t(GATE_KEYS[session.baseline_witness]),
+                            }) })
+                        : null, session.allow_workflow_authoring === true && session.dsh_compatibility != null
+                        ? _jsx("span", { className: css.gateBadge, "data-gate": session.dsh_compatibility, children: t('session.dshGate', {
+                                status: t(GATE_KEYS[session.dsh_compatibility]),
                             }) })
                         : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
                             ? t('session.workflow', { workflow: session.workflow })
