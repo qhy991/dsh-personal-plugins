@@ -3,18 +3,18 @@ import type {
   RemoteResult,
   TypertRemoteContribution,
 } from '@deepseek-ai/dsh-typert-protocol'
-import type { KersorClassicSnapshot, KersorRunRef, KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type { KersorClassicSessionDetail, KersorRunView, KersorViewerSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteNamespace$6b6572736f72566965776572 {
-    listClassicSessions: () => Promise<RemoteResult<KersorClassicSnapshot>>
-    listRuns: () => Promise<RemoteResult<KersorRunRef[]>>
+    classicSessionDetail: (sessionDir: string) => Promise<RemoteResult<KersorClassicSessionDetail | undefined>>
     runBacklog: (runDir: string) => Promise<RemoteResult<KersorRunView | undefined>>
+    snapshot: () => Promise<RemoteResult<KersorViewerSnapshot>>
   }
   interface TypertRemoteMap {
-    'kersorViewer/listClassicSessions': () => Promise<RemoteResult<KersorClassicSnapshot>>
-    'kersorViewer/listRuns': () => Promise<RemoteResult<KersorRunRef[]>>
+    'kersorViewer/classicSessionDetail': (sessionDir: string) => Promise<RemoteResult<KersorClassicSessionDetail | undefined>>
     'kersorViewer/runBacklog': (runDir: string) => Promise<RemoteResult<KersorRunView | undefined>>
+    'kersorViewer/snapshot': () => Promise<RemoteResult<KersorViewerSnapshot>>
   }
   interface TypertRemoteNamespaceMap {
     'kersorViewer': TypertRemoteNamespace$6b6572736f72566965776572

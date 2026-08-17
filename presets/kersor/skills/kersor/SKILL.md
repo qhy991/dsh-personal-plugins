@@ -13,20 +13,31 @@ Use the bridge installed beside this skill:
 
 ```bash
 bridge="${DSH_HOME:-$HOME/.dsh}/.agent-presets/kersor/bin/kersor_bridge.py"
-kersor_root="$(python3 "$bridge" root)"
+kersor_root="$("${KERSOR_PYTHON:-python3}" "$bridge" root)"
 ```
 
 `KERSOR_ROOT` overrides the checkout recorded by the installer. If resolution fails, stop and report the bridge diagnostic instead of guessing a path.
+`KERSOR_PYTHON` is the Python 3.10+ interpreter used by every bridge call; when
+unset, the DSH Host's `python3` is used. Do not replace the resolved interpreter
+with a different `python3` later in the session.
 
 Before changing a KerSor checkout, read `$kersor_root/AGENTS.md`. Before running a workflow, read the relevant current command protocol under `$kersor_root/commands/` and any file it directly names.
 
 ## Route the request
 
-- For a kernel file or task directory, preflight the direct route with `python3 "$bridge" compose optimize --path <path> --json`.
-- For a bundled case, list or match cases first, then use `python3 "$bridge" compose build --case <id> --json`.
-- For environment diagnosis, use `python3 "$bridge" doctor --runtime auto`.
+- For a kernel file or task directory, preflight the direct route with `"${KERSOR_PYTHON:-python3}" "$bridge" compose optimize --path <path> --json`.
+- For a bundled case, list or match cases first, then use `"${KERSOR_PYTHON:-python3}" "$bridge" compose build --case <id> --json`.
+- For environment diagnosis, use `"${KERSOR_PYTHON:-python3}" "$bridge" doctor --runtime auto`.
 - For status, call `kersor_status` first with an empty argument object. It always reads the current DSH workspace; never pass the KerSor checkout or another filesystem path. It reads canonical Session and Attempt Result stores and renders the live round, workflow, best measured speedup, target, fit, and recent decisions.
 - For resume, trace, campaign, research, export, or a named workflow, read the matching `$kersor_root/commands/<name>.md` protocol. Use `kersor_status` before resume or diagnosis so the current session—not chat memory—sets the starting point.
+
+For a direct task, preserve an explicit typed contract as composer flags such as
+`--backend python --language python_reference`; do not hide those fields in
+`--note`. When the user explicitly authorizes KerSor to create a task-native
+Workflow, add `--allow-workflow-authoring` and, when specified, its
+`--workflow-authoring-budget`. `--yolo` is not a creation grant. Workflow
+evolution remains a Research Runner capability and must follow the current
+`commands/research.md` protocol when the user explicitly authorizes it.
 
 The composer emits a `/kersor:<command>` string as validated parameter binding. It is not a shell command. Execute the matching command protocol with the tools available in DSH, preserving its gates, evidence files, confirmation points, budgets, and stop semantics.
 
@@ -67,7 +78,7 @@ create a task-native workflow, preserve that grounded topology in the direct
 preflight instead of routing by filename alone:
 
 ```bash
-python3 "$bridge" compose optimize --path <task-dir> \
+"${KERSOR_PYTHON:-python3}" "$bridge" compose optimize --path <task-dir> \
   --integration-pattern custom_simulator \
   --allow-workflow-authoring --workflow-authoring-budget 1 --json
 ```

@@ -121,14 +121,15 @@ def normalize_generated_bundles(viewer: Path, ui: Path, zod_version: str) -> Non
         "//#region ../../../node_modules/zod/",
         f"//#region ../../../node_modules/.pnpm/zod@{zod_version}/node_modules/zod/",
     )
-    css_prefix = re.search(r"\.([A-Za-z0-9]{6})_layer", client)
+    css_prefix = re.search(r"\.([A-Za-z0-9_-]+)_layer", client)
     if css_prefix is None:
         raise BuildError("generated client bundle lacks the KerSor CSS module")
     client = client.replace(f"{css_prefix.group(1)}_", "krsr01_")
-    class_map = re.search(
-        r"(?ms)^(\s*var KersorPanel_module_css_default = \{\n)(.*?)(^\s*\};)$",
+    class_maps = re.finditer(
+        r"(?ms)^(\s*var [A-Za-z0-9_$]+_default = \{\n)(.*?)(^\s*\};)$",
         client,
     )
+    class_map = next((match for match in class_maps if '"layer"' in match.group(2)), None)
     if class_map is None:
         raise BuildError("generated client bundle lacks the KerSor CSS class map")
     entries = sorted(

@@ -1,29 +1,17 @@
 /**
- * KerSor viewer browser half: sidebar run-inventory panel refreshed through
- * generated viewer and optional launcher Remote namespaces.
+ * KerSor viewer browser half: one atomic Host snapshot plus optional launcher
+ * process ownership, rendered in the sidebar.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
-import launcherContribution from '@deepseek-ai/dsh-kersor/remote';
-import viewerContribution from '@deepseek-ai/dsh-kersor-viewer/remote';
 import { KersorPanel } from "./KersorPanel.js";
 import { KersorViewerStore } from "./store.js";
 import { en, NS, zh } from "./locales.js";
 export { KersorViewerStore as KersorViewerStoreClass } from "./store.js";
 export { NS };
-/** Required services: viewer UI seams and the generic Remote carrier. */
-export const inject = ['slots', 'locale', 'remote'];
-/** Mount the KerSor viewer surfaces over Host snapshot remotes. */
-export async function apply(ctx) {
-    // Own the generated contributions here so a third-party install does not
-    // need to edit dsh's core Remote assembly. The viewer is required; the
-    // launcher remains optional and hides its controls after an unavailable call.
-    const remoteDisposers = [await ctx.remote.$mount(viewerContribution)];
-    try {
-        remoteDisposers.push(await ctx.remote.$mount(launcherContribution));
-    }
-    catch {
-        // Read-only viewer mode remains useful without a launcher namespace.
-    }
+/** Required services: viewer UI seams, assembled Remotes, and Host inventory. */
+export const inject = ['slots', 'locale', 'remote', 'remote.pluginInventory'];
+/** Mount the KerSor viewer surfaces over the API assembly's Remote namespaces. */
+export function apply(ctx) {
     ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'kersor-viewer: dictionaries');
     const store = new KersorViewerStore();
     const launcherRemote = () => ctx.get('remote.kersor');
@@ -33,41 +21,47 @@ export async function apply(ctx) {
             throw new Error('KerSor viewer Remote is not mounted');
         return remote;
     };
+    const launcherHostAvailable = async () => {
+        const answered = await ctx.remote.pluginInventory.list();
+        if (!answered.ok)
+            return false;
+        return answered.value.entries.some(entry => entry.moduleName === '@deepseek-ai/dsh-kersor'
+            && entry.enabled
+            && entry.fiberPhase === 'active');
+    };
     const refreshViewer = async () => {
         try {
             const remote = viewerRemote();
-            const [answered, classic] = await Promise.all([
-                remote.listRuns(),
-                remote.listClassicSessions(),
-            ]);
-            if (!answered.ok)
-                store.setError(`${answered.error.code}: ${answered.error.message}`);
-            else
-                store.setInventory(answered.value);
-            if (!classic.ok)
-                store.setClassicWarning(`${classic.error.code}: ${classic.error.message}`);
-            else
-                store.setClassic(classic.value);
-            if (!answered.ok)
+            const answered = await remote.snapshot();
+            if (!answered.ok) {
+                store.setTransportError(`${answered.error.code}: ${answered.error.message}`);
                 return;
+            }
+            store.setSnapshot(answered.value);
             const selected = store.selectedRunDir;
             if (selected !== undefined) {
                 const backlog = await remote.runBacklog(selected);
-                if (backlog.ok)
-                    store.setBacklog(selected, backlog.value);
+                if (!backlog.ok) {
+                    store.setTransportError(`${backlog.error.code}: ${backlog.error.message}`);
+                    return;
+                }
+                store.setBacklog(selected, backlog.value);
             }
+            const selectedClassic = store.selectedClassicSessionDir;
+            if (selectedClassic !== undefined)
+                await loadClassic(selectedClassic);
         }
         catch (error) {
-            store.setError(error instanceof Error ? error.message : String(error));
+            store.setTransportError(error instanceof Error ? error.message : String(error));
         }
     };
     const refreshLauncher = async () => {
-        const launcher = launcherRemote();
-        if (launcher === undefined) {
-            store.setLauncherUnavailable();
-            return;
-        }
         try {
+            const launcher = launcherRemote();
+            if (!await launcherHostAvailable() || launcher === undefined) {
+                store.setLauncherUnavailable();
+                return;
+            }
             const [tasks, active] = await Promise.all([
                 launcher.listTasks(),
                 launcher.listActive(),
@@ -79,19 +73,34 @@ export async function apply(ctx) {
             store.setLauncher(tasks.value, active.value);
         }
         catch {
+            // Optional launcher discovery must not disable the read-only viewer.
             store.setLauncherUnavailable();
+        }
+    };
+    const loadClassic = async (sessionDir) => {
+        store.setClassicDetailLoading(sessionDir);
+        try {
+            const answered = await viewerRemote().classicSessionDetail(sessionDir);
+            if (!answered.ok) {
+                store.setClassicDetailError(sessionDir, `${answered.error.code}: ${answered.error.message}`);
+                return;
+            }
+            store.setClassicDetail(sessionDir, answered.value);
+        }
+        catch (error) {
+            store.setClassicDetailError(sessionDir, error instanceof Error ? error.message : String(error));
         }
     };
     const refresh = async () => {
         await Promise.all([refreshViewer(), refreshLauncher()]);
     };
     const start = async (taskId) => {
-        const launcher = launcherRemote();
-        if (launcher === undefined) {
-            store.setLauncherUnavailable();
-            return;
-        }
         try {
+            const launcher = launcherRemote();
+            if (!await launcherHostAvailable() || launcher === undefined) {
+                store.setLauncherUnavailable();
+                return;
+            }
             const answered = await launcher.start(taskId);
             if (!answered.ok) {
                 store.setLauncherError(`${answered.error.code}: ${answered.error.message}`);
@@ -105,12 +114,12 @@ export async function apply(ctx) {
         }
     };
     const stop = async (runDir) => {
-        const launcher = launcherRemote();
-        if (launcher === undefined) {
-            store.setLauncherUnavailable();
-            return;
-        }
         try {
+            const launcher = launcherRemote();
+            if (!await launcherHostAvailable() || launcher === undefined) {
+                store.setLauncherUnavailable();
+                return;
+            }
             const answered = await launcher.stop(runDir);
             if (!answered.ok) {
                 store.setLauncherError(`${answered.error.code}: ${answered.error.message}`);
@@ -127,21 +136,22 @@ export async function apply(ctx) {
         store.reset();
         void refresh();
     });
-    ctx.effect(() => {
-        void refresh();
-        const timer = setInterval(() => { void refresh(); }, 2000);
-        return () => { clearInterval(timer); };
-    }, 'kersor-viewer: remote snapshot polling');
-    const face = { store, refresh, start, stop };
+    ctx.remote.$on('kersor/event', (frame) => {
+        store.applyFrame(frame);
+        if (frame.kind === 'snapshot' && store.selectedClassicSessionDir !== undefined) {
+            void loadClassic(store.selectedClassicSessionDir);
+        }
+    });
+    ctx.remote.$on('kersor/active', (frame) => {
+        store.applyActiveFrame(frame);
+    });
+    void refresh();
+    const face = { store, refresh, loadClassic, start, stop };
     ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
         name: 'sidebar.footer.action',
         id: 'kersor-panel',
         locale: NS,
         inject: () => face,
     }, KersorPanel));
-    return async () => {
-        for (const dispose of remoteDisposers.reverse())
-            await dispose();
-    };
 }
 //# sourceMappingURL=index.js.map

@@ -1,14 +1,15 @@
 /**
- * Browser-side viewer store: run inventory plus folded run views, fed by the
- * forwarded `kersor/event` Host frames and the `listRuns`/`runBacklog`
- * remotes. A useSyncExternalStore-compatible snapshot observable.
+ * Browser-side KerSor viewer store. One Host snapshot owns inventory,
+ * classic Sessions, and source health; folded run views and launcher process
+ * ownership remain orthogonal client-side accounts.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
-/** Snapshot store over the run inventory and per-run folded views. */
+/** Snapshot store over the Host projection and per-run folded views. */
 export class KersorViewerStore {
-    state = { rows: [], classicSessions: [], loading: true };
+    state = { views: new Map(), classicDetails: new Map(), loading: true };
     listeners = new Set();
     selected;
+    selectedClassic;
     /** Stable snapshot for useSyncExternalStore. */
     getSnapshot = () => this.state;
     /** Subscribe to snapshot replacements. */
@@ -16,50 +17,100 @@ export class KersorViewerStore {
         this.listeners.add(listener);
         return () => { this.listeners.delete(listener); };
     };
+    /** Latest run inventory joined with independently folded views. */
+    get rows() {
+        return (this.state.snapshot?.runs ?? []).map(ref => ({
+            ...ref,
+            view: this.state.views.get(ref.runDir),
+        }));
+    }
     /** Currently selected run directory (panel-local choice). */
     get selectedRunDir() {
         return this.selected;
     }
-    /** Select a run for the detail view; persists across inventory frames. */
+    /** Currently expanded classic Session directory. */
+    get selectedClassicSessionDir() {
+        return this.selectedClassic;
+    }
+    /**
+     * Expand or collapse one classic Session inspector.
+     * @param sessionDir - Selected Session directory, or `undefined` to collapse.
+     */
+    selectClassic(sessionDir) {
+        this.selectedClassic = sessionDir;
+        this.emit();
+    }
+    /** Select a run for the detail view; persists across Host snapshots. */
     select(runDir) {
         this.selected = runDir;
         this.emit();
     }
-    /** The selected run's folded view, falling back to the best active run. */
+    /** Selected folded view, falling back to a real available run view. */
     get activeView() {
-        const byDir = this.selected !== undefined
-            ? this.state.rows.find(row => row.runDir === this.selected)
-            : undefined;
-        const row = byDir ?? this.state.rows.find(candidate => candidate.discovery === 'active') ?? this.state.rows[0];
-        return row?.view ?? (row !== undefined ? emptyViewOf(row) : undefined);
-    }
-    /** Replace the inventory half from a `listRuns` remote answer. */
-    setInventory(refs) {
-        const byDir = new Map(this.state.rows.map(row => [row.runDir, row]));
-        const rows = refs.map(ref => ({ ...ref, view: byDir.get(ref.runDir)?.view }));
-        this.state = { ...this.state, rows, loading: false };
-        this.emit();
-    }
-    /** Replace the classic optimization Session inventory independently. */
-    setClassic(snapshot) {
-        const next = { ...this.state, classicSessions: snapshot.sessions };
-        if (snapshot.warning === undefined) {
-            const { classicWarning: _, ...state } = next;
-            this.state = state;
+        if (this.selected !== undefined)
+            return this.state.views.get(this.selected);
+        const active = this.state.snapshot?.runs.find(ref => ref.discovery === 'active');
+        if (active !== undefined)
+            return this.state.views.get(active.runDir);
+        for (const ref of this.state.snapshot?.runs ?? []) {
+            const view = this.state.views.get(ref.runDir);
+            if (view !== undefined)
+                return view;
         }
-        else {
-            this.state = { ...next, classicWarning: snapshot.warning };
+        return undefined;
+    }
+    /** Atomically replace inventory, classic Sessions, and diagnostics. */
+    setSnapshot(snapshot) {
+        const live = new Set(snapshot.runs.map(ref => ref.runDir));
+        const views = new Map([...this.state.views].filter(([runDir]) => live.has(runDir)));
+        const liveClassic = new Set(snapshot.classic.sessions.map(session => session.session_dir));
+        const classicDetails = new Map([...this.state.classicDetails].filter(([sessionDir]) => liveClassic.has(sessionDir)));
+        if (this.selectedClassic !== undefined && !liveClassic.has(this.selectedClassic)) {
+            this.selectedClassic = undefined;
         }
+        const { transportError: _, ...state } = this.state;
+        const loading = snapshot.diagnostics.scan.state === 'never'
+            || snapshot.diagnostics.scan.state === 'running';
+        this.state = { ...state, snapshot, views, classicDetails, loading };
         this.emit();
     }
-    /** Keep a classic-adapter failure separate from autonomous-run reads. */
-    setClassicWarning(message) {
-        this.state = { ...this.state, classicWarning: message };
+    /** Record a Remote/connection failure without overwriting Host diagnostics. */
+    setTransportError(message) {
+        this.state = { ...this.state, loading: false, transportError: message };
         this.emit();
     }
-    /** Mark a failed inventory read. */
-    setError(message) {
-        this.state = { ...this.state, loading: false, error: message };
+    /**
+     * Mark one selected classic Session detail as loading.
+     * @param sessionDir - Session whose on-demand detail is loading.
+     */
+    setClassicDetailLoading(sessionDir) {
+        const { classicDetailError: _, ...state } = this.state;
+        this.state = { ...state, classicDetailLoading: sessionDir };
+        this.emit();
+    }
+    /**
+     * Store one successful classic Session detail answer.
+     * @param sessionDir - Session owning the answer.
+     * @param detail - Valid inspector detail, or `undefined` when unavailable.
+     */
+    setClassicDetail(sessionDir, detail) {
+        const { classicDetailLoading: _, classicDetailError: __, ...state } = this.state;
+        const classicDetails = new Map(state.classicDetails);
+        if (detail === undefined)
+            classicDetails.delete(sessionDir);
+        else
+            classicDetails.set(sessionDir, detail);
+        this.state = { ...state, classicDetails };
+        this.emit();
+    }
+    /**
+     * Record a bounded detail-read failure without replacing the summary snapshot.
+     * @param sessionDir - Session whose detail failed.
+     * @param message - Remote transport diagnostic.
+     */
+    setClassicDetailError(sessionDir, message) {
+        const { classicDetailLoading: _, ...state } = this.state;
+        this.state = { ...state, classicDetailError: `${sessionDir}: ${message}` };
         this.emit();
     }
     /** Replace the optional launcher's configured-task and owned-process inventory. */
@@ -91,54 +142,34 @@ export class KersorViewerStore {
     }
     /** Apply one forwarded Host frame. */
     applyFrame(frame) {
-        if (frame.kind === 'runs') {
-            this.setInventory(frame.runs);
+        if (frame.kind === 'snapshot') {
+            this.setSnapshot(frame.snapshot);
             return;
         }
-        const rows = this.state.rows.some(row => row.runDir === frame.run.runDir)
-            ? this.state.rows.map(row => row.runDir === frame.run.runDir ? { ...row, view: frame.run } : row)
-            : [...this.state.rows, { ...refOf(frame.run), view: frame.run }];
-        this.state = { ...this.state, rows, loading: false };
+        const views = new Map(this.state.views);
+        views.set(frame.run.runDir, frame.run);
+        this.state = { ...this.state, views, loading: false };
         this.emit();
     }
-    /** Store the backlog answer of `runBacklog` (panel open / reconnect). */
+    /** Store a successful `runBacklog` answer. Undefined never fabricates zeros. */
     setBacklog(runDir, view) {
         if (view === undefined)
             return;
-        const rows = this.state.rows.some(row => row.runDir === runDir)
-            ? this.state.rows.map(row => row.runDir === runDir ? { ...row, view } : row)
-            : [...this.state.rows, { ...refOf(view), view }];
-        this.state = { ...this.state, rows, loading: false };
+        const views = new Map(this.state.views);
+        views.set(runDir, view);
+        this.state = { ...this.state, views, loading: false };
         this.emit();
     }
-    /** Drop everything (connection reset). */
+    /** Drop connection-scoped state. */
     reset() {
-        this.state = { rows: [], classicSessions: [], loading: true };
+        this.state = { views: new Map(), classicDetails: new Map(), loading: true };
         this.selected = undefined;
+        this.selectedClassic = undefined;
         this.emit();
     }
     emit() {
         for (const listener of this.listeners)
             listener();
     }
-}
-function refOf(view) {
-    return {
-        runId: view.runId,
-        runDir: view.runDir,
-        sessionDir: view.sessionDir,
-        root: '',
-        discovery: view.status === 'running' ? 'active' : view.status === 'failed' ? 'failed' : 'completed',
-        view,
-    };
-}
-function emptyViewOf(row) {
-    return {
-        runId: row.runId, runDir: row.runDir, sessionDir: row.sessionDir,
-        status: row.discovery === 'active' ? 'running' : row.discovery,
-        currentPhase: '',
-        phases: [],
-        totals: { calls: 0, completed: 0, failed: 0, tokens: 0 },
-    };
 }
 //# sourceMappingURL=store.js.map

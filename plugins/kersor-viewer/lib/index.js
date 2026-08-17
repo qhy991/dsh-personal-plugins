@@ -798,6 +798,299 @@ defineMethod("transform", [
 	"preserve"
 ], ({ inner }, isInner) => inner.toString(isInner));
 //#endregion
+//#region lib/types/diagnostics.js
+/**
+* Bounded, content-free diagnostics shared by KerSor viewer sources.
+* @module @deepseek-ai/dsh-kersor-viewer
+*/
+/** Create a safe issue from a runtime failure without retaining its message. */
+function issueFromError(stage, error, severity = "error") {
+	return createIssue(stage, classifyError(stage, error), severity);
+}
+/** Create a safe issue for a validated failure code. */
+function createIssue(stage, code, severity = "error") {
+	return {
+		stage,
+		code,
+		severity,
+		occurrences: 1,
+		lastSeenAt: (/* @__PURE__ */ new Date()).toISOString()
+	};
+}
+/** Merge repeated identical failures while bounding history to the latest kind. */
+function mergeIssue(previous, current) {
+	if (previous?.stage !== current.stage || previous.code !== current.code) return current;
+	return {
+		...current,
+		occurrences: previous.occurrences + 1
+	};
+}
+/** Return whether an unknown exception carries a Node-style error code. */
+function errorCode(error) {
+	return typeof error === "object" && error !== null && "code" in error ? String(error.code) : void 0;
+}
+function classifyError(stage, error) {
+	if (error instanceof SyntaxError) return "invalid_json";
+	const code = errorCode(error);
+	if (code === "EACCES" || code === "EPERM") return "permission_denied";
+	if (code === "ETIMEDOUT") return "timeout";
+	if (code === "ENOENT") return stage === "classic_bridge" ? "process_unavailable" : "not_found";
+	if (stage === "tailer_watch") return "watch_unavailable";
+	if (code !== void 0) return "io_error";
+	return "unexpected";
+}
+//#endregion
+//#region lib/types/classic.js
+/**
+* Read-only adapter from the installed KerSor preset bridge to the viewer.
+* @module @deepseek-ai/dsh-kersor-viewer
+*/
+const execFileAsync = promisify(execFile);
+function dshHome() {
+	const configured = process.env.DSH_HOME?.trim();
+	if (!configured) return path.join(homedir(), ".dsh");
+	if (configured === "~") return homedir();
+	return configured.startsWith("~/") ? path.join(homedir(), configured.slice(2)) : path.resolve(configured);
+}
+/** Path copied by the portable preset installer. */
+function installedBridge() {
+	return path.join(dshHome(), ".agent-presets", "kersor", "bin", "kersor_bridge.py");
+}
+function kersorPython() {
+	return process.env.KERSOR_PYTHON?.trim() || "python3";
+}
+function optionalString(value) {
+	return value === void 0 || value === null || typeof value === "string";
+}
+function optionalDetailString(value) {
+	return value === void 0 || typeof value === "string";
+}
+function optionalBoolean(value) {
+	return value === void 0 || value === null || typeof value === "boolean";
+}
+function optionalNumber(value) {
+	return value === void 0 || value === null || typeof value === "number";
+}
+function optionalGate(value) {
+	return value === void 0 || value === null || value === "pass" || value === "fail" || value === "pending" || value === "not_required";
+}
+function optionalBaselineAction(value) {
+	return value === void 0 || value === null || value === "init" || value === "record_verify" || value === "new_session";
+}
+function stringArray(value) {
+	return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+function isClassicArtifact(value) {
+	if (value === null || typeof value !== "object") return false;
+	const artifact = value;
+	return typeof artifact.name === "string" && typeof artifact.sha256 === "string" && typeof artifact.bytes === "number" && Number.isInteger(artifact.bytes) && artifact.bytes >= 0;
+}
+function isClassicValidationCheck(value) {
+	if (value === null || typeof value !== "object") return false;
+	const check = value;
+	return typeof check.name === "string" && typeof check.passed === "boolean";
+}
+function isClassicSessionDetail(value) {
+	if (value === null || typeof value !== "object") return false;
+	const detail = value;
+	if (typeof detail.session_id !== "string" || typeof detail.session_dir !== "string" || typeof detail.current_round !== "number" || !Number.isInteger(detail.current_round) || detail.current_round < 1 || !Array.isArray(detail.steps)) return false;
+	const validStepIds = new Set([
+		"setup",
+		"baseline",
+		"profile",
+		"selection",
+		"authoring",
+		"validation",
+		"dispatch",
+		"measurement",
+		"decision"
+	]);
+	const validStepStatuses = new Set([
+		"pending",
+		"active",
+		"completed",
+		"failed"
+	]);
+	if (!detail.steps.every((step) => step !== null && typeof step === "object" && validStepIds.has(step.id) && validStepStatuses.has(step.status))) return false;
+	const selection = detail.selection;
+	if (selection === void 0 || ![
+		"pending",
+		"stalled",
+		"selected"
+	].includes(selection.status) || typeof selection.rejectedCount !== "number" || !Number.isInteger(selection.rejectedCount) || selection.rejectedCount < 0 || !optionalDetailString(selection.workflow) || !optionalDetailString(selection.reason)) return false;
+	const authoring = detail.authoring;
+	if (authoring === void 0 || ![
+		"not_started",
+		"in_progress",
+		"sealed",
+		"saved",
+		"rejected"
+	].includes(authoring.status) || !Array.isArray(authoring.files) || !authoring.files.every(isClassicArtifact)) return false;
+	if (authoring.omittedReason !== void 0 && ![
+		"too_large",
+		"invalid",
+		"hash_mismatch"
+	].includes(authoring.omittedReason)) return false;
+	if (authoring.design !== void 0) {
+		const design = authoring.design;
+		if (!optionalDetailString(design.name) || !optionalDetailString(design.technique) || !optionalDetailString(design.methodCategory) || !optionalDetailString(design.topology) || !stringArray(design.requiredArgs) || !stringArray(design.languages) || !stringArray(design.backends) || !stringArray(design.integrationPatterns) || typeof design.rationale !== "string" || typeof design.source !== "string") return false;
+	}
+	const validation = detail.validation;
+	if (validation === void 0 || ![
+		"pending",
+		"passed",
+		"failed"
+	].includes(validation.status) || !Array.isArray(validation.checks) || !validation.checks.every(isClassicValidationCheck)) return false;
+	const dispatch = detail.dispatch;
+	return dispatch !== void 0 && [
+		"pending",
+		"preparing",
+		"running",
+		"completed",
+		"failed"
+	].includes(dispatch.status) && optionalDetailString(dispatch.runDir) && optionalDetailString(dispatch.runtimeStatus);
+}
+function isClassicSession(value) {
+	if (value === null || typeof value !== "object") return false;
+	const row = value;
+	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && optionalString(row.kernel_language) && optionalString(row.backend) && optionalString(row.integration_pattern) && optionalBoolean(row.allow_workflow_authoring) && optionalNumber(row.workflow_authoring_budget) && (row.selection_status === void 0 || row.selection_status === null || [
+		"pending",
+		"stalled",
+		"selected"
+	].includes(row.selection_status)) && optionalString(row.decision) && optionalString(row.fit_confidence) && optionalGate(row.baseline_witness) && optionalBaselineAction(row.baseline_next_action) && optionalString(row.baseline_reason) && optionalGate(row.dsh_compatibility) && optionalGate(row.candidate_ownership) && optionalGate(row.fresh_session) && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
+}
+function projectSession(row) {
+	return {
+		session_id: row.session_id,
+		session_dir: row.session_dir,
+		storage_kind: row.storage_kind,
+		phase: row.phase ?? null,
+		lifecycle: row.lifecycle,
+		status: row.status,
+		health: row.health,
+		started_at: row.started_at ?? null,
+		last_activity_at: row.last_activity_at ?? null,
+		current_round: row.current_round ?? null,
+		max_workflows: row.max_workflows ?? null,
+		target_speedup: row.target_speedup ?? null,
+		target_met: row.target_met ?? null,
+		mode: row.mode ?? null,
+		backend: row.backend ?? null,
+		kernel_language: row.kernel_language ?? null,
+		integration_pattern: row.integration_pattern ?? null,
+		allow_workflow_authoring: row.allow_workflow_authoring ?? null,
+		workflow_authoring_budget: row.workflow_authoring_budget ?? null,
+		kernel_name: row.kernel_name ?? null,
+		workflow: row.workflow ?? null,
+		selection_status: row.selection_status ?? null,
+		decision: row.decision ?? null,
+		fit_confidence: row.fit_confidence ?? null,
+		baseline_witness: row.baseline_witness ?? null,
+		baseline_next_action: row.baseline_next_action ?? null,
+		baseline_reason: row.baseline_reason ?? null,
+		dsh_compatibility: row.dsh_compatibility ?? null,
+		candidate_ownership: row.candidate_ownership ?? null,
+		fresh_session: row.fresh_session ?? null,
+		best_speedup: row.best_speedup ?? null,
+		warningCount: row.warnings.length
+	};
+}
+/**
+* Read a sealed, bounded inspector projection for one classic Session.
+* @param sessionDir - Exact Session directory already discovered by the Host.
+* @returns Valid detail, or `undefined` when the bridge cannot provide it.
+*/
+async function readClassicSessionDetail(sessionDir) {
+	try {
+		const { stdout } = await execFileAsync(kersorPython(), [
+			installedBridge(),
+			"session-detail",
+			"--session",
+			path.resolve(sessionDir)
+		], {
+			encoding: "utf8",
+			maxBuffer: 2 * 1024 * 1024,
+			timeout: 1e4
+		});
+		const decoded = JSON.parse(stdout);
+		return isClassicSessionDetail(decoded) ? decoded : void 0;
+	} catch {
+		return;
+	}
+}
+/** Invoke the installed bridge without a shell and return a bounded snapshot. */
+async function readClassicSessions(limit, staleAfterSeconds = 1800, roots = {}) {
+	const bridge = installedBridge();
+	try {
+		await access(bridge);
+	} catch (error) {
+		if (errorCode(error) === "ENOENT") return {
+			sessions: [],
+			source: { state: "not_installed" }
+		};
+		return {
+			sessions: [],
+			source: {
+				state: "failed",
+				lastIssue: issueFromError("classic_bridge", error)
+			}
+		};
+	}
+	try {
+		const args = [
+			bridge,
+			"sessions",
+			"--limit",
+			String(limit),
+			"--stale-after",
+			String(staleAfterSeconds)
+		];
+		for (const root of roots.sessionRoots ?? []) if (root.trim()) args.push("--root", root);
+		for (const workspace of roots.workspaceRoots ?? []) if (workspace.trim()) args.push("--workspace", workspace);
+		if (roots.includeCheckoutRoot === false) args.push("--no-checkout-root");
+		const { stdout } = await execFileAsync(kersorPython(), args, {
+			encoding: "utf8",
+			maxBuffer: 2 * 1024 * 1024,
+			timeout: 1e4
+		});
+		let decoded;
+		try {
+			decoded = JSON.parse(stdout);
+		} catch (error) {
+			return {
+				sessions: [],
+				source: {
+					state: "failed",
+					lastIssue: issueFromError("classic_bridge", error)
+				}
+			};
+		}
+		if (!Array.isArray(decoded.sessions) || !decoded.sessions.every(isClassicSession)) return {
+			sessions: [],
+			source: {
+				state: "failed",
+				lastIssue: createIssue("classic_bridge", "invalid_payload")
+			}
+		};
+		const degraded = Array.isArray(decoded.warnings) && decoded.warnings.length > 0;
+		return {
+			sessions: decoded.sessions.slice(0, limit).map(projectSession),
+			source: degraded ? {
+				state: "degraded",
+				lastIssue: createIssue("classic_bridge", "io_error", "warning")
+			} : { state: "healthy" }
+		};
+	} catch (error) {
+		return {
+			sessions: [],
+			source: {
+				state: "failed",
+				lastIssue: issueFromError("classic_bridge", error)
+			}
+		};
+	}
+}
+//#endregion
 //#region lib/types/fold.js
 /**
 * Pure fold of a KerSor `events.jsonl` stream into the viewer's run view
@@ -960,142 +1253,109 @@ function createRunView(runId, runDir, sessionDir) {
 	};
 }
 //#endregion
-//#region lib/types/classic.js
-/**
-* Read-only adapter from the installed KerSor preset bridge to the viewer.
-* KerSor's Python SessionStore remains the canonical parser for both v2 and
-* legacy state; this module only launches the bounded projection and checks
-* its wire shape.
-* @module @deepseek-ai/dsh-kersor-viewer
-*/
-const execFileAsync = promisify(execFile);
-function dshHome() {
-	const configured = process.env.DSH_HOME?.trim();
-	if (!configured) return path.join(homedir(), ".dsh");
-	if (configured === "~") return homedir();
-	return configured.startsWith("~/") ? path.join(homedir(), configured.slice(2)) : path.resolve(configured);
-}
-/** Path copied by the portable preset installer. */
-function installedBridge() {
-	return path.join(dshHome(), ".agent-presets", "kersor", "bin", "kersor_bridge.py");
-}
-function isClassicSession(value) {
-	if (value === null || typeof value !== "object") return false;
-	const row = value;
-	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && (row.baseline_next_action == null || row.baseline_next_action === "init" || row.baseline_next_action === "record_verify" || row.baseline_next_action === "new_session") && (row.baseline_reason == null || typeof row.baseline_reason === "string") && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
-}
-/** Invoke the installed bridge without a shell and return a bounded snapshot. */
-async function readClassicSessions(limit, staleAfterSeconds = 1800, roots = {}) {
-	const bridge = installedBridge();
-	try {
-		await access(bridge);
-	} catch {
-		return { sessions: [] };
-	}
-	try {
-		const args = [
-			bridge,
-			"sessions",
-			"--limit",
-			String(limit),
-			"--stale-after",
-			String(staleAfterSeconds)
-		];
-		for (const root of roots.sessionRoots ?? []) if (root.trim()) args.push("--root", root);
-		for (const workspace of roots.workspaceRoots ?? []) if (workspace.trim()) args.push("--workspace", workspace);
-		if (roots.includeCheckoutRoot === false) args.push("--no-checkout-root");
-		const { stdout } = await execFileAsync("python3", args, {
-			encoding: "utf8",
-			maxBuffer: 2 * 1024 * 1024,
-			timeout: 1e4
-		});
-		const decoded = JSON.parse(stdout);
-		if (!Array.isArray(decoded.sessions) || !decoded.sessions.every(isClassicSession)) return {
-			sessions: [],
-			warning: "KerSor bridge returned an invalid session inventory"
-		};
-		const warning = Array.isArray(decoded.warnings) && decoded.warnings.every((item) => typeof item === "string") && decoded.warnings.length > 0 ? decoded.warnings.join("; ") : void 0;
-		return {
-			sessions: decoded.sessions.slice(0, limit),
-			...warning === void 0 ? {} : { warning }
-		};
-	} catch (error) {
-		const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : void 0;
-		return {
-			sessions: [],
-			warning: `KerSor session inventory unavailable${code === void 0 ? "" : ` (${code})`}`
-		};
-	}
-}
-//#endregion
 //#region lib/types/scanner.js
 /**
-* Root-directory discovery of KerSor autonomous runs. A root is scanned for
-* Session-v2 directories (`session-config.json` + `state.json`) that carry an
-* `autonomous-runs/` child; each child directory is one run.
+* Root-directory discovery of KerSor autonomous runs and bounded source observations.
 * @module @deepseek-ai/dsh-kersor-viewer
 */
 /** Default roots scanned in addition to configured ones. */
 const DEFAULT_KERSOR_ROOTS = [path.join(homedir(), ".local", "share", "kersor"), path.join(homedir(), "Agent4Kernel", "KerSor", ".kersor")];
-async function configuredCheckout() {
-	const fromEnvironment = process.env.KERSOR_ROOT?.trim();
-	if (fromEnvironment) return path.resolve(expandHome(fromEnvironment));
-	const dshHome = process.env.DSH_HOME?.trim();
-	const pointer = path.join(dshHome ? expandHome(dshHome) : path.join(homedir(), ".dsh"), ".agent-presets", "kersor", ".local", "kersor-root");
-	try {
-		const recorded = (await readFile(pointer, "utf8")).trim();
-		return recorded ? path.resolve(expandHome(recorded)) : void 0;
-	} catch {
-		return;
-	}
-}
 function expandHome(value) {
 	if (value === "~") return homedir();
 	return value.startsWith("~/") ? path.join(homedir(), value.slice(2)) : value;
 }
-async function exists(entry) {
+async function configuredCheckout() {
+	const fromEnvironment = process.env.KERSOR_ROOT?.trim();
+	if (fromEnvironment) return { root: path.resolve(expandHome(fromEnvironment)) };
+	const dshHome = process.env.DSH_HOME?.trim();
+	const pointer = path.join(dshHome ? expandHome(dshHome) : path.join(homedir(), ".dsh"), ".agent-presets", "kersor", ".local", "kersor-root");
 	try {
-		await readdir(entry);
-		return true;
-	} catch {
-		return false;
+		const recorded = (await readFile(pointer, "utf8")).trim();
+		return recorded ? { root: path.resolve(expandHome(recorded)) } : {};
+	} catch (error) {
+		if (errorCode(error) === "ENOENT") return {};
+		return { issue: issueFromError("checkout_pointer", error, "warning") };
 	}
+}
+function addCandidate(into, root, origin) {
+	const expanded = path.resolve(expandHome(root));
+	if (!into.has(expanded)) into.set(expanded, {
+		root: expanded,
+		origin
+	});
+}
+function recordRootIssue(observation, issue) {
+	observation.lastIssue = mergeIssue(observation.lastIssue, issue);
+	observation.state = observation.state === "failed" ? "failed" : "degraded";
 }
 async function isSessionV2(dir) {
 	try {
 		const entries = await readdir(dir, { withFileTypes: true });
-		return entries.some((entry) => entry.isFile() && entry.name === "session-config.json") && entries.some((entry) => entry.isFile() && entry.name === "state.json");
-	} catch {
-		return false;
+		return { accepted: entries.some((entry) => entry.isFile() && entry.name === "session-config.json") && entries.some((entry) => entry.isFile() && entry.name === "state.json") };
+	} catch (error) {
+		const code = errorCode(error);
+		if (code === "ENOENT" || code === "ENOTDIR") return { accepted: false };
+		return {
+			accepted: false,
+			issue: issueFromError("session_inspect", error, "warning")
+		};
 	}
 }
-async function readJson(file) {
+async function readSummary(file) {
+	let text;
 	try {
-		return JSON.parse(await (await import("node:fs/promises")).readFile(file, "utf8"));
-	} catch {
-		return;
+		text = await readFile(file, "utf8");
+	} catch (error) {
+		if (errorCode(error) === "ENOENT") return {};
+		return { issue: issueFromError("summary_read", error, "warning") };
 	}
+	let decoded;
+	try {
+		decoded = JSON.parse(text);
+	} catch (error) {
+		return { issue: issueFromError("summary_read", error, "warning") };
+	}
+	if (decoded === null || typeof decoded !== "object" || Array.isArray(decoded)) return { issue: createIssue("summary_read", "invalid_payload", "warning") };
+	return { value: decoded };
 }
-/** Scan one session directory's `autonomous-runs/` for run children. */
-async function scanSession(sessionDir, root, into) {
+async function scanSession(sessionDir, root) {
 	const runsDir = path.join(sessionDir, "autonomous-runs");
 	let children;
 	try {
-		children = await readdir(runsDir);
-	} catch {
-		return;
+		children = await readdir(runsDir, { withFileTypes: true });
+	} catch (error) {
+		if (errorCode(error) === "ENOENT") return {
+			runs: [],
+			issues: []
+		};
+		return {
+			runs: [],
+			issues: [],
+			issue: issueFromError("runs_scan", error, "warning")
+		};
 	}
-	for (const runId of children) {
+	const runs = [];
+	const issues = [];
+	for (const child of children) {
+		if (!child.isDirectory() && !child.isSymbolicLink()) continue;
+		const runId = child.name;
 		const runDir = path.join(runsDir, runId);
-		if (!await exists(runDir)) continue;
-		const summary = await readJson(path.join(runDir, ".runtime", "summary.json"));
+		const summary = await readSummary(path.join(runDir, ".runtime", "summary.json"));
 		let discovery = "active";
-		if (summary !== void 0) {
-			const status = summary.workflow_status ?? summary.status;
+		if (summary.value !== void 0) {
+			const status = summary.value.workflow_status ?? summary.value.status;
 			if (status === "completed" || status === "waiting") discovery = "completed";
 			else if (status === "error" || status === "failed") discovery = "failed";
+			else if (status !== void 0) issues.push({
+				runDir,
+				issue: createIssue("summary_read", "invalid_payload", "warning")
+			});
 		}
-		into.push({
+		if (summary.issue !== void 0) issues.push({
+			runDir,
+			issue: summary.issue
+		});
+		runs.push({
 			runId,
 			runDir,
 			sessionDir,
@@ -1103,37 +1363,80 @@ async function scanSession(sessionDir, root, into) {
 			discovery
 		});
 	}
+	return {
+		runs,
+		issues
+	};
 }
-/**
-* Scan every root (deduplicated) for KerSor runs.
-* @param roots - configured roots; defaults are appended when `includeDefaults`.
-* @param workspaceRoots - DSH project directories whose `.kersor/` children are scanned.
-* @returns run refs; ordering is unspecified (the service sorts for display).
-*/
+/** Scan all roots and return discovered runs plus bounded observations. */
 async function scanRoots(roots, includeDefaults, workspaceRoots = []) {
-	const checkout = includeDefaults ? await configuredCheckout() : void 0;
-	const defaults = includeDefaults ? [...DEFAULT_KERSOR_ROOTS, ...checkout === void 0 ? [] : [path.join(checkout, ".kersor")]] : [];
-	const all = [...new Set([
-		...roots.map((root) => expandHome(root)),
-		...defaults.map((root) => expandHome(root)),
-		...workspaceRoots.map((root) => path.join(expandHome(root), ".kersor"))
-	])];
-	const found = [];
-	for (const root of all) {
-		const expanded = root;
+	const startedAt = (/* @__PURE__ */ new Date()).toISOString();
+	const checkout = includeDefaults ? await configuredCheckout() : {};
+	const candidates = /* @__PURE__ */ new Map();
+	for (const root of roots) addCandidate(candidates, root, "configured");
+	if (includeDefaults) {
+		for (const root of DEFAULT_KERSOR_ROOTS) addCandidate(candidates, root, "default");
+		if (checkout.root !== void 0) addCandidate(candidates, path.join(checkout.root, ".kersor"), "checkout");
+	}
+	for (const workspace of workspaceRoots) addCandidate(candidates, path.join(workspace, ".kersor"), "workspace");
+	const runs = [];
+	const runIssues = [];
+	const observations = [];
+	for (const candidate of candidates.values()) {
+		const observation = {
+			...candidate,
+			state: "healthy",
+			sessionsExamined: 0,
+			sessionsAccepted: 0,
+			runsFound: 0
+		};
 		let sessions;
 		try {
-			sessions = await readdir(expanded);
-		} catch {
+			sessions = await readdir(candidate.root, { withFileTypes: true });
+		} catch (error) {
+			if (errorCode(error) === "ENOENT") {
+				observation.state = "absent";
+				if (candidate.origin === "configured") observation.lastIssue = issueFromError("root_scan", error, "warning");
+			} else {
+				observation.state = "failed";
+				observation.lastIssue = issueFromError("root_scan", error);
+			}
+			observations.push(observation);
 			continue;
 		}
 		for (const session of sessions) {
-			const sessionDir = path.join(expanded, session);
-			if (!await isSessionV2(sessionDir)) continue;
-			await scanSession(sessionDir, expanded, found);
+			if (!session.isDirectory() && !session.isSymbolicLink()) continue;
+			observation.sessionsExamined += 1;
+			const sessionDir = path.join(candidate.root, session.name);
+			const inspected = await isSessionV2(sessionDir);
+			if (inspected.issue !== void 0) recordRootIssue(observation, inspected.issue);
+			if (!inspected.accepted) continue;
+			observation.sessionsAccepted += 1;
+			const scanned = await scanSession(sessionDir, candidate.root);
+			if (scanned.issue !== void 0) recordRootIssue(observation, scanned.issue);
+			runs.push(...scanned.runs);
+			runIssues.push(...scanned.issues);
+			observation.runsFound += scanned.runs.length;
+			for (const scoped of scanned.issues) recordRootIssue(observation, scoped.issue);
 		}
+		observations.push(observation);
 	}
-	return found;
+	const hasReadable = observations.some((root) => root.state === "healthy" || root.state === "degraded");
+	const state = checkout.issue !== void 0 || observations.some((root) => root.state === "failed" || root.state === "degraded" || root.state === "absent" && root.origin === "configured") ? hasReadable ? "degraded" : "failed" : "healthy";
+	const completedAt = (/* @__PURE__ */ new Date()).toISOString();
+	const lastIssue = checkout.issue ?? [...observations].reverse().find((root) => root.lastIssue !== void 0)?.lastIssue;
+	return {
+		runs,
+		runIssues,
+		observation: {
+			state,
+			startedAt,
+			completedAt,
+			...state === "failed" ? {} : { lastSuccessfulAt: completedAt },
+			roots: observations,
+			...lastIssue === void 0 ? {} : { lastIssue }
+		}
+	};
 }
 //#endregion
 //#region lib/types/tailer.js
@@ -1150,29 +1453,44 @@ var EventsTailer = class {
 	pollMs;
 	onLines;
 	onEnd;
+	onObservation;
 	offset = 0;
 	watcher;
 	timer;
 	reading = false;
 	stopped = false;
+	watchDegraded = false;
+	observationState = {
+		state: "waiting",
+		byteOffset: 0,
+		linesRead: 0
+	};
 	/**
 	* @param file - absolute path to `events.jsonl`.
 	* @param onLines - complete new lines (no trailing newline), in file order.
 	* @param onEnd - optional callback when stop() completes.
+	* @param options - polling interval and optional observation sink.
 	*/
 	constructor(file, onLines, onEnd, options = {}) {
 		this.file = file;
 		this.onLines = onLines;
 		this.onEnd = onEnd;
 		this.pollMs = options.pollMs ?? 300;
+		this.onObservation = options.onObservation;
 	}
 	/** Begin watching; the first drain reads any lines already present. */
 	start() {
 		if (this.stopped) return;
-		this.watcher = watch(path.dirname(this.file), { persistent: false }, (_event, filename) => {
-			if (filename === null || filename === path.basename(this.file)) this.drain();
-		});
-		this.watcher.on("error", () => {});
+		try {
+			this.watcher = watch(path.dirname(this.file), { persistent: false }, (_event, filename) => {
+				if (filename === null || filename === path.basename(this.file)) this.drain();
+			});
+			this.watcher.on("error", (error) => {
+				this.recordWatchIssue(error);
+			});
+		} catch (error) {
+			this.recordWatchIssue(error);
+		}
 		this.timer = setInterval(() => {
 			this.drain();
 		}, this.pollMs);
@@ -1191,6 +1509,10 @@ var EventsTailer = class {
 	get byteOffset() {
 		return this.offset;
 	}
+	/** Complete current tail-source observation. */
+	get observation() {
+		return this.observationState;
+	}
 	/** Read newly appended complete lines; detect truncation and reset. */
 	async drain() {
 		if (this.reading || this.stopped) return;
@@ -1199,37 +1521,87 @@ var EventsTailer = class {
 			let handle;
 			try {
 				handle = await open(this.file, "r");
-			} catch {
+			} catch (error) {
+				if (errorCode(error) === "ENOENT") this.replaceObservation({ state: this.watchDegraded ? "degraded" : "waiting" });
+				else this.recordReadIssue(error);
 				return;
 			}
 			try {
 				const { size } = await handle.stat();
 				if (size < this.offset) this.offset = 0;
-				if (size === this.offset) return;
+				if (size === this.offset) {
+					this.recordReadSuccess(0);
+					return;
+				}
 				const length = size - this.offset;
 				const buffer = Buffer.alloc(length);
 				const { bytesRead } = await handle.read(buffer, 0, length, this.offset);
 				const chunk = buffer.subarray(0, bytesRead).toString("utf8");
 				const lastNewline = chunk.lastIndexOf("\n");
-				if (lastNewline === -1) return;
-				this.offset += lastNewline + 1;
+				if (lastNewline === -1) {
+					this.recordReadSuccess(0);
+					return;
+				}
+				const nextOffset = this.offset + lastNewline + 1;
 				const lines = chunk.slice(0, lastNewline).split("\n").filter((line) => line.length > 0);
 				if (lines.length > 0) this.onLines(lines);
+				this.offset = nextOffset;
+				this.recordReadSuccess(lines.length);
 			} finally {
 				await handle.close();
 			}
-		} catch {} finally {
+		} catch (error) {
+			this.recordReadIssue(error);
+		} finally {
 			this.reading = false;
 		}
+	}
+	recordWatchIssue(error) {
+		this.watchDegraded = true;
+		const issue = issueFromError("tailer_watch", error, "warning");
+		this.observationState = {
+			...this.observationState,
+			state: "degraded",
+			lastIssue: mergeIssue(this.observationState.lastIssue, issue)
+		};
+		this.publishObservation();
+	}
+	recordReadIssue(error) {
+		const issue = issueFromError("tailer_read", error);
+		this.observationState = {
+			...this.observationState,
+			state: "failed",
+			lastIssue: mergeIssue(this.observationState.lastIssue, issue)
+		};
+		this.publishObservation();
+	}
+	recordReadSuccess(lines) {
+		this.observationState = {
+			...this.observationState,
+			state: this.watchDegraded ? "degraded" : "healthy",
+			byteOffset: this.offset,
+			linesRead: this.observationState.linesRead + lines,
+			lastReadAt: (/* @__PURE__ */ new Date()).toISOString()
+		};
+		this.publishObservation();
+	}
+	replaceObservation(replacement) {
+		this.observationState = {
+			...this.observationState,
+			...replacement,
+			byteOffset: this.offset
+		};
+		this.publishObservation();
+	}
+	publishObservation() {
+		this.onObservation?.(this.observationState);
 	}
 };
 //#endregion
 //#region lib/types/service.js
 /**
-* KerSor viewer host service: discovers run directories under configured
-* KerSor roots, tails each active run's `events.jsonl`, folds events into the
-* viewer view model, and pushes updates to every browser page through the
-* forwarded `kersor/event` Host event.
+* KerSor viewer Host service: commits one inventory/diagnostics snapshot and
+* folds each run's event stream for browser consumers.
 * @module @deepseek-ai/dsh-kersor-viewer
 */
 var __runInitializers = function(thisArg, initializers, value) {
@@ -1270,41 +1642,27 @@ var __esDecorate = function(ctor, descriptorIn, decorators, contextIn, initializ
 	if (target) Object.defineProperty(target, contextIn.name, descriptor);
 	done = true;
 };
-/**
-* Host service: run inventory, live event folding, and browser push. Exposes
-* `listRuns` and `runBacklog` remotes for panel open and reconnect.
-*/
+/** Host service owning the viewer's single snapshot and folded run views. */
 let KersorViewerService = (() => {
 	let _classSuper = TypertRemoteService;
 	let _instanceExtraInitializers = [];
-	let _listRuns_decorators;
-	let _listClassicSessions_decorators;
+	let _snapshot_decorators;
 	let _runBacklog_decorators;
+	let _classicSessionDetail_decorators;
 	return class KersorViewerService extends _classSuper {
 		static {
 			const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
-			_listRuns_decorators = [Remote("listRuns")];
-			_listClassicSessions_decorators = [Remote("listClassicSessions")];
+			_snapshot_decorators = [Remote("snapshot")];
 			_runBacklog_decorators = [Remote("runBacklog")];
-			__esDecorate(this, null, _listRuns_decorators, {
+			_classicSessionDetail_decorators = [Remote("classicSessionDetail")];
+			__esDecorate(this, null, _snapshot_decorators, {
 				kind: "method",
-				name: "listRuns",
+				name: "snapshot",
 				static: false,
 				private: false,
 				access: {
-					has: (obj) => "listRuns" in obj,
-					get: (obj) => obj.listRuns
-				},
-				metadata: _metadata
-			}, null, _instanceExtraInitializers);
-			__esDecorate(this, null, _listClassicSessions_decorators, {
-				kind: "method",
-				name: "listClassicSessions",
-				static: false,
-				private: false,
-				access: {
-					has: (obj) => "listClassicSessions" in obj,
-					get: (obj) => obj.listClassicSessions
+					has: (obj) => "snapshot" in obj,
+					get: (obj) => obj.snapshot
 				},
 				metadata: _metadata
 			}, null, _instanceExtraInitializers);
@@ -1316,6 +1674,17 @@ let KersorViewerService = (() => {
 				access: {
 					has: (obj) => "runBacklog" in obj,
 					get: (obj) => obj.runBacklog
+				},
+				metadata: _metadata
+			}, null, _instanceExtraInitializers);
+			__esDecorate(this, null, _classicSessionDetail_decorators, {
+				kind: "method",
+				name: "classicSessionDetail",
+				static: false,
+				private: false,
+				access: {
+					has: (obj) => "classicSessionDetail" in obj,
+					get: (obj) => obj.classicSessionDetail
 				},
 				metadata: _metadata
 			}, null, _instanceExtraInitializers);
@@ -1343,9 +1712,15 @@ let KersorViewerService = (() => {
 		tracked = /* @__PURE__ */ new Map();
 		group;
 		scanTimer;
-		emittedRunsSignature = "";
-		classicSnapshot = { sessions: [] };
 		scanInFlight;
+		scanObservation = {
+			state: "never",
+			roots: []
+		};
+		classicSnapshot = {
+			sessions: [],
+			source: { state: "not_installed" }
+		};
 		/** Create the service under the Host composition. */
 		constructor(ctx, config) {
 			super(ctx, "kersorViewer");
@@ -1385,22 +1760,50 @@ let KersorViewerService = (() => {
 			});
 			return this.group;
 		}
-		/** Inventory snapshot for the panel's run list. */
-		listRuns() {
-			return [...this.tracked.values()].map((tracked) => tracked.ref).sort((left, right) => rank(right) - rank(left) || right.runId.localeCompare(left.runId));
-		}
-		/** Recent classic and Session-v2 optimization summaries from KerSor stores. */
-		listClassicSessions() {
-			return this.classicSnapshot;
+		/** Complete inventory and source-health snapshot for panel refresh/reconnect. */
+		snapshot() {
+			return {
+				asOf: (/* @__PURE__ */ new Date()).toISOString(),
+				runs: [...this.tracked.values()].map((tracked) => tracked.ref).sort((left, right) => rank(right) - rank(left) || right.runId.localeCompare(left.runId)),
+				classic: this.classicSnapshot,
+				diagnostics: {
+					scan: this.scanObservation,
+					runs: [...this.tracked.values()].map((tracked) => tracked.observation).sort((left, right) => left.runDir.localeCompare(right.runDir))
+				}
+			};
 		}
 		/** Full folded view of one run (panel open / reconnect backlog). */
 		runBacklog(runDir) {
 			return this.tracked.get(runDir)?.view;
 		}
-		/** Rescan roots; start and stop tailers to match discovery. */
+		/**
+		* Read sealed, bounded detail for one classic Session present in the snapshot.
+		* @param sessionDir - Exact discovered Session directory.
+		* @returns Inspector detail, or `undefined` for an unknown or unreadable Session.
+		*/
+		async classicSessionDetail(sessionDir) {
+			if (!this.classicSnapshot.sessions.some((session) => session.session_dir === sessionDir)) return void 0;
+			return readClassicSessionDetail(sessionDir);
+		}
+		/** Rescan roots once; concurrent callers share the in-flight scan. */
 		async rescan() {
 			if (this.scanInFlight !== void 0) return this.scanInFlight;
-			const current = this.performRescan();
+			this.scanObservation = {
+				...this.scanObservation,
+				state: "running",
+				startedAt: (/* @__PURE__ */ new Date()).toISOString()
+			};
+			this.publishSnapshot();
+			const current = this.performRescan().catch((error) => {
+				const now = (/* @__PURE__ */ new Date()).toISOString();
+				this.scanObservation = {
+					...this.scanObservation,
+					state: "failed",
+					completedAt: now,
+					lastIssue: issueFromError("root_scan", error)
+				};
+				this.publishSnapshot();
+			});
 			this.scanInFlight = current;
 			try {
 				await current;
@@ -1410,21 +1813,32 @@ let KersorViewerService = (() => {
 		}
 		async performRescan() {
 			const workspaceRoots = [...new Set(this.rootCtx.workspaceRegistry.list().map((workspace) => workspace.path))];
-			const [found, classicSnapshot] = await Promise.all([scanRoots(this.configuredRoots, this.includeDefaults, workspaceRoots), this.classicSessionLimit === 0 ? Promise.resolve({ sessions: [] }) : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds, {
+			const [scanned, classic] = await Promise.all([scanRoots(this.configuredRoots, this.includeDefaults, workspaceRoots), this.classicSessionLimit === 0 ? Promise.resolve({
+				sessions: [],
+				source: { state: "disabled" }
+			}) : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds, {
 				includeCheckoutRoot: this.includeDefaults,
 				sessionRoots: this.configuredRoots,
 				workspaceRoots
 			})]);
-			this.classicSnapshot = classicSnapshot;
-			const byRunDir = new Map(found.map((ref) => [ref.runDir, ref]));
+			const previousSuccess = this.scanObservation.lastSuccessfulAt;
+			this.scanObservation = scanned.observation.state === "failed" && previousSuccess !== void 0 ? {
+				...scanned.observation,
+				lastSuccessfulAt: previousSuccess
+			} : scanned.observation;
+			this.classicSnapshot = classic;
+			const byRunDir = new Map(scanned.runs.map((ref) => [ref.runDir, ref]));
+			const scanIssues = new Map(scanned.runIssues.map((entry) => [entry.runDir, entry.issue]));
 			for (const [runDir, tracked] of this.tracked) {
 				if (byRunDir.has(runDir)) continue;
 				tracked.tailer?.stop();
 				this.tracked.delete(runDir);
 			}
-			for (const ref of found) {
+			for (const ref of scanned.runs) {
+				const issue = scanIssues.get(ref.runDir);
 				const existing = this.tracked.get(ref.runDir);
 				if (existing !== void 0) {
+					if (issue !== void 0) this.recordRunIssue(existing, issue);
 					if (existing.ref.discovery !== ref.discovery) {
 						if (existing.ref.discovery !== "active" && ref.discovery === "active") continue;
 						existing.ref = ref;
@@ -1432,10 +1846,11 @@ let KersorViewerService = (() => {
 							existing.tailer?.stop();
 							existing.tailer = void 0;
 							existing.view.status = terminalStatus(ref);
-							this.rootCtx.emit("kersor/event", {
-								kind: "run",
-								run: existing.view
-							});
+							existing.observation = {
+								...existing.observation,
+								state: existing.observation.lastIssue === void 0 ? "complete" : "degraded"
+							};
+							this.publishRun(existing.view);
 						} else this.attachTailer(existing);
 					}
 					continue;
@@ -1443,74 +1858,158 @@ let KersorViewerService = (() => {
 				const tracked = {
 					ref,
 					view: createRunView(ref.runId, ref.runDir, ref.sessionDir),
-					tailer: void 0
+					tailer: void 0,
+					observation: {
+						runDir: ref.runDir,
+						mode: ref.discovery === "active" ? "tail" : "backfill",
+						state: issue === void 0 ? "waiting" : "degraded",
+						byteOffset: 0,
+						linesRead: 0,
+						linesRejected: 0,
+						...issue === void 0 ? {} : { lastIssue: issue }
+					}
 				};
 				this.tracked.set(ref.runDir, tracked);
 				if (ref.discovery === "active") this.attachTailer(tracked);
 				else this.backfillTerminated(tracked);
 			}
-			const signature = found.map((ref) => `${ref.runDir}:${ref.discovery}`).sort().join("|");
-			if (signature !== this.emittedRunsSignature) {
-				this.emittedRunsSignature = signature;
-				this.rootCtx.emit("kersor/event", {
-					kind: "runs",
-					runs: this.listRuns()
-				});
-			}
+			this.publishSnapshot();
 		}
-		/** Read a discovered-terminated run's full event log once (no tailer). */
 		async backfillTerminated(tracked) {
 			const { ref, view } = tracked;
 			let text;
 			try {
 				text = await (await import("node:fs/promises")).readFile(`${ref.runDir}/.runtime/events.jsonl`, "utf8");
-			} catch {
+			} catch (error) {
+				view.status = terminalStatus(ref);
+				this.recordRunIssue(tracked, issueFromError("backfill_read", error));
+				tracked.observation = {
+					...tracked.observation,
+					state: "failed"
+				};
+				if (this.tracked.get(ref.runDir) === tracked) {
+					this.publishRun(view);
+					this.publishSnapshot();
+				}
 				return;
 			}
 			for (const line of text.split("\n")) {
 				if (line.length === 0) continue;
-				try {
-					foldEvent(view, JSON.parse(line));
-				} catch {}
+				tracked.observation = {
+					...tracked.observation,
+					linesRead: tracked.observation.linesRead + 1,
+					lastReadAt: (/* @__PURE__ */ new Date()).toISOString()
+				};
+				this.foldLine(tracked, line);
 			}
 			if (view.status !== "completed" && view.status !== "failed") view.status = terminalStatus(ref);
+			tracked.observation = {
+				...tracked.observation,
+				state: tracked.observation.lastIssue === void 0 ? "complete" : "degraded",
+				byteOffset: Buffer.byteLength(text)
+			};
 			if (this.tracked.get(ref.runDir) !== tracked) return;
-			this.rootCtx.emit("kersor/event", {
-				kind: "run",
-				run: view
-			});
+			this.publishRun(view);
+			this.publishSnapshot();
 		}
 		attachTailer(tracked) {
 			if (tracked.tailer !== void 0) return;
 			const { ref, view } = tracked;
 			const tailer = new EventsTailer(`${ref.runDir}/.runtime/events.jsonl`, (lines) => {
-				let mutated = false;
-				for (const line of lines) {
-					let event;
-					try {
-						event = JSON.parse(line);
-					} catch {
-						continue;
-					}
-					mutated = true;
-					foldEvent(view, event);
-				}
-				if (mutated) this.rootCtx.emit("kersor/event", {
-					kind: "run",
-					run: view
-				});
+				for (const line of lines) this.foldLine(tracked, line);
+				tracked.observation = {
+					...tracked.observation,
+					state: tracked.observation.lastIssue === void 0 ? "healthy" : "degraded",
+					byteOffset: tailer.byteOffset,
+					linesRead: tracked.observation.linesRead + lines.length,
+					lastReadAt: (/* @__PURE__ */ new Date()).toISOString()
+				};
+				this.publishRun(view);
 				if (view.status === "completed" || view.status === "failed") {
 					tracked.ref = {
 						...tracked.ref,
 						discovery: view.status
 					};
+					tracked.observation = {
+						...tracked.observation,
+						state: tracked.observation.lastIssue === void 0 ? "complete" : "degraded"
+					};
 					tailer.stop();
 				}
 			}, () => {
 				if (tracked.tailer === tailer) tracked.tailer = void 0;
-			});
+			}, { onObservation: (observation) => {
+				const previousFingerprint = observationFingerprint(tracked.observation);
+				const currentIssue = tracked.observation.lastIssue;
+				const tailerIssue = observation.lastIssue;
+				const lastIssue = tailerIssue !== void 0 && (currentIssue === void 0 || tailerIssue.lastSeenAt >= currentIssue.lastSeenAt) ? tailerIssue : currentIssue;
+				const terminal = tracked.view.status === "completed" || tracked.view.status === "failed";
+				tracked.observation = {
+					...tracked.observation,
+					state: terminal ? lastIssue === void 0 ? "complete" : "degraded" : observation.state === "healthy" && lastIssue !== void 0 ? "degraded" : observation.state,
+					byteOffset: observation.byteOffset,
+					linesRead: observation.linesRead,
+					...observation.lastReadAt === void 0 ? {} : { lastReadAt: observation.lastReadAt },
+					...lastIssue === void 0 ? {} : { lastIssue }
+				};
+				if (observationFingerprint(tracked.observation) !== previousFingerprint) this.publishSnapshot();
+			} });
 			tracked.tailer = tailer;
-			tailer.start();
+			try {
+				tailer.start();
+			} catch (error) {
+				tracked.tailer = void 0;
+				this.recordRunIssue(tracked, issueFromError("tailer_watch", error));
+				tracked.observation = {
+					...tracked.observation,
+					state: "failed"
+				};
+				this.publishSnapshot();
+			}
+		}
+		foldLine(tracked, line) {
+			let decoded;
+			try {
+				decoded = JSON.parse(line);
+			} catch (error) {
+				this.rejectLine(tracked, issueFromError("event_parse", error, "warning"));
+				return;
+			}
+			if (decoded === null || typeof decoded !== "object" || typeof decoded.type !== "string") {
+				this.rejectLine(tracked, createIssue("event_parse", "invalid_payload", "warning"));
+				return;
+			}
+			try {
+				foldEvent(tracked.view, decoded);
+			} catch (error) {
+				this.rejectLine(tracked, issueFromError("event_fold", error, "warning"));
+			}
+		}
+		rejectLine(tracked, issue) {
+			this.recordRunIssue(tracked, issue);
+			tracked.observation = {
+				...tracked.observation,
+				state: "degraded",
+				linesRejected: tracked.observation.linesRejected + 1
+			};
+		}
+		recordRunIssue(tracked, issue) {
+			tracked.observation = {
+				...tracked.observation,
+				lastIssue: mergeIssue(tracked.observation.lastIssue, issue)
+			};
+		}
+		publishSnapshot() {
+			this.rootCtx.emit("kersor/event", {
+				kind: "snapshot",
+				snapshot: this.snapshot()
+			});
+		}
+		publishRun(run) {
+			this.rootCtx.emit("kersor/event", {
+				kind: "run",
+				run
+			});
 		}
 	};
 })();
@@ -1521,6 +2020,10 @@ function rank(ref) {
 }
 function terminalStatus(ref) {
 	return ref.discovery === "failed" ? "failed" : "completed";
+}
+function observationFingerprint(observation) {
+	const issue = observation.lastIssue;
+	return `${observation.state}:${observation.byteOffset}:${observation.linesRead}:${issue?.stage ?? ""}:${issue?.code ?? ""}:${issue?.occurrences ?? 0}`;
 }
 //#endregion
 export { KersorViewerService, KersorViewerService as default };

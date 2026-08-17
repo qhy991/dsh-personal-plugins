@@ -2,11 +2,11 @@
 
 [English](README.md) | 中文
 
-KerSor 活动界面的 browser 半：同一个侧栏面板先展示 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 提供的最近经典／Session-v2 优化摘要，再列出 autonomous-workflow run，并渲染选中 run 的实时阶段／调用进度。紧凑的双列 Session 卡片展示建议性 health、规范 phase、最后活动时间、轮次预算、最佳／目标加速比、language/backend、integration pattern、workflow authoring 预算、从零隔离、Session 自有的基线见证、DSH 兼容与候选所有权门禁、mode、选中 Workflow、fit confidence、存储格式、状态提醒数，以及最新规范 `COMPLETE`／`CONTINUE`／`STALLED` 原因的两行预览。baseline action callout 会区分“初始化”“记录并验证”和“新建 Session”，失败时在下方显示有界规范 blocker。门禁通过为绿色、待定为琥珀色、失败为红色，使 Session 历史、dispatch 与写入边界无需打开文件即可判断；stalled／cancelled Session 会隐藏建议性 fit 徽标，因为历史 fit 不能覆盖终态 decision。悬停 decision 预览可查看完整理由。区段标题同时显示最近清单数和真正 active 数，陈旧的 `optimizing` projection 不再点亮全局活动状态点。
+KerSor 活动界面的 browser 半：同一个侧栏面板先展示 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 提供的最近经典／Session-v2 优化摘要，再列出 autonomous-workflow run，并渲染选中 run 的实时阶段／调用进度。紧凑的双列 Session 卡片展示建议性 health、规范 phase、最后活动时间、轮次预算、最佳／目标加速比、language/backend、integration pattern、workflow authoring 预算、从零隔离、Session 自有的基线见证、DSH 兼容与候选所有权门禁、mode、selector 结果、选中 Workflow、fit confidence、存储格式、状态提醒数，以及最新规范 `COMPLETE`／`CONTINUE`／`STALLED` 原因的两行预览。展开卡片会按需加载 artifact 派生的阶段时间线，以及 authoring／seal／save、Proposal validation、dispatch 与 measurement 状态；通过验证的 author handoff 才会解锁只读 metadata、文件 hash、rationale 与 Workflow source，仍在写入或 hash 不一致的 handoff 不会暴露 staging 内容。baseline action callout 会区分“初始化”“记录并验证”和“新建 Session”，失败时在下方显示有界规范 blocker。门禁通过为绿色、待定为琥珀色、失败为红色；stalled／cancelled Session 会隐藏建议性 fit 徽标，因为历史 fit 不能覆盖终态 decision。
 
 加载可选 Host 启动器 [`@deepseek-ai/dsh-kersor`](../kersor/README.zh.md) 后，同一面板还会列出部署配置中的任务和 dsh 当前持有的 launcher 进程，并提供启动／停止操作。launcher remote 被刻意排除在注入依赖之外；它的 namespace 不可用时，面板仍会挂载，只是不显示控制区。
 
-**一个 store，一条快照路径。** 面板数据存在一个 `useSyncExternalStore` observable 里，每两秒通过生成的 `kersorViewer/listClassicSessions`、`listRuns`、`runBacklog`、`kersor/listTasks` 与 `listActive` remote 刷新。client 插件自行挂载这些生成的 Remote contribution，因此第三方安装无需修改 dsh 核心 Remote assembly 或 Host 事件白名单；重连也会重置并立即刷新同一条快照路径。阶段渲染为带共享状态点（running 蓝、completed 绿、failed 红）的折叠行，其下的 agent/evaluation 调用行带状态、耗时、tokens 与回滚标记；循环重访的 phase 按执行顺序各占一个桶，KSearch 循环读起来就是独立的多轮。
+**一个 store，一个 Host 快照。** 面板数据存在一个 `useSyncExternalStore` observable 里。首次加载、打开面板和重连会读取 `kersorViewer/snapshot`；之后替换式 `kersor/event` 帧更新同一份原子 projection。选择 run 时读取 `runBacklog` 获取折叠详情；展开经典 Session 时读取 `classicSessionDetail`，并在保持选中期间随替换快照刷新。API Remotes assembly 是生成 contribution 生命周期的唯一 owner；本 UI 只消费已组装的 namespace，不会再次挂载。launcher 发现会先检查 `pluginInventory/list`，再决定是否调用 `kersor/listTasks` 或 `listActive`，因此只读 profile 不会探测缺失的 launcher route。阶段渲染为带共享状态点的折叠行，其下的 agent/evaluation 调用行带状态、耗时、tokens 与回滚标记。
 
 **node 半为空。** 所有运行时行为在 `src/client/` 中，经 `./client` 导出为浏览器 bundle；包的 node 侧 `apply` 只为让同名包进入浏览器 roster。发现、tail 与折叠属于 host 包；本包渲染它们的结果。
 
@@ -23,5 +23,5 @@ KerSor 活动界面的 browser 半：同一个侧栏面板先展示 host 包 [`@
 ## Known Limitations and Deferred Work
 
 - **一个标签页选中的 run 不会同步到另一个** —— 选择是页面内组件状态，刻意如此：浏览行为不改写任何 host 状态。
-- **实时状态采用快照轮询** —— 两秒间隔用亚秒级动画换取可移植的第三方安装，以及漏帧或短暂断连后的自动恢复。
+- **详情跟随选择** —— 清单与来源健康实时更新；选中 run 的 backlog 或经典 Session inspector 在选择时读取，并在重连或替换快照后刷新。
 - **控制区不编辑启动配置** —— 任务路径、runtime config、凭据与环境仍是 Host 部署配置；浏览器只发送已登记 task id 或一条受管 run 的精确目录。

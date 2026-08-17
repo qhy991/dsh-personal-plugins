@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import os
 import shutil
@@ -469,6 +470,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["dsh_compatibility"], "pass")
         self.assertEqual(row["candidate_ownership"], "pass")
         self.assertEqual(row["fresh_session"], "pass")
+        self.assertEqual(row["selection_status"], "selected")
         self.assertEqual(row["decision"], "CONTINUE: measure another workflow.")
         self.assertNotIn("kernel_path", row)
 
@@ -529,9 +531,79 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["status"], "resumable")
         self.assertEqual(row["health"], "needs_resume")
 
+    def test_session_detail_withholds_design_until_a_verified_seal(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        authoring = session / "workflow-authoring"
+        staging = authoring / "staging"
+        staging.mkdir(parents=True)
+        (authoring / "author-context.json").write_text("{}\n", encoding="utf-8")
+        files = {
+            "workflow.js": "export const meta = {}\nreturn {}\n",
+            "metadata.json": json.dumps(
+                {
+                    "name": "vliw-author",
+                    "technique": "instruction_scheduling",
+                    "required_args": ["kernel_path"],
+                    "languages": ["python_reference"],
+                    "backends": ["python"],
+                    "integration_patterns": ["custom_simulator"],
+                }
+            )
+            + "\n",
+            "rationale.md": "# VLIW author\n\nBundle independent slots.\n",
+        }
+        for name, content in files.items():
+            (staging / name).write_text(content, encoding="utf-8")
+
+        command = [
+            sys.executable,
+            str(destination / "bin" / "kersor_bridge.py"),
+            "session-detail",
+            "--session",
+            str(session),
+        ]
+        before = subprocess.run(command, check=False, capture_output=True, text=True)
+        self.assertEqual(before.returncode, 0, before.stderr)
+        before_value = json.loads(before.stdout)
+        self.assertEqual(before_value["authoring"], {"status": "in_progress", "files": []})
+
+        sealed = {
+            "schema_version": 1,
+            "staging": str(staging.resolve()),
+            "files": {
+                name: "sha256:" + hashlib.sha256(content.encode()).hexdigest()
+                for name, content in files.items()
+            },
+        }
+        (authoring / "author-handoff.json").write_text(json.dumps(sealed), encoding="utf-8")
+        after = subprocess.run(command, check=False, capture_output=True, text=True)
+        self.assertEqual(after.returncode, 0, after.stderr)
+        after_value = json.loads(after.stdout)
+        self.assertEqual(after_value["authoring"]["status"], "sealed")
+        self.assertEqual(after_value["authoring"]["design"]["name"], "vliw-author")
+        self.assertNotIn("methodCategory", after_value["authoring"]["design"])
+        self.assertNotIn("topology", after_value["authoring"]["design"])
+        self.assertIn("Bundle independent slots", after_value["authoring"]["design"]["rationale"])
+        self.assertEqual(after_value["selection"]["status"], "selected")
+
+        (staging / "workflow.js").write_text("tampered\n", encoding="utf-8")
+        tampered = subprocess.run(command, check=False, capture_output=True, text=True)
+        self.assertEqual(tampered.returncode, 0, tampered.stderr)
+        tampered_value = json.loads(tampered.stdout)
+        self.assertEqual(tampered_value["authoring"]["status"], "rejected")
+        self.assertEqual(tampered_value["authoring"]["omittedReason"], "hash_mismatch")
+        self.assertNotIn("design", tampered_value["authoring"])
+
     @unittest.skipIf(shutil.which("node") is None, "Node.js is required by DSH")
     def test_status_tool_executes_for_the_current_workspace_only(self) -> None:
         project = self.make_status_project()
+        poisoned = self.root / "poisoned-path"
+        poisoned.mkdir()
+        fake_python = poisoned / "python3"
+        fake_python.write_text("#!/bin/sh\nexit 97\n", encoding="utf-8")
+        fake_python.chmod(0o755)
         plugin = ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs"
         script = r'''
 import { pathToFileURL } from 'node:url'
@@ -569,6 +641,8 @@ console.log(JSON.stringify({
                 "KERSOR_ROOT": str(self.kersor),
                 "PLUGIN_PATH": str(plugin),
                 "WORKSPACE": str(project),
+                "KERSOR_PYTHON": sys.executable,
+                "PATH": f"{poisoned}{os.pathsep}{environment.get('PATH', '')}",
             }
         )
         completed = subprocess.run(

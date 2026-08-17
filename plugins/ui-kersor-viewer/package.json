@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-kersor-viewer",
   "description": "KerSor sidebar: optimization Session summaries and autonomous-workflow live progress",
-  "version": "0.1.0-rc.15",
+  "version": "0.1.0-rc.16",
   "publishConfig": {
     "access": "public"
   },

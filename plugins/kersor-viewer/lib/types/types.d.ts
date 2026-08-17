@@ -4,14 +4,38 @@
  * @module @deepseek-ai/dsh-kersor-viewer/types
  */
 import type { KersorRunView } from './fold.ts';
-import type { KersorRunRef } from './scanner.ts';
+import type { KersorClassicSnapshot } from './classic.ts';
+import type { KersorDiagnosticIssue } from './diagnostics.ts';
+import type { KersorRunRef, KersorScanObservation } from './scanner.ts';
 export type { KersorRunStatus, KersorCallStatus, KersorCallKind, KersorCallView, KersorPhaseView, KersorRunView } from './fold.ts';
-export type { KersorRunDiscovery, KersorRunRef } from './scanner.ts';
-export type { KersorBaselineAction, KersorClassicGate, KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts';
+export type { KersorBaselineAction, KersorClassicArtifact, KersorClassicAuthoringDetail, KersorClassicDispatchDetail, KersorClassicGate, KersorClassicHealth, KersorClassicLifecycle, KersorClassicSelectionDetail, KersorClassicSession, KersorClassicSessionDetail, KersorClassicSnapshot, KersorClassicSource, KersorClassicStatus, KersorClassicStep, KersorClassicStepId, KersorClassicStepStatus, KersorClassicValidationCheck, KersorClassicValidationDetail, KersorClassicWorkflowDesign, } from './classic.ts';
+export type { KersorDiagnosticCode, KersorDiagnosticIssue, KersorDiagnosticStage } from './diagnostics.ts';
+export type { KersorRootObservation, KersorRootOrigin, KersorRunDiscovery, KersorRunRef, KersorScanObservation } from './scanner.ts';
+/** Current ingestion state for one discovered run. */
+export interface KersorRunObservation {
+    readonly runDir: string;
+    readonly mode: 'tail' | 'backfill';
+    readonly state: 'waiting' | 'healthy' | 'degraded' | 'failed' | 'complete';
+    readonly byteOffset: number;
+    readonly linesRead: number;
+    readonly linesRejected: number;
+    readonly lastReadAt?: string;
+    readonly lastIssue?: KersorDiagnosticIssue;
+}
+/** Single Host snapshot for inventory, classic Sessions, and source health. */
+export interface KersorViewerSnapshot {
+    readonly asOf: string;
+    readonly runs: readonly KersorRunRef[];
+    readonly classic: KersorClassicSnapshot;
+    readonly diagnostics: {
+        readonly scan: KersorScanObservation;
+        readonly runs: readonly KersorRunObservation[];
+    };
+}
 /** Inventory or folded-run frame pushed to browser consumers. */
 export type KersorViewerFrame = {
-    kind: 'runs';
-    runs: KersorRunRef[];
+    kind: 'snapshot';
+    snapshot: KersorViewerSnapshot;
 } | {
     kind: 'run';
     run: KersorRunView;
@@ -19,8 +43,8 @@ export type KersorViewerFrame = {
 declare module '@deepseek-ai/cordis' {
     interface Events {
         /**
-         * One viewer update: a replaced run inventory or one run's folded view.
-         * @param frame - inventory list or folded run view model.
+         * One viewer update: a replaced Host snapshot or one run's folded view.
+         * @param frame - Host snapshot or folded run view model.
          * @mode emit
          */
         'kersor/event'(frame: KersorViewerFrame): void;

@@ -1,9 +1,8 @@
 /**
- * Root-directory discovery of KerSor autonomous runs. A root is scanned for
- * Session-v2 directories (`session-config.json` + `state.json`) that carry an
- * `autonomous-runs/` child; each child directory is one run.
+ * Root-directory discovery of KerSor autonomous runs and bounded source observations.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
+import type { KersorDiagnosticIssue } from './diagnostics.ts';
 /** Default roots scanned in addition to configured ones. */
 export declare const DEFAULT_KERSOR_ROOTS: string[];
 /** Lifecycle classification of one discovered run directory. */
@@ -16,11 +15,38 @@ export interface KersorRunRef {
     readonly root: string;
     readonly discovery: KersorRunDiscovery;
 }
-/**
- * Scan every root (deduplicated) for KerSor runs.
- * @param roots - configured roots; defaults are appended when `includeDefaults`.
- * @param workspaceRoots - DSH project directories whose `.kersor/` children are scanned.
- * @returns run refs; ordering is unspecified (the service sorts for display).
- */
-export declare function scanRoots(roots: readonly string[], includeDefaults: boolean, workspaceRoots?: readonly string[]): Promise<KersorRunRef[]>;
+/** How a root entered the scanner. */
+export type KersorRootOrigin = 'configured' | 'default' | 'checkout' | 'workspace';
+/** Result of inspecting one root during the latest completed scan. */
+export interface KersorRootObservation {
+    readonly root: string;
+    readonly origin: KersorRootOrigin;
+    readonly state: 'absent' | 'healthy' | 'degraded' | 'failed';
+    readonly sessionsExamined: number;
+    readonly sessionsAccepted: number;
+    readonly runsFound: number;
+    readonly lastIssue?: KersorDiagnosticIssue;
+}
+/** Latest scanner lifecycle and per-root observations. */
+export interface KersorScanObservation {
+    readonly state: 'never' | 'running' | 'healthy' | 'degraded' | 'failed';
+    readonly startedAt?: string;
+    readonly completedAt?: string;
+    readonly lastSuccessfulAt?: string;
+    readonly roots: readonly KersorRootObservation[];
+    readonly lastIssue?: KersorDiagnosticIssue;
+}
+/** A scanner issue scoped to one discovered run. */
+export interface KersorScannedRunIssue {
+    readonly runDir: string;
+    readonly issue: KersorDiagnosticIssue;
+}
+/** Complete result committed by the viewer service after one scan. */
+export interface KersorScanResult {
+    readonly runs: readonly KersorRunRef[];
+    readonly runIssues: readonly KersorScannedRunIssue[];
+    readonly observation: KersorScanObservation;
+}
+/** Scan all roots and return discovered runs plus bounded observations. */
+export declare function scanRoots(roots: readonly string[], includeDefaults: boolean, workspaceRoots?: readonly string[]): Promise<KersorScanResult>;
 //# sourceMappingURL=scanner.d.ts.map

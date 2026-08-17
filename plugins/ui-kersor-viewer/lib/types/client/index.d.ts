@@ -1,6 +1,6 @@
 /**
- * KerSor viewer browser half: sidebar run-inventory panel refreshed through
- * generated viewer and optional launcher Remote namespaces.
+ * KerSor viewer browser half: one atomic Host snapshot plus optional launcher
+ * process ownership, rendered in the sidebar.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
@@ -17,8 +17,8 @@ export type { KersorViewerState, KersorViewerStore, KersorRunRow } from './store
 export { KersorViewerStore as KersorViewerStoreClass } from './store.ts';
 export { NS };
 export type { KersorViewerKey } from './locales.ts';
-/** Required services: viewer UI seams and the generic Remote carrier. */
+/** Required services: viewer UI seams, assembled Remotes, and Host inventory. */
 export declare const inject: string[];
-/** Mount the KerSor viewer surfaces over Host snapshot remotes. */
-export declare function apply(ctx: ClientContext): Promise<() => Promise<void>>;
+/** Mount the KerSor viewer surfaces over the API assembly's Remote namespaces. */
+export declare function apply(ctx: ClientContext): void;
 //# sourceMappingURL=index.d.ts.map

@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/extensions/kersor/README.md
 README.md: 948ba7a3013d7e2612cadb6eec6cc0b1bc888362
-README.zh.md: 58234fb2dc318bfeda5c69f7310f72f8797aba3e
+README.zh.md: 18061d3cb8148f421c84ac241bab93d990d583ed

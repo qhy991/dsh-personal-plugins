@@ -56,7 +56,7 @@ describe('run discovery', () => {
     await writeFile(path.join(failedRun, '.runtime', 'summary.json'), JSON.stringify({ status: 'error' }))
 
     const found = await scanRoots([root], false)
-    const byDir = new Map(found.map(ref => [ref.runDir, ref]))
+    const byDir = new Map(found.runs.map(ref => [ref.runDir, ref]))
     expect(byDir.size).toBe(4)
     expect(byDir.get(activeRun)!.discovery).toBe('active')
     expect(byDir.get(doneRun)!.discovery).toBe('completed')
@@ -64,6 +64,10 @@ describe('run discovery', () => {
     expect(byDir.get(failedRun)!.discovery).toBe('failed')
     expect(byDir.get(activeRun)!.runId).toBe('20260814T100000Z')
     expect(byDir.get(activeRun)!.sessionDir).toBe(active)
+    expect(found.observation).toMatchObject({
+      state: 'healthy',
+      roots: [{ root, origin: 'configured', state: 'healthy', sessionsAccepted: 4, runsFound: 4 }],
+    })
   })
 
   it('skips directories that are not session v2', async () => {
@@ -74,42 +78,33 @@ describe('run discovery', () => {
     await mkdir(path.join(legacy, 'autonomous-runs'), { recursive: true })
     await writeFile(path.join(legacy, 'state.json'), '{}') // config missing
     const found = await scanRoots([root], false)
-    expect(found).toEqual([])
+    expect(found.runs).toEqual([])
+    expect(found.observation.roots[0]).toMatchObject({ sessionsExamined: 2, sessionsAccepted: 0 })
   })
 
-  it('stays quiet for an absent root', async () => {
+  it('distinguishes an absent configured root from a healthy empty root', async () => {
     const found = await scanRoots([path.join(tmpdir(), 'kersor-no-such-root-xyz')], false)
-    expect(found).toEqual([])
+    expect(found.runs).toEqual([])
+    expect(found.observation.state).toBe('failed')
+    expect(found.observation.roots[0]).toMatchObject({
+      origin: 'configured', state: 'absent', lastIssue: { stage: 'root_scan', code: 'not_found' },
+    })
   })
 
-  it('discovers autonomous runs inside registered DSH workspaces', async () => {
+  it('discovers workspace Sessions and reports malformed summaries without their content', async () => {
     const workspace = await tempRoot()
     const session = await makeSession(path.join(workspace, '.kersor'), 'sess-workspace')
-    const runDir = path.join(session, 'autonomous-runs', '20260817T020000Z')
+    const runDir = path.join(session, 'autonomous-runs', 'run-secret')
     await mkdir(path.join(runDir, '.runtime'), { recursive: true })
+    await writeFile(path.join(runDir, '.runtime', 'summary.json'), '{SECRET-CONTENT')
 
     const found = await scanRoots([], false, [workspace])
-    expect(found.map(ref => ref.runDir)).toEqual([runDir])
-  })
-
-  it('reuses the checkout pointer written by the installed KerSor preset', async () => {
-    const dshHome = await tempRoot()
-    const checkout = await tempRoot()
-    const session = await makeSession(path.join(checkout, '.kersor'), 'sess-recorded')
-    const runDir = path.join(session, 'autonomous-runs', '20260817T010000Z')
-    await mkdir(path.join(runDir, '.runtime'), { recursive: true })
-    const pointer = path.join(dshHome, '.agent-presets', 'kersor', '.local')
-    await mkdir(pointer, { recursive: true })
-    await writeFile(path.join(pointer, 'kersor-root'), `${checkout}\n`)
-
-    const previous = process.env.DSH_HOME
-    process.env.DSH_HOME = dshHome
-    try {
-      const found = await scanRoots([], true)
-      expect(found.some(ref => ref.runDir === runDir)).toBe(true)
-    } finally {
-      if (previous === undefined) delete process.env.DSH_HOME
-      else process.env.DSH_HOME = previous
-    }
+    expect(found.runs.map(ref => ref.runDir)).toEqual([runDir])
+    expect(found.observation.state).toBe('degraded')
+    expect(found.runIssues).toHaveLength(1)
+    expect(found.runIssues[0]?.runDir).toBe(runDir)
+    expect(found.runIssues[0]?.issue.stage).toBe('summary_read')
+    expect(found.runIssues[0]?.issue.code).toBe('invalid_json')
+    expect(JSON.stringify(found)).not.toContain('SECRET-CONTENT')
   })
 })

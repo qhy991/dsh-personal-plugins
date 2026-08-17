@@ -12,6 +12,10 @@ export const inject = ['tools']
 const execFileAsync = promisify(execFile)
 const BRIDGE = fileURLToPath(new URL('../bin/kersor_bridge.py', import.meta.url))
 
+function kersorPython() {
+  return process.env.KERSOR_PYTHON?.trim() || 'python3'
+}
+
 const nullable = schema => ({ oneOf: [schema, { type: 'null' }] })
 
 const STATUS_SCHEMA = {
@@ -211,7 +215,7 @@ export function createTool() {
     async execute(_args, exec) {
       const target = await workspaceTarget(exec)
       const { stdout } = await execFileAsync(
-        'python3',
+        kersorPython(),
         [BRIDGE, 'status', '--path', target],
         { encoding: 'utf8', maxBuffer: 1024 * 1024, signal: exec.signal },
       )

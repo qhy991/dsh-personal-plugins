@@ -1,0 +1,525 @@
+{
+  "schema_version": 1,
+  "authority": {
+    "repository": "https://github.com/qhy991/deepseek-harness.git",
+    "revision": "0be63b2340ca02873bd516b8d3b7fa997cf49100",
+    "source_root": "packages/extensions",
+    "reconciled": false
+  },
+  "toolchain": {
+    "node": "24",
+    "pnpm": "11.7.0"
+  },
+  "files": [
+    {
+      "path": "plugins/kersor-viewer/README.i18n.yaml",
+      "source": "packages/extensions/kersor-viewer/README.i18n.yaml",
+      "sha256": "00ff73f097dce5f8dd80df2340cffe3fdf761b8fda954d78f25951fb55efefc2"
+    },
+    {
+      "path": "plugins/kersor-viewer/README.md",
+      "source": "packages/extensions/kersor-viewer/README.md",
+      "sha256": "9685800b1acfc62b4ed5605d7a633d6ff056d4050a8436222a5b26bb72160b53"
+    },
+    {
+      "path": "plugins/kersor-viewer/README.zh.md",
+      "source": "packages/extensions/kersor-viewer/README.zh.md",
+      "sha256": "c59fdaab60e060d9888c88cbb000ba39c300087d22aa9dc77ffcb445899c3a16"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/index.js",
+      "source": "packages/extensions/kersor-viewer/lib/index.js",
+      "sha256": "f783c4bd50e74ce7f221513e102a3ee8b5ff0284d437105c36881d60f1392128"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/invariant.js",
+      "source": "packages/extensions/kersor-viewer/lib/invariant.js",
+      "sha256": "485cbb60166faa3a56459766417f0146d5926fab062290aa8202439faa68bec6"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/typert.host.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/typert.host.d.ts",
+      "sha256": "5e2d26ee86d0fe170dac8cd3f5854e67bdea334c57f40a5766ace57b8304c17d"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/typert.host.js",
+      "source": "packages/extensions/kersor-viewer/lib/typert.host.js",
+      "sha256": "5b73ebb000a67a291debc7f34085f15886209712a5fddc6860618f408e430dae"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/typert.remote-client.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/typert.remote-client.d.ts",
+      "sha256": "2a71ed9dd026f884bb103a47e4fb23e7042127dc2de831f9c41f7645050c9785"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/typert.remote-client.js",
+      "source": "packages/extensions/kersor-viewer/lib/typert.remote-client.js",
+      "sha256": "b9885e35504ce6b13c55446e1311030813660c3c7f3ef0f87d8b4eb123ad9311"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/classic.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/classic.d.ts",
+      "sha256": "908c2c2bd982f206ce7e75b2ab0b80d95a0f1667c7b504ac068b0ad68c14962d"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/classic.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/classic.js",
+      "sha256": "8afdd1130da1c98e65622608dd8b784fc8b740d06f28693aa7fa5516235f8d1a"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/diagnostics.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/diagnostics.d.ts",
+      "sha256": "6e3641a538060f45bff6104662f88f63bf1b4c26724d25114adaaba846a01da9"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/diagnostics.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/diagnostics.js",
+      "sha256": "4f9b2107b6db14412574a2645a2fe26b65f41e66cbf06f83ceb0c608db20d088"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/fold.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/fold.d.ts",
+      "sha256": "d77f0bccc016e91d2e20d9e1cb2bf0520a7dae85077db514e62f28c23257b9b6"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/fold.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/fold.js",
+      "sha256": "895b8828f9cb3b56e7bc550f60ec7d73835539c079878934a101e49e20fa7797"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/index.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/index.d.ts",
+      "sha256": "f093380591390a302874b89276233eabd19cd3dbd89b344989a359c8e99935dd"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/index.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/index.js",
+      "sha256": "a0e95533836492350d588729657cf74c8de8d41a3f01e238142541f1410caca6"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/invariant.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/invariant.d.ts",
+      "sha256": "735fe6033dfb5f4d45aa52df98d068581985372773cf4871a2104ec7577f3e66"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/invariant.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/invariant.js",
+      "sha256": "8eedd908f2e2cf6b4f3025e071fffdc123fe92985203bb2ce5b116d98a19baf7"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/scanner.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/scanner.d.ts",
+      "sha256": "6ad3ee4ba19ac1bd48dc8a595c5824728d7740d8191d4f5d0ca8433c408ae33f"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/scanner.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/scanner.js",
+      "sha256": "f33a728c2f7066cd127d217d9afe79e78e066dd0482f430e660f5024a4175105"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/service.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/service.d.ts",
+      "sha256": "46f86551f496b07907835426ef2aba60bb1d01441842e24b8dcba2f26db1cf26"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/service.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/service.js",
+      "sha256": "58ab901477b81cccc7fa179d0decc945ce5b6fc60e281187a9d56cdb7e17e8fc"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/tailer.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/tailer.d.ts",
+      "sha256": "34676d03923bbf1194c301204b49e16347ce6daa7406aa540faa799b9884e608"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/tailer.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/tailer.js",
+      "sha256": "8c78e22f6f376d728bd5ad6f0d9cf663f7122a70cfdfcf7933143394e3f61123"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/types.d.ts",
+      "source": "packages/extensions/kersor-viewer/lib/types/types.d.ts",
+      "sha256": "bf0bb0bba422ee93719d4059190c6ba74e5052fbad558c385c090277fd4ec858"
+    },
+    {
+      "path": "plugins/kersor-viewer/lib/types/types.js",
+      "source": "packages/extensions/kersor-viewer/lib/types/types.js",
+      "sha256": "8c54cdba5a4920f1b822c11e8a22cbb95567e0f3cc61b22d1ec1d5c1c402c8b0"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/classic.ts",
+      "source": "packages/extensions/kersor-viewer/src/classic.ts",
+      "sha256": "11a3af8c1b4d99295bed5426ad94b7471bd4d1ca18b0365b4637af7121428bcf"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/diagnostics.ts",
+      "source": "packages/extensions/kersor-viewer/src/diagnostics.ts",
+      "sha256": "b02c49c56eb84a66e491fe8e003bc1f7573a1954fc11b52a3cd63b97fa4fa8d4"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/fold.ts",
+      "source": "packages/extensions/kersor-viewer/src/fold.ts",
+      "sha256": "e708ee79911276a96e362851eabd1761296c6194f980ae613184de97a1397410"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/index.ts",
+      "source": "packages/extensions/kersor-viewer/src/index.ts",
+      "sha256": "bb8638928fd7c555bd8c033c1a3efb807e089f6a571df2fb5647aa38859930b4"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/invariant.ts",
+      "source": "packages/extensions/kersor-viewer/src/invariant.ts",
+      "sha256": "e767cf990c945df6f3c5d4189f56b1f61966ec72a2b40aa6acc466188d739954"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/scanner.ts",
+      "source": "packages/extensions/kersor-viewer/src/scanner.ts",
+      "sha256": "4250075d61eb54280d7b8d6d4c3f30a7f3e1548929022fbeea1269b0a8bf133e"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/service.ts",
+      "source": "packages/extensions/kersor-viewer/src/service.ts",
+      "sha256": "b73d6371353f5a058f478af00f29c78e35295f3c58b0ae3f9001833536f25e93"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/tailer.ts",
+      "source": "packages/extensions/kersor-viewer/src/tailer.ts",
+      "sha256": "90fe92a15c16adeda2ce70a529da471f2ff323d8041fd010de2cdfac052b64a5"
+    },
+    {
+      "path": "plugins/kersor-viewer/src/types.ts",
+      "source": "packages/extensions/kersor-viewer/src/types.ts",
+      "sha256": "1074063711fe00301a1b1eb02618320d5d72a570c7eb7303ceee93b4297736a2"
+    },
+    {
+      "path": "plugins/kersor-viewer/tests/classic.spec.ts",
+      "source": "packages/extensions/kersor-viewer/tests/classic.spec.ts",
+      "sha256": "e5e0c508430fc4dec1ad9940865a7e140911a123683f221ea1731abcbd748065"
+    },
+    {
+      "path": "plugins/kersor-viewer/tests/fold.spec.ts",
+      "source": "packages/extensions/kersor-viewer/tests/fold.spec.ts",
+      "sha256": "60833485a3b04d5ea5edbab0f4cfdf80b4b6230406c4102ee7803cc64b165c7f"
+    },
+    {
+      "path": "plugins/kersor-viewer/tests/scanner.spec.ts",
+      "source": "packages/extensions/kersor-viewer/tests/scanner.spec.ts",
+      "sha256": "53e1c37b33a91c3034a8caeb2117425281f1ae9e2ca1fe73a41c762b842ecd46"
+    },
+    {
+      "path": "plugins/kersor-viewer/tests/service.spec.ts",
+      "source": "packages/extensions/kersor-viewer/tests/service.spec.ts",
+      "sha256": "e2837a733fb2216cafcc8a68be575dd734317b5a128b656395df60d95b87b769"
+    },
+    {
+      "path": "plugins/kersor-viewer/tests/tailer.spec.ts",
+      "source": "packages/extensions/kersor-viewer/tests/tailer.spec.ts",
+      "sha256": "7323966c6f63c43633ca4996a15fa9d5ea860756ad1b8e513d3beff5ffc07e94"
+    },
+    {
+      "path": "plugins/kersor-viewer/tsconfig.host.json",
+      "source": "packages/extensions/kersor-viewer/tsconfig.host.json",
+      "sha256": "a71a86d3655a1a918e6e35b22a8f63c666f54931a7e95e68d84cc1aebae38355"
+    },
+    {
+      "path": "plugins/kersor/README.i18n.yaml",
+      "source": "packages/extensions/kersor/README.i18n.yaml",
+      "sha256": "de157a49dcf756e7ce11d1831d114f4ca6a9806d94203ecde76ccd1fbac03f42"
+    },
+    {
+      "path": "plugins/kersor/README.md",
+      "source": "packages/extensions/kersor/README.md",
+      "sha256": "33b476c2649b762428c85fa5ecf1a16f528558402f6f3ca3772b0f1c092de6ad"
+    },
+    {
+      "path": "plugins/kersor/README.zh.md",
+      "source": "packages/extensions/kersor/README.zh.md",
+      "sha256": "e5d17c2a288539a978cef86c40953dfc4d25904611a63bc0689f3c7247056f28"
+    },
+    {
+      "path": "plugins/kersor/lib/index.js",
+      "source": "packages/extensions/kersor/lib/index.js",
+      "sha256": "c7f1f91b59c5bb19aba4467e6d541565962d0dae19f4f37db8542ba7ff57e758"
+    },
+    {
+      "path": "plugins/kersor/lib/invariant.js",
+      "source": "packages/extensions/kersor/lib/invariant.js",
+      "sha256": "5cbb262ebfb3bdbd3a45f7af06941e93ff827ff845bce5271036695d45687bae"
+    },
+    {
+      "path": "plugins/kersor/lib/typert.host.d.ts",
+      "source": "packages/extensions/kersor/lib/typert.host.d.ts",
+      "sha256": "5e2d26ee86d0fe170dac8cd3f5854e67bdea334c57f40a5766ace57b8304c17d"
+    },
+    {
+      "path": "plugins/kersor/lib/typert.host.js",
+      "source": "packages/extensions/kersor/lib/typert.host.js",
+      "sha256": "74ffd122824dbfe0a0b614dcd4234d78d28e93bfb686d77ce7fe29411896bef9"
+    },
+    {
+      "path": "plugins/kersor/lib/typert.remote-client.d.ts",
+      "source": "packages/extensions/kersor/lib/typert.remote-client.d.ts",
+      "sha256": "b5c67775edfc4f93326e85ca001370eed33d8a36759b3f413d2a806e8db3e3a0"
+    },
+    {
+      "path": "plugins/kersor/lib/typert.remote-client.js",
+      "source": "packages/extensions/kersor/lib/typert.remote-client.js",
+      "sha256": "2a27806fb4b9588ed474ea5c2f6dc57c2a4170c5a1f63df056922506b12af940"
+    },
+    {
+      "path": "plugins/kersor/lib/types/index.d.ts",
+      "source": "packages/extensions/kersor/lib/types/index.d.ts",
+      "sha256": "7d885a915794f8018315a50ff253dbaf7d31be33232969b0208e1775b1a4c6f4"
+    },
+    {
+      "path": "plugins/kersor/lib/types/index.js",
+      "source": "packages/extensions/kersor/lib/types/index.js",
+      "sha256": "4e0a355f8a9a5df58bb6d97caab86c6f557952a9b822e46d0749cec80c820e2d"
+    },
+    {
+      "path": "plugins/kersor/lib/types/invariant.d.ts",
+      "source": "packages/extensions/kersor/lib/types/invariant.d.ts",
+      "sha256": "00cb3f9100401c3b1f5b0d6c041a27fa744d89f00c63c1518ad1b4bf6d404018"
+    },
+    {
+      "path": "plugins/kersor/lib/types/invariant.js",
+      "source": "packages/extensions/kersor/lib/types/invariant.js",
+      "sha256": "2f39962c2c0b6b5cbc0a2bc44eab6c8d0ea37cce510d61738c9ef2e81b18bfd5"
+    },
+    {
+      "path": "plugins/kersor/lib/types/service.d.ts",
+      "source": "packages/extensions/kersor/lib/types/service.d.ts",
+      "sha256": "369602420c2da7be9a83750151e4bc93b0de61c896608dc7ef4ae935f79008c3"
+    },
+    {
+      "path": "plugins/kersor/lib/types/service.js",
+      "source": "packages/extensions/kersor/lib/types/service.js",
+      "sha256": "12b8ad55f40b1aa4f43a9c6d8b3c8ef57bd533528e09b03cfd4a04d099102b01"
+    },
+    {
+      "path": "plugins/kersor/lib/types/types.d.ts",
+      "source": "packages/extensions/kersor/lib/types/types.d.ts",
+      "sha256": "bf1e40d9254f5b15c9c3b5818ebcbe95d92e356802271ccba6fd61f826b87647"
+    },
+    {
+      "path": "plugins/kersor/lib/types/types.js",
+      "source": "packages/extensions/kersor/lib/types/types.js",
+      "sha256": "720b1c2472e53f350f0b8d9da773d0b8de26dcb7d08abfbc06bc370226740e32"
+    },
+    {
+      "path": "plugins/kersor/src/index.ts",
+      "source": "packages/extensions/kersor/src/index.ts",
+      "sha256": "bcd0f191bbe5d94e8e50d03b0d643c7245e872a38feb52b14b6f94c9a9db391e"
+    },
+    {
+      "path": "plugins/kersor/src/invariant.ts",
+      "source": "packages/extensions/kersor/src/invariant.ts",
+      "sha256": "f00eaae17c693a5ac978adf6de75f395d10d778d4064a2ea3cb8eb627b509df3"
+    },
+    {
+      "path": "plugins/kersor/src/service.ts",
+      "source": "packages/extensions/kersor/src/service.ts",
+      "sha256": "fbdfdc5f2106c396bd7983bbff2270def161f33a0a0605339bbb7e494d260a63"
+    },
+    {
+      "path": "plugins/kersor/src/types.ts",
+      "source": "packages/extensions/kersor/src/types.ts",
+      "sha256": "23ad8b171d04dbfe8bcd936533f90b1af3525bc0b761786794b1b443dfe2da43"
+    },
+    {
+      "path": "plugins/kersor/tests/loader-composition.spec.ts",
+      "source": "packages/extensions/kersor/tests/loader-composition.spec.ts",
+      "sha256": "94f5109de5af67b36549bd48daebccae3d2a7948d8ca2a8970f96d8b8c83d509"
+    },
+    {
+      "path": "plugins/kersor/tests/service.spec.ts",
+      "source": "packages/extensions/kersor/tests/service.spec.ts",
+      "sha256": "df962d333354c440a0c1c7803723e384cfe38dff2729fa0996320fe643c9e9e1"
+    },
+    {
+      "path": "plugins/kersor/tsconfig.host.json",
+      "source": "packages/extensions/kersor/tsconfig.host.json",
+      "sha256": "bb93ffd4301f9981e203fbbcd93eeed67cf1fdfa48d2af8619b40260ae2cf3e8"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/README.i18n.yaml",
+      "source": "packages/extensions/ui-kersor-viewer/README.i18n.yaml",
+      "sha256": "1637a8f31d42d81fcde469965380694ba1f028be82e885ce582f42af0f0aca53"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/README.md",
+      "source": "packages/extensions/ui-kersor-viewer/README.md",
+      "sha256": "856ab7576f6e961be6f5ea43fff7609902dc8bf5db9e3e52c20185b2a9e78f8c"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/README.zh.md",
+      "source": "packages/extensions/ui-kersor-viewer/README.zh.md",
+      "sha256": "62a0dc3fe5dcb73df5177946253077b2c37f65d9dddd1d5736339c67eeef2f51"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/client.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/client.js",
+      "sha256": "129f39c19731b35b290bed57e0f26839048cff76445dae81fbde29e4094058ba"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/index.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/index.js",
+      "sha256": "18791de6b1fe1fea941188834eb5817d8ab14e392e0b6ea69a03dcbac00adb3e"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/invariant.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/invariant.js",
+      "sha256": "02b55261dd91a7d2b39362779829befae5f0dfd10e6d78924457b6f60ea8a7a9"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/KersorPanel.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/KersorPanel.d.ts",
+      "sha256": "eb38d2480eff311a6273856e9939f4ddacf578cc11e6942bc527e1e9c8849e61"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/KersorPanel.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/KersorPanel.js",
+      "sha256": "2aba7f1a62fafc4ef9f30e0834dec7cdd5a187524f090203a7e641d806df3092"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/index.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/index.d.ts",
+      "sha256": "e48789b5a434531e21ee6c9428f2a711f79821629d3079546f918603ebebd8d3"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/index.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/index.js",
+      "sha256": "ce561dd3356d3f71696d9e19d075e1fa79d805f0c4416916d023848af296603e"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/locales.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/locales.d.ts",
+      "sha256": "6cba8dbcaafa238319604e21478e017c43f7a031dea38ab7f5e1e472ecef4767"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/locales.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/locales.js",
+      "sha256": "f2d115fdd3ebd3c36d1434328b8e016769ec11860f1c2f0b650a832d4c3312e7"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/readiness.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/readiness.d.ts",
+      "sha256": "257fd1a5de795e25ce4dd9f66e4e284710308abc175aa38e2999a4c741a00a68"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/readiness.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/readiness.js",
+      "sha256": "1b2f259a12b3c6ff41f5a6c257ce1250616c899f05960d9b51c95784f6f9c9ad"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/slots.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/slots.d.ts",
+      "sha256": "827caf086ea129be00b6297766d8f26f5940f50641d8542e11c871c2f0ee09cb"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/slots.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/slots.js",
+      "sha256": "8b28b6f6328c11a6546f61af8a76a1cbcf0962f0d7cc2bd088ef943a91aca840"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/store.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/store.d.ts",
+      "sha256": "5ab10c96454d1c794117ab26be44b37ee76b088c362e4b6ab621d8770154e86b"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/client/store.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/client/store.js",
+      "sha256": "dd243125d944279a53e2368c4cb1839eeef9f0a846c66a5e2b04bbec152a4e4a"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/index.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/index.d.ts",
+      "sha256": "9e7b48f4b7b526ba611b8265bd5d08228dc837764a4941eaf6c91ff829b7bbe8"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/index.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/index.js",
+      "sha256": "1b78d0ac923f532ce7f6c34cf01c4474135c9fdd89143328a7e7f4ae75415c84"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/invariant.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/invariant.d.ts",
+      "sha256": "43e379a676673e8b431050496bcf0bb663b632715274d4d665a6604681c3a30f"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/lib/types/invariant.js",
+      "source": "packages/extensions/ui-kersor-viewer/lib/types/invariant.js",
+      "sha256": "a40c1a21e7307b345f2d619354f15e47ae0d73fe512ac55f6a098c6cbc7c8d36"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/client/KersorPanel.module.css",
+      "source": "packages/extensions/ui-kersor-viewer/src/client/KersorPanel.module.css",
+      "sha256": "005f29fe086bbbe381d458ff69aef7c60739ba227ea7745d8a566a8b9f9a2432"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/client/KersorPanel.tsx",
+      "source": "packages/extensions/ui-kersor-viewer/src/client/KersorPanel.tsx",
+      "sha256": "fdaaafcbc533635a44f8d653dd615bbab540906e78fc8fbe38e2a86a43f4410e"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/client/index.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/client/index.ts",
+      "sha256": "fcad96b4ae4c513e21c3c25bad0c2546146dee7d45e02d93f79692720c9d9948"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/client/locales.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/client/locales.ts",
+      "sha256": "a4de6fe81563fa4872f921d9cac66010edc23f50341f3f636b380ffe8fec8220"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/client/readiness.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/client/readiness.ts",
+      "sha256": "35f5c019155aef9e6d4a0659db8398e034745425a48a9f47f010fbe66ad1b37a"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/client/slots.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/client/slots.ts",
+      "sha256": "2a283ab4247d24fac530d18edd24365768877d528325dadd11a709ccad2553fe"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/client/store.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/client/store.ts",
+      "sha256": "54151b56d4fde8daf505fe97b915e535ab79bee674334a5e33b8dd2e007ec913"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/css-modules.d.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/css-modules.d.ts",
+      "sha256": "e28410d74a0d763364c04fa690c2ca2202ad3019c74f8f5205e8dc6cba69c02f"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/index.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/index.ts",
+      "sha256": "19b3b8085abd04a071b680c47a0eba0fef5f2bcd3dc62ae4893d89d1f9e12d2c"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/src/invariant.ts",
+      "source": "packages/extensions/ui-kersor-viewer/src/invariant.ts",
+      "sha256": "81b1579ee818919e201d05a9bfa3a5283eb773b8e3484612bc2299a6a0c17023"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/tests/readiness.client.spec.ts",
+      "source": "packages/extensions/ui-kersor-viewer/tests/readiness.client.spec.ts",
+      "sha256": "a9f28d5540b6a48c9f32c0ea04100d891a84226792f835220fa12449a5e17f1b"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/tests/store.client.spec.ts",
+      "source": "packages/extensions/ui-kersor-viewer/tests/store.client.spec.ts",
+      "sha256": "5de9a162dcedd662e8fddf3e26ea9ac78e3b5d6af9bc0758d6a958cf9932f1a9"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/tsconfig.json",
+      "source": "packages/extensions/ui-kersor-viewer/tsconfig.json",
+      "sha256": "696426a864783129343a81d6ef0a78698445a1685f7beac4d4dfa99d26634c74"
+    },
+    {
+      "path": "plugins/ui-kersor-viewer/tsdown.config.ts",
+      "source": "packages/extensions/ui-kersor-viewer/tsdown.config.ts",
+      "sha256": "ad5cf653fa2c3ac6b4f8f224dd7e5fed84937df7034be9be2079111729005e12"
+    }
+  ]
+}
