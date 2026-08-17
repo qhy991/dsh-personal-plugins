@@ -32,6 +32,7 @@ const STATUS_SCHEMA = {
     backend: nullable({ type: 'string' }),
     kernel_language: nullable({ type: 'string' }),
     kernel_path: nullable({ type: 'string' }),
+    started_at: nullable({ type: 'string' }),
     workflow: nullable({ type: 'string' }),
     fit_confidence: nullable({ type: 'string' }),
     best_speedup: nullable({ type: 'number' }),
@@ -54,8 +55,8 @@ const STATUS_SCHEMA = {
   required: [
     'found', 'project_path', 'session_dir', 'storage_kind', 'phase',
     'current_round', 'max_workflows', 'target_speedup', 'target_met', 'mode',
-    'backend', 'kernel_language', 'kernel_path', 'workflow', 'fit_confidence',
-    'best_speedup', 'rounds', 'warnings',
+    'backend', 'kernel_language', 'kernel_path', 'started_at', 'workflow',
+    'fit_confidence', 'best_speedup', 'rounds', 'warnings',
   ],
 }
 
@@ -169,6 +170,7 @@ export function createTool() {
         target_met: value.target_met,
         workflow: value.workflow,
         session_dir: value.session_dir,
+        started_at: value.started_at,
       }),
     },
     async execute(args, exec) {

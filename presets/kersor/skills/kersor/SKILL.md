@@ -1,7 +1,6 @@
 ---
 name: kersor
-description: Route local task evolution and GPU-kernel optimization through the installed KerSor checkout
-whenToUse: Use for KerSor compose, optimization, workflow execution, status, resume, trace, or diagnosis requests
+description: Route local task evolution, benchmarked optimization, workflow execution, status, resume, trace, and diagnosis through the installed KerSor checkout
 ---
 
 # KerSor DSH bridge
@@ -37,4 +36,5 @@ The composer emits a `/kersor:<command>` string as validated parameter binding. 
 2. Use KerSor's scripts for deterministic facts and validation; keep engineering judgment in the agent as required by the current command protocol.
 3. Treat the target task, spec, session files, and measured benchmark output as their documented sources of truth. Do not reconstruct state from chat memory.
 4. Report the exact validation commands and measured result. Never claim an optimization without the benchmark evidence required by the selected protocol.
-5. If a current KerSor file conflicts with this adapter, follow the KerSor file and flag the adapter drift for maintenance.
+5. If `kersor_status`, the composer, or a required command protocol cannot be loaded, stop before mutation and report the exact failure. Do not simulate or bypass KerSor.
+6. If a current KerSor file conflicts with this adapter, follow the KerSor file and flag the adapter drift for maintenance.

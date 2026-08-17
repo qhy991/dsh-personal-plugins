@@ -126,6 +126,16 @@ python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
 
 本地 `file:` 依赖可能被 pnpm 作为旧目录快照复用。执行精确移除／重装流程，然后重启 Web Host；只执行 `add --force` 不足以证明文件已刷新。
 
+### `kersor_status` 返回 `additionalProperties: false`
+
+这表示 bridge 的结构化输出与 preset 中工具 schema 版本不一致。更新本仓库，重新安装 preset 并重启 DSH Web；不要让 agent 绕过状态门继续修改：
+
+```bash
+python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
+```
+
+仓库回归测试会精确比较 status 输出、schema properties 和 required keys，避免新增字段再次只在直接渲染测试中通过、却被 DSH 工具边界拒绝。
+
 ## 验证
 
 ```bash

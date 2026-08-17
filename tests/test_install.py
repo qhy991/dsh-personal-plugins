@@ -323,6 +323,15 @@ plugin.apply({ tools: { register(value) { tool = value } } })
 const signal = new AbortController().signal
 const exec = { signal, agent: { session: { header: { cwd: process.env.WORKSPACE } } } }
 const value = await tool.execute({}, exec)
+const schemaKeys = Object.keys(tool.output.schema.properties).sort()
+const valueKeys = Object.keys(value).sort()
+const requiredKeys = [...tool.output.schema.required].sort()
+if (JSON.stringify(schemaKeys) !== JSON.stringify(valueKeys)) {
+  throw new Error(`status schema/value drift: schema=${schemaKeys} value=${valueKeys}`)
+}
+if (JSON.stringify(requiredKeys) !== JSON.stringify(valueKeys)) {
+  throw new Error(`status required/value drift: required=${requiredKeys} value=${valueKeys}`)
+}
 const content = tool.output.render({}, value)
 const meta = tool.output.presentationMeta({}, value)
 const card = tool.presentResult({}, { content, isError: false, meta })
@@ -349,6 +358,8 @@ console.log(JSON.stringify({ name: tool.name, value, content, meta, card, escape
         self.assertEqual(completed.returncode, 0, completed.stderr)
         result = json.loads(completed.stdout)
         self.assertEqual(result["name"], "kersor_status")
+        self.assertEqual(result["value"]["started_at"], "2026-08-17T12:00:00+08:00")
+        self.assertEqual(result["meta"]["started_at"], "2026-08-17T12:00:00+08:00")
         self.assertIn("1.25x", result["content"][0]["text"])
         self.assertEqual(result["card"]["title"], "KerSor · optimizing · r2/4 · 1.25x")
         self.assertTrue(result["escaped"])

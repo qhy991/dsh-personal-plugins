@@ -49,7 +49,8 @@ python tests/submission_tests.py
 禁止修改：tests/、problem.py、机器常量、多核设置。
 完整性：禁止读取其他 refs、历史优化解、兄弟 worktree、网络现成解。
 
-首先加载 kersor skill。这是 Python VLIW 模拟器，不是 CUDA；Workflow
+首先加载 kersor skill，运行 task-directory compose，并确认 kersor_status
+成功返回后才允许修改文件。这是 Python VLIW 模拟器，不是 CUDA；Workflow
 不适配时选择、演化或创作 VLIW-native Workflow，不得硬套 CUDA。
 
 创建持久 goal 和 VLIW_EVAL_LOG.md。主 agent 是唯一集成者；只读角色至少
@@ -62,6 +63,7 @@ python tests/submission_tests.py
 合格运行应能回答以下问题：
 
 - 初始 catalog 是否包含并成功加载 `kersor`？
+- `compose optimize` 与 `kersor_status` 是否在任何文件修改前成功？
 - Agent 是否先确认基线、保护文件和 ISA 语义？
 - 是否只有主 agent 写 `perf_takehome.py`，只读顾问没有写冲突？
 - Workflow 是否匹配 Python/VLIW，而不是 CUDA？

@@ -62,9 +62,13 @@ def metadata_violations() -> list[str]:
     else:
         if skill.get("name") != "kersor":
             violations.append(f"{skill_path}: name must be kersor")
-        for key in ("description", "whenToUse"):
-            if not skill.get(key):
-                violations.append(f"{skill_path}: {key} is required")
+        if not skill.get("description"):
+            violations.append(f"{skill_path}: description is required")
+        unexpected = sorted(set(skill) - {"name", "description"})
+        if unexpected:
+            violations.append(
+                f"{skill_path}: unsupported frontmatter fields: {', '.join(unexpected)}"
+            )
 
     forbidden = (
         "/" + "Users/",
