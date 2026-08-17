@@ -123,6 +123,9 @@ Session 11 卡片同时显示：
 - 插件 Host TypeScript、Typert、Client TypeScript 与 tsdown browser bundle 重建通过。
 - 插件 `tests.test_install` + `tests.test_plugins`：23 tests passed。
 - `python3 scripts/check.py`：23 tests passed。
+- 插件 commit `6bcbb20` 的
+  [GitHub CI 32018353012](https://github.com/qhy991/dsh-personal-plugins/actions/runs/32018353012)
+  通过。
 - DSH core 工作树为空；VLIW 终态仍只有用户原有 `VLIW_EVAL_LOG.md` 与实验 `.kersor/`，
   受保护任务 diff 为空。
 
