@@ -66,6 +66,12 @@ KSearch 因 `custom_simulator` mismatch 被拒绝。确定性 fit 与合并后�
 
 ## Output ownership 语义审查
 
+> **Iteration 07 事后更正：** 本节只证明了输出路径所有权，不能证明 dispatch
+> evidence safety。Proposal 的 evaluator 虽然导入了 Session-local candidate，随后调用的
+> harness 仍从 `tests.submission_tests.KernelBuilder` 解析 canonical 实现，因此并未实际
+> 执行被声明的 candidate。下述“通过”仅保留为当时的 ownership 结论；本 Proposal
+> 现在追溯标记为 false candidate binding，不可 dispatch。
+
 本轮 Proposal 首次生成即通过语义边界：
 
 - `KERNEL_PATH` 只出现在读取和“不得修改”的提示中；
@@ -109,11 +115,12 @@ workflow-author 的重复 staging、已完成子代理先报 `unknown job` 后�
 
 ## 结论与下一轮
 
-产品修复 LAND；安全 Proposal PASS；算法 checkpoint 未变。本轮证明 task-native
-authoring 已从“能路由但首次生成不安全”推进到“首次生成安全、可选且 fit high”，
-同时 DSH 能解释旧 Session 为什么终止，状态工具也收敛成无路径歧义的单一入口。
+产品修复 LAND；output ownership PASS，但事后 candidate-binding 审查 FAIL；算法
+checkpoint 未变。本轮证明 task-native authoring 已能生成不越界写入、可选且 fit high
+的 Proposal，同时 DSH 能解释旧 Session 为什么终止，状态工具也收敛成无路径歧义的
+单一入口；它没有证明该 Proposal 的测试证据真实绑定了候选实现。
 
-下一轮从新的 Session dispatch 这份安全 Proposal，要求候选只落在 Session-local
-目录，并以独立的 8-run correctness 与 cycles `< 51478` 作为唯一安装门。同时继续
-压缩 staging owner、fit-judge schema 与子代理结果回收，目标把 pre-dispatch 控制在
-40 步以内。
+下一轮不得 dispatch 这份 Proposal。应从新 Session 重新创作，要求候选只落在
+Session-local 目录，correctness 与 benchmark 显式注入同一个 candidate，并以独立的
+correctness 与 cycles `< 51478` 作为唯一安装门。同时继续压缩 staging owner、
+fit-judge schema 与子代理结果回收，目标把 pre-dispatch 控制在 40 步以内。

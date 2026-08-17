@@ -184,6 +184,13 @@ class InstallTests(unittest.TestCase):
         self.assertIn("Structural Proposal gates do not make", skill)
         self.assertIn("outer optimize alone installs a winner", skill)
         self.assertIn("transition the Session to `stalled`", skill)
+        self.assertIn("prove candidate binding", skill)
+        self.assertIn("same Session-local candidate", skill)
+        self.assertIn("completion notification without polling", skill)
+        self.assertIn("only staging writer", skill)
+        self.assertIn("must never repair them", skill)
+        self.assertIn("Run the save gate once", skill)
+        self.assertIn("not an orchestrator patch-and-retry", skill)
         self.assertIn("`kersor_status` first with an empty argument object", skill)
         self.assertIn("never pass the KerSor checkout", skill)
 

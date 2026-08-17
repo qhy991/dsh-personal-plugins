@@ -62,6 +62,15 @@ evaluate a Session-local copy, while outer optimize alone installs a winner
 after correctness and objective proof. On a KILL/needs-revision stop, use
 KerSor's state tool to transition the Session to `stalled`, then confirm the
 terminal state with `kersor_status`; a Markdown summary is not a state change.
+The review must also prove candidate binding: importing a candidate is
+insufficient when the invoked harness still resolves the canonical
+implementation. Correctness and benchmark evidence must name and execute the
+same Session-local candidate. Keep authoring provenance equally strict: launch
+one workflow-author, wait for its completion notification without polling, and
+let that author be the only staging writer. The orchestrator may read and reject
+the three files, but must never repair them. Run the save gate once; any syntax,
+metadata, taxonomy, or semantic failure means `needs_revision` and `stalled`,
+not an orchestrator patch-and-retry.
 
 ## Operating rules
 

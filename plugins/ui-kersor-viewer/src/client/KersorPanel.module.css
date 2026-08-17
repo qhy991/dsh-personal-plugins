@@ -365,6 +365,22 @@
   white-space: nowrap;
 }
 
+.fitBadge {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.fitBadge[data-fit-confidence='high'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.fitBadge[data-fit-confidence='low'] {
+  color: var(--dsw-alias-state-warn-label);
+}
+
 .warningCount {
   flex: none;
   color: var(--dsw-alias-state-warn-label);

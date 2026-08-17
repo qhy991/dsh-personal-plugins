@@ -4,9 +4,9 @@ window.__ModuleLoader__.load({
 		var module = { exports: {} };
 		var exports = module.exports;
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
-		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
+		let react_jsx_runtime = require("react/jsx-runtime");
 		//#region ../../../node_modules/.pnpm/zod@4.4.3/node_modules/zod/v4/core/core.js
 		var _a$1;
 		function $constructor(name, initializer, params) {
@@ -4387,8 +4387,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			]
 		};
 		//#endregion
-		//#region \0dsh-css:@deepseek-ai/dsh-client-ui-kersor-viewer/KersorPanel.module.css.mjs
-		const css = ".t0J8zq_layer{flex:none;align-items:center;width:100%;height:49px;margin:8px 0 0;display:flex;position:relative}.t0J8zq_trigger{width:100%;height:49px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:12px;align-items:center;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:13px;display:flex}.t0J8zq_trigger:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_trigger[aria-expanded=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_triggerIcon{width:16px;height:16px;color:var(--dsw-alias-label-tertiary);flex:none;justify-content:center;align-items:center;display:inline-flex}.t0J8zq_triggerLabel{text-align:left;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_triggerBadge{flex:none;align-items:center;display:inline-flex}.t0J8zq_panel{z-index:30;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);width:460px;max-width:calc(100vw - 24px);max-height:60vh;box-shadow:var(--dsw-shadow-lv2);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px;flex-direction:column;display:flex;position:fixed;bottom:128px;left:12px;overflow:hidden}.t0J8zq_header{box-sizing:border-box;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);flex:none;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:10px 12px;display:flex}.t0J8zq_title{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:20px}.t0J8zq_note,.t0J8zq_readError{color:var(--dsw-alias-label-tertiary);margin:4px 0;font-size:12px;line-height:18px}.t0J8zq_note{text-align:right;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_readError{color:var(--dsw-alias-state-error-primary)}.t0J8zq_body{flex:1;min-height:0;padding:4px 12px 12px;overflow-y:auto}.t0J8zq_launcher{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:8px;margin:4px 0 10px;padding:10px 12px;display:flex}.t0J8zq_launcherHead,.t0J8zq_taskRow,.t0J8zq_activeRow{align-items:center;gap:8px;display:flex}.t0J8zq_launcherHead{justify-content:space-between}.t0J8zq_launcherTitle,.t0J8zq_taskLabel{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_launcherSummary,.t0J8zq_activeRunId{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_taskList,.t0J8zq_activeList{flex-direction:column;gap:4px;display:flex}.t0J8zq_taskRow,.t0J8zq_activeRow{min-height:28px}.t0J8zq_taskLabel,.t0J8zq_activeLabel{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_activeLabel{color:var(--dsw-alias-label-secondary);flex-direction:column;font-size:12px;line-height:16px;display:flex}.t0J8zq_activeRunId{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_controlButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);min-width:52px;height:26px;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:7px;flex:none;padding:0 10px;font-family:inherit;font-size:11px}.t0J8zq_controlButton:hover:not(:disabled){background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_controlButton:disabled{cursor:default;opacity:.55}.t0J8zq_controlButton[data-busy=true]{color:var(--dsw-alias-state-business-primary)}.t0J8zq_activitySection{flex-direction:column;gap:6px;margin-top:8px;display:flex}.t0J8zq_sectionHead,.t0J8zq_classicHead,.t0J8zq_classicFoot{align-items:center;gap:8px;display:flex}.t0J8zq_sectionHead{justify-content:space-between;min-height:24px;padding:0 2px}.t0J8zq_sectionTitle{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_sectionSummary{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_classicRows{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none;display:grid}.t0J8zq_classicRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:10px;flex-direction:column;gap:6px;min-width:0;padding:10px;display:flex}.t0J8zq_classicRow[data-session-health=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_classicRow[data-session-health=stale],.t0J8zq_classicRow[data-session-health=needs_resume],.t0J8zq_classicRow[data-session-health=unknown]{border-color:var(--dsw-alias-state-warn-secondary)}.t0J8zq_classicHead{min-width:0}.t0J8zq_sessionId{min-width:0;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:510;line-height:16px;overflow:hidden}.t0J8zq_phaseBadge{background:var(--dsw-alias-bg-base);max-width:42%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;border-radius:5px;flex:none;padding:1px 5px;font-size:10px;line-height:15px;overflow:hidden}.t0J8zq_classicMetrics{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:2px 8px;font-size:10px;line-height:15px;display:flex}.t0J8zq_classicMetrics [data-target-met=true]{color:var(--dsw-alias-state-success-primary)}.t0J8zq_routeBadge,.t0J8zq_authoringBadge{background:var(--dsw-alias-bg-base);border-radius:5px;padding:0 5px}.t0J8zq_routeBadge{color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.t0J8zq_authoringBadge{color:var(--dsw-alias-state-business-primary)}.t0J8zq_classicFoot{min-width:0;color:var(--dsw-alias-label-secondary);justify-content:space-between;font-size:10px;line-height:15px}.t0J8zq_workflowName{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_warningCount{color:var(--dsw-alias-state-warn-label);cursor:help;flex:none}.t0J8zq_decisionReason{border-top:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical;padding-top:5px;font-size:10px;line-height:15px;display:-webkit-box;overflow:hidden}@media (width<=520px){.t0J8zq_classicRows{grid-template-columns:1fr}}.t0J8zq_rows{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.t0J8zq_row{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);border-radius:12px;flex-direction:column;gap:6px;padding:10px 12px;display:flex}.t0J8zq_row[data-run-status=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_rowHead{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:8px;padding:2px;font-family:inherit;display:flex}.t0J8zq_rowHead:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_rowHead[aria-pressed=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_runId{max-width:45%;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:20px;overflow:hidden}.t0J8zq_rowPath{min-width:0;color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;direction:rtl;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_runDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:4px;padding:4px 2px 2px;display:flex}.t0J8zq_runHead{justify-content:space-between;align-items:center;gap:8px;display:flex}.t0J8zq_statusTail{height:20px;color:var(--dsw-alias-label-secondary);white-space:nowrap;flex:none;align-items:center;gap:4px;font-size:11px;font-weight:510;line-height:16px;display:inline-flex;overflow:hidden}.t0J8zq_runMeta{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:4px 12px;font-size:11px;line-height:16px;display:flex}.t0J8zq_runError{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.t0J8zq_phaseSection{flex-direction:column;margin-top:4px;display:flex}.t0J8zq_phaseHeader{box-sizing:border-box;background:var(--dsw-alias-bg-module-platform);border-radius:8px;align-items:center;gap:6px;width:100%;min-width:0;height:28px;padding:0 8px;display:flex}.t0J8zq_dotSlot{flex:none;justify-content:center;align-items:center;width:16px;display:inline-flex}.t0J8zq_phaseTitle{max-width:55%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:22px;overflow:hidden}.t0J8zq_phaseSummary{min-width:0;color:var(--dsw-alias-label-tertiary);text-align:right;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_callRow{align-items:center;gap:6px;min-height:24px;padding:0 0 0 8px;display:flex}.t0J8zq_callLabel{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:18px;overflow:hidden}.t0J8zq_callMeta{color:var(--dsw-alias-label-tertiary);flex:none;align-items:center;gap:6px;font-size:11px;line-height:16px;display:inline-flex}.t0J8zq_badge{border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.t0J8zq_callStatus{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;font-weight:510;line-height:16px}.t0J8zq_callRow[data-call-status=failed] .t0J8zq_callStatus{color:var(--dsw-alias-state-error-primary)}";
+		//#region \0dsh-css:src/client/KersorPanel.module.css.mjs
+		const css = ".t0J8zq_layer{flex:none;align-items:center;width:100%;height:49px;margin:8px 0 0;display:flex;position:relative}.t0J8zq_trigger{width:100%;height:49px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:12px;align-items:center;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:13px;display:flex}.t0J8zq_trigger:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_trigger[aria-expanded=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_triggerIcon{width:16px;height:16px;color:var(--dsw-alias-label-tertiary);flex:none;justify-content:center;align-items:center;display:inline-flex}.t0J8zq_triggerLabel{text-align:left;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_triggerBadge{flex:none;align-items:center;display:inline-flex}.t0J8zq_panel{z-index:30;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);width:460px;max-width:calc(100vw - 24px);max-height:60vh;box-shadow:var(--dsw-shadow-lv2);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px;flex-direction:column;display:flex;position:fixed;bottom:128px;left:12px;overflow:hidden}.t0J8zq_header{box-sizing:border-box;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);flex:none;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:10px 12px;display:flex}.t0J8zq_title{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:20px}.t0J8zq_note,.t0J8zq_readError{color:var(--dsw-alias-label-tertiary);margin:4px 0;font-size:12px;line-height:18px}.t0J8zq_note{text-align:right;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_readError{color:var(--dsw-alias-state-error-primary)}.t0J8zq_body{flex:1;min-height:0;padding:4px 12px 12px;overflow-y:auto}.t0J8zq_launcher{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:8px;margin:4px 0 10px;padding:10px 12px;display:flex}.t0J8zq_launcherHead,.t0J8zq_taskRow,.t0J8zq_activeRow{align-items:center;gap:8px;display:flex}.t0J8zq_launcherHead{justify-content:space-between}.t0J8zq_launcherTitle,.t0J8zq_taskLabel{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_launcherSummary,.t0J8zq_activeRunId{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_taskList,.t0J8zq_activeList{flex-direction:column;gap:4px;display:flex}.t0J8zq_taskRow,.t0J8zq_activeRow{min-height:28px}.t0J8zq_taskLabel,.t0J8zq_activeLabel{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_activeLabel{color:var(--dsw-alias-label-secondary);flex-direction:column;font-size:12px;line-height:16px;display:flex}.t0J8zq_activeRunId{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_controlButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);min-width:52px;height:26px;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:7px;flex:none;padding:0 10px;font-family:inherit;font-size:11px}.t0J8zq_controlButton:hover:not(:disabled){background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_controlButton:disabled{cursor:default;opacity:.55}.t0J8zq_controlButton[data-busy=true]{color:var(--dsw-alias-state-business-primary)}.t0J8zq_activitySection{flex-direction:column;gap:6px;margin-top:8px;display:flex}.t0J8zq_sectionHead,.t0J8zq_classicHead,.t0J8zq_classicFoot{align-items:center;gap:8px;display:flex}.t0J8zq_sectionHead{justify-content:space-between;min-height:24px;padding:0 2px}.t0J8zq_sectionTitle{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_sectionSummary{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_classicRows{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none;display:grid}.t0J8zq_classicRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:10px;flex-direction:column;gap:6px;min-width:0;padding:10px;display:flex}.t0J8zq_classicRow[data-session-health=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_classicRow[data-session-health=stale],.t0J8zq_classicRow[data-session-health=needs_resume],.t0J8zq_classicRow[data-session-health=unknown]{border-color:var(--dsw-alias-state-warn-secondary)}.t0J8zq_classicHead{min-width:0}.t0J8zq_sessionId{min-width:0;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:510;line-height:16px;overflow:hidden}.t0J8zq_phaseBadge{background:var(--dsw-alias-bg-base);max-width:42%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;border-radius:5px;flex:none;padding:1px 5px;font-size:10px;line-height:15px;overflow:hidden}.t0J8zq_classicMetrics{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:2px 8px;font-size:10px;line-height:15px;display:flex}.t0J8zq_classicMetrics [data-target-met=true]{color:var(--dsw-alias-state-success-primary)}.t0J8zq_routeBadge,.t0J8zq_authoringBadge{background:var(--dsw-alias-bg-base);border-radius:5px;padding:0 5px}.t0J8zq_routeBadge{color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.t0J8zq_authoringBadge{color:var(--dsw-alias-state-business-primary)}.t0J8zq_classicFoot{min-width:0;color:var(--dsw-alias-label-secondary);justify-content:space-between;font-size:10px;line-height:15px}.t0J8zq_workflowName{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_fitBadge{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);border-radius:5px;flex:none;padding:0 5px}.t0J8zq_fitBadge[data-fit-confidence=high]{color:var(--dsw-alias-state-success-primary)}.t0J8zq_fitBadge[data-fit-confidence=low]{color:var(--dsw-alias-state-warn-label)}.t0J8zq_warningCount{color:var(--dsw-alias-state-warn-label);cursor:help;flex:none}.t0J8zq_decisionReason{border-top:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical;padding-top:5px;font-size:10px;line-height:15px;display:-webkit-box;overflow:hidden}@media (width<=520px){.t0J8zq_classicRows{grid-template-columns:1fr}}.t0J8zq_rows{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.t0J8zq_row{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);border-radius:12px;flex-direction:column;gap:6px;padding:10px 12px;display:flex}.t0J8zq_row[data-run-status=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_rowHead{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:8px;padding:2px;font-family:inherit;display:flex}.t0J8zq_rowHead:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_rowHead[aria-pressed=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_runId{max-width:45%;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:20px;overflow:hidden}.t0J8zq_rowPath{min-width:0;color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;direction:rtl;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_runDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:4px;padding:4px 2px 2px;display:flex}.t0J8zq_runHead{justify-content:space-between;align-items:center;gap:8px;display:flex}.t0J8zq_statusTail{height:20px;color:var(--dsw-alias-label-secondary);white-space:nowrap;flex:none;align-items:center;gap:4px;font-size:11px;font-weight:510;line-height:16px;display:inline-flex;overflow:hidden}.t0J8zq_runMeta{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:4px 12px;font-size:11px;line-height:16px;display:flex}.t0J8zq_runError{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.t0J8zq_phaseSection{flex-direction:column;margin-top:4px;display:flex}.t0J8zq_phaseHeader{box-sizing:border-box;background:var(--dsw-alias-bg-module-platform);border-radius:8px;align-items:center;gap:6px;width:100%;min-width:0;height:28px;padding:0 8px;display:flex}.t0J8zq_dotSlot{flex:none;justify-content:center;align-items:center;width:16px;display:inline-flex}.t0J8zq_phaseTitle{max-width:55%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:22px;overflow:hidden}.t0J8zq_phaseSummary{min-width:0;color:var(--dsw-alias-label-tertiary);text-align:right;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_callRow{align-items:center;gap:6px;min-height:24px;padding:0 0 0 8px;display:flex}.t0J8zq_callLabel{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:18px;overflow:hidden}.t0J8zq_callMeta{color:var(--dsw-alias-label-tertiary);flex:none;align-items:center;gap:6px;font-size:11px;line-height:16px;display:inline-flex}.t0J8zq_badge{border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.t0J8zq_callStatus{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;font-weight:510;line-height:16px}.t0J8zq_callRow[data-call-status=failed] .t0J8zq_callStatus{color:var(--dsw-alias-state-error-primary)}";
 		const tagId = "@deepseek-ai/dsh-client-ui-kersor-viewer/KersorPanel.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -4398,68 +4398,69 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			document.head.appendChild(tag);
 		}
 		var KersorPanel_module_css_default = {
-			"rowHead": "t0J8zq_rowHead",
-			"callStatus": "t0J8zq_callStatus",
-			"sectionSummary": "t0J8zq_sectionSummary",
-			"readError": "t0J8zq_readError",
-			"statusTail": "t0J8zq_statusTail",
-			"activitySection": "t0J8zq_activitySection",
-			"taskLabel": "t0J8zq_taskLabel",
-			"activeRow": "t0J8zq_activeRow",
-			"workflowName": "t0J8zq_workflowName",
-			"runDetail": "t0J8zq_runDetail",
-			"activeLabel": "t0J8zq_activeLabel",
-			"sectionHead": "t0J8zq_sectionHead",
-			"trigger": "t0J8zq_trigger",
 			"classicHead": "t0J8zq_classicHead",
-			"phaseSummary": "t0J8zq_phaseSummary",
+			"runDetail": "t0J8zq_runDetail",
+			"controlButton": "t0J8zq_controlButton",
 			"row": "t0J8zq_row",
-			"phaseSection": "t0J8zq_phaseSection",
-			"phaseHeader": "t0J8zq_phaseHeader",
-			"taskRow": "t0J8zq_taskRow",
+			"dotSlot": "t0J8zq_dotSlot",
+			"triggerIcon": "t0J8zq_triggerIcon",
+			"classicFoot": "t0J8zq_classicFoot",
+			"callMeta": "t0J8zq_callMeta",
+			"classicRow": "t0J8zq_classicRow",
 			"runError": "t0J8zq_runError",
-			"decisionReason": "t0J8zq_decisionReason",
-			"activeList": "t0J8zq_activeList",
-			"launcherHead": "t0J8zq_launcherHead",
-			"launcherTitle": "t0J8zq_launcherTitle",
+			"activeRow": "t0J8zq_activeRow",
+			"sectionHead": "t0J8zq_sectionHead",
+			"rows": "t0J8zq_rows",
+			"sectionTitle": "t0J8zq_sectionTitle",
+			"activitySection": "t0J8zq_activitySection",
+			"callLabel": "t0J8zq_callLabel",
+			"statusTail": "t0J8zq_statusTail",
+			"title": "t0J8zq_title",
+			"launcher": "t0J8zq_launcher",
+			"taskList": "t0J8zq_taskList",
 			"authoringBadge": "t0J8zq_authoringBadge",
+			"rowHead": "t0J8zq_rowHead",
+			"panel": "t0J8zq_panel",
+			"routeBadge": "t0J8zq_routeBadge",
+			"body": "t0J8zq_body",
+			"note": "t0J8zq_note",
+			"activeLabel": "t0J8zq_activeLabel",
+			"sessionId": "t0J8zq_sessionId",
+			"runId": "t0J8zq_runId",
+			"launcherTitle": "t0J8zq_launcherTitle",
+			"fitBadge": "t0J8zq_fitBadge",
+			"classicRows": "t0J8zq_classicRows",
+			"header": "t0J8zq_header",
+			"triggerLabel": "t0J8zq_triggerLabel",
+			"trigger": "t0J8zq_trigger",
+			"triggerBadge": "t0J8zq_triggerBadge",
+			"readError": "t0J8zq_readError",
+			"rowPath": "t0J8zq_rowPath",
+			"phaseTitle": "t0J8zq_phaseTitle",
+			"taskLabel": "t0J8zq_taskLabel",
+			"callRow": "t0J8zq_callRow",
+			"badge": "t0J8zq_badge",
+			"phaseBadge": "t0J8zq_phaseBadge",
+			"warningCount": "t0J8zq_warningCount",
+			"runMeta": "t0J8zq_runMeta",
+			"workflowName": "t0J8zq_workflowName",
+			"launcherSummary": "t0J8zq_launcherSummary",
+			"phaseSection": "t0J8zq_phaseSection",
+			"activeRunId": "t0J8zq_activeRunId",
+			"taskRow": "t0J8zq_taskRow",
+			"launcherHead": "t0J8zq_launcherHead",
+			"sectionSummary": "t0J8zq_sectionSummary",
 			"layer": "t0J8zq_layer",
 			"runHead": "t0J8zq_runHead",
-			"dotSlot": "t0J8zq_dotSlot",
-			"panel": "t0J8zq_panel",
-			"taskList": "t0J8zq_taskList",
-			"phaseBadge": "t0J8zq_phaseBadge",
-			"rowPath": "t0J8zq_rowPath",
-			"badge": "t0J8zq_badge",
-			"sessionId": "t0J8zq_sessionId",
-			"callLabel": "t0J8zq_callLabel",
-			"classicRows": "t0J8zq_classicRows",
-			"note": "t0J8zq_note",
-			"controlButton": "t0J8zq_controlButton",
-			"classicRow": "t0J8zq_classicRow",
-			"body": "t0J8zq_body",
-			"callRow": "t0J8zq_callRow",
-			"sectionTitle": "t0J8zq_sectionTitle",
-			"classicFoot": "t0J8zq_classicFoot",
-			"header": "t0J8zq_header",
-			"runId": "t0J8zq_runId",
-			"activeRunId": "t0J8zq_activeRunId",
-			"launcherSummary": "t0J8zq_launcherSummary",
-			"rows": "t0J8zq_rows",
+			"phaseHeader": "t0J8zq_phaseHeader",
+			"phaseSummary": "t0J8zq_phaseSummary",
+			"callStatus": "t0J8zq_callStatus",
+			"activeList": "t0J8zq_activeList",
 			"classicMetrics": "t0J8zq_classicMetrics",
-			"triggerBadge": "t0J8zq_triggerBadge",
-			"title": "t0J8zq_title",
-			"callMeta": "t0J8zq_callMeta",
-			"runMeta": "t0J8zq_runMeta",
-			"launcher": "t0J8zq_launcher",
-			"routeBadge": "t0J8zq_routeBadge",
-			"triggerIcon": "t0J8zq_triggerIcon",
-			"phaseTitle": "t0J8zq_phaseTitle",
-			"triggerLabel": "t0J8zq_triggerLabel",
-			"warningCount": "t0J8zq_warningCount"
+			"decisionReason": "t0J8zq_decisionReason"
 		};
 		//#endregion
-		//#region lib/types/client/KersorPanel.js
+		//#region src/client/KersorPanel.tsx
 		/** KerSor runs sidebar panel: run inventory with live phase/call progress. */
 		const RUN_STATUS_KEYS = {
 			running: "run.active",
@@ -4536,60 +4537,68 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				session.storage_kind
 			].filter(Boolean).join(" · ");
 			const activity = session.last_activity_at !== null && session.last_activity_at !== void 0 ? displayTime(session.last_activity_at) : void 0;
-			return (0, react_jsx_runtime.jsxs)("li", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
 				className: KersorPanel_module_css_default.classicRow,
 				"data-session-health": session.health,
 				"data-session-lifecycle": session.lifecycle,
 				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.classicHead,
 						children: [
-							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicDotState(session.health, session.lifecycle) }),
-							(0, react_jsx_runtime.jsx)("span", {
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicDotState(session.health, session.lifecycle) }),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.sessionId,
 								title: session.session_dir,
 								children: session.session_id
 							}),
-							(0, react_jsx_runtime.jsx)("span", {
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.phaseBadge,
 								children: t(CLASSIC_HEALTH_KEYS[session.health])
 							})
 						]
 					}),
-					(0, react_jsx_runtime.jsxs)("div", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.classicMetrics,
 						children: [
-							round !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: round }) : null,
-							session.best_speedup !== null && session.best_speedup !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
+							round !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: round }) : null,
+							session.best_speedup !== null && session.best_speedup !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								"data-target-met": session.target_met ?? void 0,
 								children: t("session.best", { speedup: speedup(session.best_speedup) })
 							}) : null,
-							session.target_speedup !== null && session.target_speedup !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("session.target", { speedup: speedup(session.target_speedup) }) }) : null,
-							(0, react_jsx_runtime.jsx)("span", { children: session.phase ?? t("session.unknownPhase") }),
-							details.length > 0 ? (0, react_jsx_runtime.jsx)("span", { children: details }) : null,
-							session.integration_pattern !== null && session.integration_pattern !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
+							session.target_speedup !== null && session.target_speedup !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("session.target", { speedup: speedup(session.target_speedup) }) }) : null,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: session.phase ?? t("session.unknownPhase") }),
+							details.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: details }) : null,
+							session.integration_pattern !== null && session.integration_pattern !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.routeBadge,
 								children: session.integration_pattern
 							}) : null,
-							session.allow_workflow_authoring === true ? (0, react_jsx_runtime.jsx)("span", {
+							session.allow_workflow_authoring === true ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.authoringBadge,
 								children: t("session.authoring", { budget: session.workflow_authoring_budget ?? "—" })
 							}) : null,
-							activity !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("session.lastActivity", { time: activity }) }) : null
+							activity !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("session.lastActivity", { time: activity }) }) : null
 						]
 					}),
-					(0, react_jsx_runtime.jsxs)("div", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.classicFoot,
-						children: [(0, react_jsx_runtime.jsx)("span", {
-							className: KersorPanel_module_css_default.workflowName,
-							children: session.workflow !== null && session.workflow !== void 0 ? t("session.workflow", { workflow: session.workflow }) : t("session.noWorkflow")
-						}), session.warnings.length > 0 ? (0, react_jsx_runtime.jsx)("span", {
-							className: KersorPanel_module_css_default.warningCount,
-							title: session.warnings.join("\n"),
-							children: t("session.warnings", { count: session.warnings.length })
-						}) : null]
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: KersorPanel_module_css_default.workflowName,
+								children: session.workflow !== null && session.workflow !== void 0 ? t("session.workflow", { workflow: session.workflow }) : t("session.noWorkflow")
+							}),
+							session.fit_confidence !== null && session.fit_confidence !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: KersorPanel_module_css_default.fitBadge,
+								"data-fit-confidence": session.fit_confidence,
+								children: t("session.fit", { confidence: session.fit_confidence })
+							}) : null,
+							session.warnings.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: KersorPanel_module_css_default.warningCount,
+								title: session.warnings.join("\n"),
+								children: t("session.warnings", { count: session.warnings.length })
+							}) : null
+						]
 					}),
-					session.decision !== null && session.decision !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
+					session.decision !== null && session.decision !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: KersorPanel_module_css_default.decisionReason,
 						title: session.decision,
 						children: session.decision
@@ -4606,32 +4615,32 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		function CallRow({ call, t }) {
 			const duration = durationSeconds(call.startedTs, call.endedTs);
-			return (0, react_jsx_runtime.jsxs)("div", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: KersorPanel_module_css_default.callRow,
 				"data-call-status": call.status,
 				children: [
-					(0, react_jsx_runtime.jsx)("span", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 						className: KersorPanel_module_css_default.dotSlot,
-						children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: callDotState(call.status) })
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: callDotState(call.status) })
 					}),
-					(0, react_jsx_runtime.jsx)("span", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 						className: KersorPanel_module_css_default.callLabel,
 						title: call.callId,
 						children: call.label
 					}),
-					(0, react_jsx_runtime.jsxs)("span", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 						className: KersorPanel_module_css_default.callMeta,
 						children: [
 							call.kind === "evaluation" ? t("call.evaluation") : null,
-							call.rolledBack ? (0, react_jsx_runtime.jsx)("span", {
+							call.rolledBack ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.badge,
 								children: t("call.rolledBack")
 							}) : null,
-							duration !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: duration }) : null,
-							call.tokens !== void 0 ? (0, react_jsx_runtime.jsxs)("span", { children: [call.tokens.toLocaleString(), " tk"] }) : null
+							duration !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: duration }) : null,
+							call.tokens !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [call.tokens.toLocaleString(), " tk"] }) : null
 						]
 					}),
-					(0, react_jsx_runtime.jsx)("span", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 						className: KersorPanel_module_css_default.callStatus,
 						children: t(CALL_STATUS_KEYS[call.status])
 					})
@@ -4640,59 +4649,59 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		function PhaseSection({ phase, t }) {
 			const title = phase.title.length > 0 ? phase.title : t("phase.empty");
-			return (0, react_jsx_runtime.jsxs)("div", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: KersorPanel_module_css_default.phaseSection,
-				children: [(0, react_jsx_runtime.jsxs)("div", {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 					className: KersorPanel_module_css_default.phaseHeader,
 					children: [
-						(0, react_jsx_runtime.jsx)("span", {
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.dotSlot,
-							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: phaseDotState(phase.status) })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: phaseDotState(phase.status) })
 						}),
-						(0, react_jsx_runtime.jsx)("span", {
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.phaseTitle,
 							children: title
 						}),
-						(0, react_jsx_runtime.jsx)("span", {
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.phaseSummary,
 							children: phase.calls.length
 						})
 					]
-				}), phase.calls.map((call) => (0, react_jsx_runtime.jsx)(CallRow, {
+				}), phase.calls.map((call) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CallRow, {
 					call,
 					t
 				}, call.callId))]
 			});
 		}
 		function RunDetail({ view, t }) {
-			return (0, react_jsx_runtime.jsxs)("div", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: KersorPanel_module_css_default.runDetail,
 				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.runHead,
-						children: [(0, react_jsx_runtime.jsx)("span", {
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.runId,
 							title: view.runDir,
 							children: view.runId
-						}), (0, react_jsx_runtime.jsxs)("span", {
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 							className: KersorPanel_module_css_default.statusTail,
 							"data-status": view.status,
-							children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: runDotState(view.status) }), (0, react_jsx_runtime.jsx)("span", { children: t(RUN_STATUS_KEYS[view.status]) })]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: runDotState(view.status) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(RUN_STATUS_KEYS[view.status]) })]
 						})]
 					}),
-					(0, react_jsx_runtime.jsxs)("div", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.runMeta,
 						children: [
-							view.currentPhase.length > 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("run.currentPhase", { phase: view.currentPhase }) }) : null,
-							(0, react_jsx_runtime.jsx)("span", { children: t("run.calls", { calls: view.totals.calls }) }),
-							view.totals.tokens > 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("run.tokens", { tokens: view.totals.tokens.toLocaleString() }) }) : null
+							view.currentPhase.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("run.currentPhase", { phase: view.currentPhase }) }) : null,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("run.calls", { calls: view.totals.calls }) }),
+							view.totals.tokens > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("run.tokens", { tokens: view.totals.tokens.toLocaleString() }) }) : null
 						]
 					}),
-					view.error !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
+					view.error !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: KersorPanel_module_css_default.runError,
 						children: t("run.error", { message: view.error })
 					}) : null,
-					view.phases.map((phase) => (0, react_jsx_runtime.jsx)(PhaseSection, {
+					view.phases.map((phase) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PhaseSection, {
 						phase,
 						t
 					}, `${phase.index}-${phase.title}`))
@@ -4701,30 +4710,30 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		function LauncherControls({ launcher, busy, start, stop, t }) {
 			const labels = new Map(launcher.tasks.map((task) => [task.id, task.label]));
-			return (0, react_jsx_runtime.jsxs)("section", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 				className: KersorPanel_module_css_default.launcher,
 				"aria-label": t("launcher.title"),
 				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.launcherHead,
-						children: [(0, react_jsx_runtime.jsx)("span", {
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.launcherTitle,
 							children: t("launcher.title")
-						}), launcher.active.length > 0 ? (0, react_jsx_runtime.jsx)("span", {
+						}), launcher.active.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.launcherSummary,
 							children: t("launcher.running", { count: launcher.active.length })
 						}) : null]
 					}),
-					(0, react_jsx_runtime.jsx)("div", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: KersorPanel_module_css_default.taskList,
 						children: launcher.tasks.map((task) => {
 							const key = `start:${task.id}`;
-							return (0, react_jsx_runtime.jsxs)("div", {
+							return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: KersorPanel_module_css_default.taskRow,
-								children: [(0, react_jsx_runtime.jsx)("span", {
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 									className: KersorPanel_module_css_default.taskLabel,
 									children: task.label
-								}), (0, react_jsx_runtime.jsx)("button", {
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: KersorPanel_module_css_default.controlButton,
 									disabled: busy !== void 0,
@@ -4737,21 +4746,21 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							}, task.id);
 						})
 					}),
-					launcher.active.length > 0 ? (0, react_jsx_runtime.jsx)("div", {
+					launcher.active.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: KersorPanel_module_css_default.activeList,
-						children: launcher.active.map((launch) => (0, react_jsx_runtime.jsxs)("div", {
+						children: launcher.active.map((launch) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: KersorPanel_module_css_default.activeRow,
 							children: [
-								(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" }),
-								(0, react_jsx_runtime.jsxs)("span", {
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" }),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 									className: KersorPanel_module_css_default.activeLabel,
 									title: launch.runDir,
-									children: [labels.get(launch.taskId) ?? launch.taskId, (0, react_jsx_runtime.jsx)("span", {
+									children: [labels.get(launch.taskId) ?? launch.taskId, /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 										className: KersorPanel_module_css_default.activeRunId,
 										children: launch.runId
 									})]
 								}),
-								(0, react_jsx_runtime.jsx)("button", {
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: KersorPanel_module_css_default.controlButton,
 									disabled: busy !== void 0,
@@ -4764,7 +4773,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							]
 						}, launch.runDir))
 					}) : null,
-					launcher.error !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
+					launcher.error !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: KersorPanel_module_css_default.readError,
 						children: t("launcher.error", { message: launcher.error })
 					}) : null
@@ -4793,9 +4802,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					setBusy(void 0);
 				}
 			};
-			return (0, react_jsx_runtime.jsxs)("div", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: KersorPanel_module_css_default.layer,
-				children: [(0, react_jsx_runtime.jsxs)("button", {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 					type: "button",
 					className: KersorPanel_module_css_default.trigger,
 					"aria-expanded": open,
@@ -4805,99 +4814,99 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						if (!open) refresh();
 					},
 					children: [
-						(0, react_jsx_runtime.jsx)("span", {
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.triggerIcon,
-							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, {})
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, {})
 						}),
-						(0, react_jsx_runtime.jsx)("span", {
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.triggerLabel,
 							children: t("panel.trigger")
 						}),
-						state.rows.some((row) => row.discovery === "active") || state.classicSessions.some((session) => session.health === "active") ? (0, react_jsx_runtime.jsx)("span", {
+						state.rows.some((row) => row.discovery === "active") || state.classicSessions.some((session) => session.health === "active") ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.triggerBadge,
-							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" })
 						}) : null
 					]
-				}), open ? (0, react_jsx_runtime.jsxs)("div", {
+				}), open ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 					className: KersorPanel_module_css_default.panel,
 					role: "dialog",
 					"aria-label": t("panel.title"),
-					children: [(0, react_jsx_runtime.jsxs)("div", {
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.header,
-						children: [(0, react_jsx_runtime.jsx)("span", {
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.title,
 							children: t("panel.title")
-						}), (0, react_jsx_runtime.jsx)("span", {
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.note,
 							children: t("panel.hint")
 						})]
-					}), (0, react_jsx_runtime.jsxs)("div", {
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.body,
 						children: [
-							state.launcher !== void 0 ? (0, react_jsx_runtime.jsx)(LauncherControls, {
+							state.launcher !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(LauncherControls, {
 								launcher: state.launcher,
 								busy,
 								start: runStart,
 								stop: runStop,
 								t
 							}) : null,
-							state.error !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
+							state.error !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: KersorPanel_module_css_default.readError,
 								children: t("panel.readFailed", { message: state.error })
 							}) : null,
-							state.classicWarning !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
+							state.classicWarning !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: KersorPanel_module_css_default.readError,
 								children: state.classicWarning
 							}) : null,
-							state.loading ? (0, react_jsx_runtime.jsx)("div", {
+							state.loading ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: KersorPanel_module_css_default.note,
 								children: t("panel.loading")
 							}) : null,
-							!state.loading && state.rows.length === 0 && state.classicSessions.length === 0 ? (0, react_jsx_runtime.jsx)("div", {
+							!state.loading && state.rows.length === 0 && state.classicSessions.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: KersorPanel_module_css_default.note,
 								children: t("panel.empty")
 							}) : null,
-							state.classicSessions.length > 0 ? (0, react_jsx_runtime.jsxs)("section", {
+							state.classicSessions.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 								className: KersorPanel_module_css_default.activitySection,
 								"aria-label": t("session.title"),
-								children: [(0, react_jsx_runtime.jsxs)("div", {
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 									className: KersorPanel_module_css_default.sectionHead,
-									children: [(0, react_jsx_runtime.jsx)("span", {
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 										className: KersorPanel_module_css_default.sectionTitle,
 										children: t("session.title")
-									}), (0, react_jsx_runtime.jsx)("span", {
+									}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 										className: KersorPanel_module_css_default.sectionSummary,
 										children: t("session.summary", {
 											count: state.classicSessions.length,
 											active: state.classicSessions.filter((session) => session.health === "active").length
 										})
 									})]
-								}), (0, react_jsx_runtime.jsx)("ul", {
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ul", {
 									className: KersorPanel_module_css_default.classicRows,
-									children: state.classicSessions.map((session) => (0, react_jsx_runtime.jsx)(ClassicSessionRow, {
+									children: state.classicSessions.map((session) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ClassicSessionRow, {
 										session,
 										t
 									}, session.session_dir))
 								})]
 							}) : null,
-							state.rows.length > 0 ? (0, react_jsx_runtime.jsxs)("section", {
+							state.rows.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 								className: KersorPanel_module_css_default.activitySection,
 								"aria-label": t("run.sectionTitle"),
-								children: [(0, react_jsx_runtime.jsxs)("div", {
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 									className: KersorPanel_module_css_default.sectionHead,
-									children: [(0, react_jsx_runtime.jsx)("span", {
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 										className: KersorPanel_module_css_default.sectionTitle,
 										children: t("run.sectionTitle")
-									}), (0, react_jsx_runtime.jsx)("span", {
+									}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 										className: KersorPanel_module_css_default.sectionSummary,
 										children: state.rows.length
 									})]
-								}), (0, react_jsx_runtime.jsx)("ul", {
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ul", {
 									className: KersorPanel_module_css_default.rows,
-									children: state.rows.map((row) => (0, react_jsx_runtime.jsxs)("li", {
+									children: state.rows.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
 										className: KersorPanel_module_css_default.row,
 										"data-run-status": row.discovery,
-										children: [(0, react_jsx_runtime.jsxs)("button", {
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 											type: "button",
 											className: KersorPanel_module_css_default.rowHead,
 											"aria-pressed": store.selectedRunDir === row.runDir,
@@ -4905,25 +4914,25 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 												store.select(store.selectedRunDir === row.runDir ? void 0 : row.runDir);
 											},
 											children: [
-												(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: row.discovery === "active" ? "ongoing" : row.discovery === "failed" ? "error" : "done" }),
-												(0, react_jsx_runtime.jsx)("span", {
+												/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: row.discovery === "active" ? "ongoing" : row.discovery === "failed" ? "error" : "done" }),
+												/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 													className: KersorPanel_module_css_default.runId,
 													children: row.runId
 												}),
-												(0, react_jsx_runtime.jsx)("span", {
+												/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 													className: KersorPanel_module_css_default.rowPath,
 													title: row.runDir,
 													children: row.sessionDir
 												})
 											]
-										}), store.selectedRunDir === row.runDir && row.view !== void 0 ? (0, react_jsx_runtime.jsx)(RunDetail, {
+										}), store.selectedRunDir === row.runDir && row.view !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(RunDetail, {
 											view: row.view,
 											t
 										}) : null]
 									}, row.runDir))
 								})]
 							}) : null,
-							state.rows.length > 0 && view !== void 0 && !state.rows.some((row) => row.runDir === store.selectedRunDir) ? (0, react_jsx_runtime.jsx)(RunDetail, {
+							state.rows.length > 0 && view !== void 0 && !state.rows.some((row) => row.runDir === store.selectedRunDir) ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(RunDetail, {
 								view,
 								t
 							}) : null
@@ -4933,13 +4942,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		//#endregion
-		//#region lib/types/client/store.js
-		/**
-		* Browser-side viewer store: run inventory plus folded run views, fed by the
-		* forwarded `kersor/event` Host frames and the `listRuns`/`runBacklog`
-		* remotes. A useSyncExternalStore-compatible snapshot observable.
-		* @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
-		*/
+		//#region src/client/store.ts
 		/** Snapshot store over the run inventory and per-run folded views. */
 		var KersorViewerStore = class {
 			state = {
@@ -5138,7 +5141,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 		}
 		//#endregion
-		//#region lib/types/client/locales.js
+		//#region src/client/locales.ts
 		/** KerSor viewer UI dictionaries. */
 		const NS = "kersorViewer";
 		/** Simplified Chinese KerSor viewer messages. */
@@ -5157,6 +5160,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.target": "目标 {speedup}x",
 			"session.authoring": "可创作 · 预算 {budget}",
 			"session.workflow": "Workflow：{workflow}",
+			"session.fit": "适配度：{confidence}",
 			"session.noWorkflow": "尚未选择 Workflow",
 			"session.unknownPhase": "未知阶段",
 			"session.lastActivity": "活动于 {time}",
@@ -5207,6 +5211,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.target": "Target {speedup}x",
 			"session.authoring": "Authoring · budget {budget}",
 			"session.workflow": "Workflow: {workflow}",
+			"session.fit": "Fit: {confidence}",
 			"session.noWorkflow": "No Workflow selected yet",
 			"session.unknownPhase": "Unknown phase",
 			"session.lastActivity": "Active {time}",
@@ -5242,12 +5247,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"call.duration": "{seconds}"
 		};
 		//#endregion
-		//#region lib/types/client/index.js
-		/**
-		* KerSor viewer browser half: sidebar run-inventory panel refreshed through
-		* generated viewer and optional launcher Remote namespaces.
-		* @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
-		*/
+		//#region src/client/index.ts
 		/** Required services: viewer UI seams and the generic Remote carrier. */
 		const inject = [
 			"slots",

@@ -16,6 +16,7 @@ export declare const zh: {
     readonly 'session.target': "目标 {speedup}x";
     readonly 'session.authoring': "可创作 · 预算 {budget}";
     readonly 'session.workflow': "Workflow：{workflow}";
+    readonly 'session.fit': "适配度：{confidence}";
     readonly 'session.noWorkflow': "尚未选择 Workflow";
     readonly 'session.unknownPhase': "未知阶段";
     readonly 'session.lastActivity': "活动于 {time}";
@@ -66,6 +67,7 @@ export declare const en: {
     readonly 'session.target': "Target {speedup}x";
     readonly 'session.authoring': "Authoring · budget {budget}";
     readonly 'session.workflow': "Workflow: {workflow}";
+    readonly 'session.fit': "Fit: {confidence}";
     readonly 'session.noWorkflow': "No Workflow selected yet";
     readonly 'session.unknownPhase': "Unknown phase";
     readonly 'session.lastActivity': "Active {time}";

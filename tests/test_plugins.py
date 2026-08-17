@@ -77,8 +77,15 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn("allow_workflow_authoring", client)
         self.assertIn("workflow_authoring_budget", client)
         self.assertIn("decisionReason", client)
+        self.assertIn("fitBadge", client)
+        self.assertIn("Fit: {confidence}", client)
         self.assertIn("routeBadge", client)
         self.assertIn("Authoring · budget {budget}", client)
+
+    def test_ui_source_matches_the_shared_client_bundle_entry(self) -> None:
+        package = ROOT / "plugins" / "ui-kersor-viewer"
+        self.assertTrue((package / "src" / "client" / "index.ts").is_file())
+        self.assertFalse((package / "src" / "client" / "index.tsx").exists())
 
     def test_built_viewer_projects_task_native_routing(self) -> None:
         viewer = ROOT / "plugins" / "kersor-viewer" / "lib"

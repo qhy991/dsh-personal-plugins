@@ -139,6 +139,9 @@ function ClassicSessionRow({ session, t }: {
             ? t('session.workflow', { workflow: session.workflow })
             : t('session.noWorkflow')}
         </span>
+        {session.fit_confidence !== null && session.fit_confidence !== undefined
+          ? <span className={css.fitBadge} data-fit-confidence={session.fit_confidence}>{t('session.fit', { confidence: session.fit_confidence })}</span>
+          : null}
         {session.warnings.length > 0
           ? <span className={css.warningCount} title={session.warnings.join('\n')}>{t('session.warnings', { count: session.warnings.length })}</span>
           : null}

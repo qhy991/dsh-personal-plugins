@@ -16,4 +16,5 @@
 | [03](2026-08-17-vliw-from-scratch-03.md) | VLIW Take-Home 修复后新会话 | status bridge 与 DSH tool schema 是否仍是同一合同 | schema drift 复现；严格边界测试与 fail-closed 路由 |
 | [04](2026-08-17-vliw-from-scratch-04.md) | VLIW Take-Home 正式 KerSor Session | DSH 工作区中的 Session 是否能被活动面板自动发现 | workspace registry 接入；真实 stalled Session 首卡呈现 |
 | [05](2026-08-17-vliw-from-scratch-05.md) | VLIW Take-Home task-native authoring | Python/VLIW 能否从 STALLED 创作安全的 Session-local Workflow | 路由与可视化 LAND；不安全 Proposal KILL，checkpoint 保持 51478 |
-| [06](2026-08-17-vliw-from-scratch-06.md) | VLIW Take-Home session-safe Proposal | 首次生成能否通过 output ownership，并消除 status 路径歧义 | 安全 Proposal PASS；decision 理由可视化；`kersor_status · {}` 3 步通过 |
+| [06](2026-08-17-vliw-from-scratch-06.md) | VLIW Take-Home session-safe Proposal | 首次生成能否通过 output ownership，并消除 status 路径歧义 | ownership PASS；事后发现 false candidate binding；decision 理由可视化 |
+| [07](2026-08-17-vliw-from-scratch-07.md) | VLIW Take-Home candidate-bound Proposal | 证据是否真实执行候选，staging 是否保持单写入者 | candidate binding 修复；orchestrator 代修违规，Proposal KILL；fit 徽标上线 |
