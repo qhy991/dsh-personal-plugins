@@ -18,3 +18,4 @@
 | [05](2026-08-17-vliw-from-scratch-05.md) | VLIW Take-Home task-native authoring | Python/VLIW 能否从 STALLED 创作安全的 Session-local Workflow | 路由与可视化 LAND；不安全 Proposal KILL，checkpoint 保持 51478 |
 | [06](2026-08-17-vliw-from-scratch-06.md) | VLIW Take-Home session-safe Proposal | 首次生成能否通过 output ownership，并消除 status 路径歧义 | ownership PASS；事后发现 false candidate binding；decision 理由可视化 |
 | [07](2026-08-17-vliw-from-scratch-07.md) | VLIW Take-Home candidate-bound Proposal | 证据是否真实执行候选，staging 是否保持单写入者 | candidate binding 修复；orchestrator 代修违规，Proposal KILL；fit 徽标上线 |
+| [08](2026-08-17-vliw-from-scratch-08.md) | VLIW Take-Home foreground authoring | “不要轮询”能否成为真实等待边界 | background polling 与二次唤醒复现；foreground barrier、mixed-provenance gate、终态 UI 优先级 LAND |

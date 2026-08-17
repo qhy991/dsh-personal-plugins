@@ -79,6 +79,8 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn("decisionReason", client)
         self.assertIn("fitBadge", client)
         self.assertIn("Fit: {confidence}", client)
+        self.assertIn('session.lifecycle !== "stalled"', client)
+        self.assertIn('session.lifecycle !== "cancelled"', client)
         self.assertIn("routeBadge", client)
         self.assertIn("Authoring · budget {budget}", client)
 

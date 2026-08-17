@@ -97,7 +97,8 @@ function ClassicSessionRow({ session, t }) {
                             }) })
                         : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
                             ? t('session.workflow', { workflow: session.workflow })
-                            : t('session.noWorkflow') }), session.fit_confidence !== null && session.fit_confidence !== undefined
+                            : t('session.noWorkflow') }), session.lifecycle !== 'stalled' && session.lifecycle !== 'cancelled'
+                        && session.fit_confidence !== null && session.fit_confidence !== undefined
                         ? _jsx("span", { className: css.fitBadge, "data-fit-confidence": session.fit_confidence, children: t('session.fit', { confidence: session.fit_confidence }) })
                         : null, session.warnings.length > 0
                         ? _jsx("span", { className: css.warningCount, title: session.warnings.join('\n'), children: t('session.warnings', { count: session.warnings.length }) })

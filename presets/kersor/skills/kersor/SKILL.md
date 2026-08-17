@@ -66,11 +66,20 @@ The review must also prove candidate binding: importing a candidate is
 insufficient when the invoked harness still resolves the canonical
 implementation. Correctness and benchmark evidence must name and execute the
 same Session-local candidate. Keep authoring provenance equally strict: launch
-one workflow-author, wait for its completion notification without polling, and
-let that author be the only staging writer. The orchestrator may read and reject
-the three files, but must never repair them. Run the save gate once; any syntax,
-metadata, taxonomy, or semantic failure means `needs_revision` and `stalled`,
-not an orchestrator patch-and-retry.
+one workflow-author in the foreground and let that author be the only staging
+writer. On DSH's continuable `subagent` tool, set `run_in_background: false`;
+the blocking tool result is the completion notification. Never call
+`list_agents`, a job tool, or inspect staging progress while it runs. The
+orchestrator may read and reject the three files after the call returns, but
+must never repair them. Any extra staging file or directory is mixed provenance.
+Run the save gate once; any syntax, metadata, taxonomy, or semantic failure
+means `needs_revision` and `stalled`, not an orchestrator patch-and-retry.
+
+Do not accept a prose-only baseline. Before selection or authoring,
+`test-method.md` must record the exact correctness and benchmark commands that
+were executed in the current Session, their exit status, measured objective,
+and a short stdout excerpt. A historical cycle count copied into Markdown is
+not execution evidence.
 
 ## Operating rules
 
