@@ -82,6 +82,16 @@ describe('run discovery', () => {
     expect(found).toEqual([])
   })
 
+  it('discovers autonomous runs inside registered DSH workspaces', async () => {
+    const workspace = await tempRoot()
+    const session = await makeSession(path.join(workspace, '.kersor'), 'sess-workspace')
+    const runDir = path.join(session, 'autonomous-runs', '20260817T020000Z')
+    await mkdir(path.join(runDir, '.runtime'), { recursive: true })
+
+    const found = await scanRoots([], false, [workspace])
+    expect(found.map(ref => ref.runDir)).toEqual([runDir])
+  })
+
   it('reuses the checkout pointer written by the installed KerSor preset', async () => {
     const dshHome = await tempRoot()
     const checkout = await tempRoot()

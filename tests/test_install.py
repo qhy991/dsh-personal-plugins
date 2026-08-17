@@ -280,6 +280,34 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["kernel_name"], "kernel.cu")
         self.assertNotIn("kernel_path", row)
 
+    def test_sessions_bridge_includes_registered_dsh_workspace(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "sessions",
+                "--limit",
+                "1",
+                "--workspace",
+                str(project),
+                "--workspace",
+                str(project),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        rows = json.loads(completed.stdout)["sessions"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0]["session_dir"],
+            str((project / ".kersor" / "20260817-120000").resolve()),
+        )
+        self.assertEqual(rows[0]["status"], "resumable")
+
     def test_sessions_bridge_marks_old_continuable_session_needs_resume(self) -> None:
         destination, _, _ = self.run_install()
         project = self.make_status_project()

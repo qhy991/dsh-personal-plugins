@@ -37,6 +37,7 @@ export interface Config {
  * `listRuns` and `runBacklog` remotes for panel open and reconnect.
  */
 export declare class KersorViewerService extends TypertRemoteService {
+    static inject: string[];
     static Config: z<Config>;
     private readonly rootCtx;
     private readonly configuredRoots;

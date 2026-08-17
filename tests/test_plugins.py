@@ -232,6 +232,14 @@ console.log(JSON.stringify(await viewer.readClassicSessions(1)))
             value = json.loads(completed.stdout)
             self.assertEqual(value["sessions"][0]["session_id"], "s1")
 
+    def test_built_viewer_depends_on_the_dsh_workspace_registry(self) -> None:
+        package = ROOT / "plugins" / "kersor-viewer"
+        manifest = json.loads((package / "package.json").read_text(encoding="utf-8"))
+        self.assertIn("@deepseek-ai/dsh-workspace", manifest["peerDependencies"])
+        host = (package / "lib" / "index.js").read_text(encoding="utf-8")
+        self.assertIn('static inject = ["workspaceRegistry"]', host)
+        self.assertIn("workspaceRegistry.list()", host)
+
 
 if __name__ == "__main__":
     unittest.main()

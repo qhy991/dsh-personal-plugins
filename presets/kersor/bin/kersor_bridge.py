@@ -389,23 +389,52 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
     }
 
 
-def sessions(root: Path, limit: int, stale_after: int) -> dict[str, Any]:
-    """List recent readable sessions from the configured KerSor checkout."""
-    sessions_root = root / ".kersor"
-    try:
-        candidates = sorted(
-            (path for path in sessions_root.iterdir() if path.is_dir()),
-            key=lambda path: path.name,
-            reverse=True,
-        )
-    except OSError as error:
-        return {
-            "sessions": [],
-            "warnings": [f"KerSor session root unavailable ({type(error).__name__})"],
-        }
+def sessions(
+    root: Path,
+    limit: int,
+    stale_after: int,
+    session_roots: list[Path],
+    workspaces: list[Path],
+    include_checkout: bool,
+) -> dict[str, Any]:
+    """List recent readable sessions from checkout, configured, and workspace roots."""
+    roots = [root / ".kersor"] if include_checkout else []
+    roots.extend(path.expanduser().resolve() for path in session_roots)
+    roots.extend(path.expanduser().resolve() / ".kersor" for path in workspaces)
+
+    candidates: list[Path] = []
+    warnings: list[str] = []
+    seen_roots: set[Path] = set()
+    seen_sessions: set[Path] = set()
+    for sessions_root in roots:
+        resolved_root = sessions_root.resolve()
+        if resolved_root in seen_roots:
+            continue
+        seen_roots.add(resolved_root)
+        if (resolved_root / "session-config.json").is_file() or (
+            resolved_root / "state.md"
+        ).is_file():
+            children = [resolved_root]
+        else:
+            try:
+                children = [path for path in resolved_root.iterdir() if path.is_dir()]
+            except FileNotFoundError:
+                continue
+            except OSError as error:
+                warnings.append(
+                    f"KerSor session root unavailable ({type(error).__name__})"
+                )
+                continue
+        for candidate in children:
+            resolved = candidate.resolve()
+            if resolved in seen_sessions:
+                continue
+            seen_sessions.add(resolved)
+            candidates.append(resolved)
+
+    candidates.sort(key=lambda path: path.name, reverse=True)
 
     result: list[dict[str, Any]] = []
-    warnings: list[str] = []
     for candidate in candidates:
         if len(result) >= limit:
             break
@@ -434,6 +463,27 @@ def sessions_parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="kersor_bridge.py sessions")
     result.add_argument("--limit", type=int, choices=range(1, 101), default=20)
     result.add_argument("--stale-after", type=int, choices=range(1, 86401), default=1800)
+    result.add_argument(
+        "--root",
+        dest="session_roots",
+        action="append",
+        type=Path,
+        default=[],
+        help="additional directory containing KerSor Session directories",
+    )
+    result.add_argument(
+        "--workspace",
+        action="append",
+        type=Path,
+        default=[],
+        help="DSH workspace whose .kersor directory should be inventoried",
+    )
+    result.add_argument(
+        "--no-checkout-root",
+        dest="include_checkout",
+        action="store_false",
+        help="exclude the configured KerSor checkout's .kersor directory",
+    )
     return result
 
 
@@ -471,6 +521,9 @@ def main(argv: list[str] | None = None) -> int:
                         root,
                         sessions_options.limit,
                         sessions_options.stale_after,
+                        sessions_options.session_roots,
+                        sessions_options.workspace,
+                        sessions_options.include_checkout,
                     ),
                     ensure_ascii=False,
                 )

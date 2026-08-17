@@ -55,6 +55,16 @@ export interface KersorClassicSnapshot {
   readonly warning?: string
 }
 
+/** Machine-local roots supplied by viewer configuration and DSH workspaces. */
+export interface KersorClassicRoots {
+  /** Include the `.kersor/` of the checkout configured by the preset. */
+  readonly includeCheckoutRoot?: boolean
+  /** Directories whose children are KerSor Sessions. */
+  readonly sessionRoots?: readonly string[]
+  /** Project directories whose `.kersor/` child owns the Sessions. */
+  readonly workspaceRoots?: readonly string[]
+}
+
 function dshHome(): string {
   const configured = process.env.DSH_HOME?.trim()
   if (!configured) return path.join(homedir(), '.dsh')
@@ -90,6 +100,7 @@ function isClassicSession(value: unknown): value is KersorClassicSession {
 export async function readClassicSessions(
   limit: number,
   staleAfterSeconds = 1800,
+  roots: KersorClassicRoots = {},
 ): Promise<KersorClassicSnapshot> {
   const bridge = installedBridge()
   try {
@@ -98,12 +109,20 @@ export async function readClassicSessions(
     return { sessions: [] } // autonomous-only installs do not require the preset
   }
   try {
-    const { stdout } = await execFileAsync('python3', [
+    const args = [
       bridge,
       'sessions',
       '--limit', String(limit),
       '--stale-after', String(staleAfterSeconds),
-    ], {
+    ]
+    for (const root of roots.sessionRoots ?? []) {
+      if (root.trim()) args.push('--root', root)
+    }
+    for (const workspace of roots.workspaceRoots ?? []) {
+      if (workspace.trim()) args.push('--workspace', workspace)
+    }
+    if (roots.includeCheckoutRoot === false) args.push('--no-checkout-root')
+    const { stdout } = await execFileAsync('python3', args, {
       encoding: 'utf8',
       maxBuffer: 2 * 1024 * 1024,
       timeout: 10_000,

@@ -10,6 +10,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import type { Fiber } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import type {} from '@deepseek-ai/dsh-workspace'
 import { createRunView, foldEvent } from './fold.ts'
 import type { KersorEvent, KersorRunView } from './fold.ts'
 import { readClassicSessions } from './classic.ts'
@@ -53,6 +54,8 @@ interface TrackedRun {
  * `listRuns` and `runBacklog` remotes for panel open and reconnect.
  */
 export class KersorViewerService extends TypertRemoteService {
+  static inject = ['workspaceRegistry']
+
   static Config: z<Config> = z.object({
     roots: z.array(z.string()).default([]),
     noDefaultRoots: z.boolean().default(false),
@@ -146,11 +149,18 @@ export class KersorViewerService extends TypertRemoteService {
   }
 
   private async performRescan(): Promise<void> {
+    const workspaceRoots = [...new Set(
+      this.rootCtx.workspaceRegistry.list().map(workspace => workspace.path),
+    )]
     const [found, classicSnapshot] = await Promise.all([
-      scanRoots(this.configuredRoots, this.includeDefaults),
+      scanRoots(this.configuredRoots, this.includeDefaults, workspaceRoots),
       this.classicSessionLimit === 0
         ? Promise.resolve({ sessions: [] } satisfies KersorClassicSnapshot)
-        : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds),
+        : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds, {
+          includeCheckoutRoot: this.includeDefaults,
+          sessionRoots: this.configuredRoots,
+          workspaceRoots,
+        }),
     ])
     this.classicSnapshot = classicSnapshot
     const byRunDir = new Map(found.map(ref => [ref.runDir, ref]))

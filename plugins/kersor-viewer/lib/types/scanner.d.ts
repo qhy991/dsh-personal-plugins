@@ -19,7 +19,8 @@ export interface KersorRunRef {
 /**
  * Scan every root (deduplicated) for KerSor runs.
  * @param roots - configured roots; defaults are appended when `includeDefaults`.
+ * @param workspaceRoots - DSH project directories whose `.kersor/` children are scanned.
  * @returns run refs; ordering is unspecified (the service sorts for display).
  */
-export declare function scanRoots(roots: readonly string[], includeDefaults: boolean): Promise<KersorRunRef[]>;
+export declare function scanRoots(roots: readonly string[], includeDefaults: boolean, workspaceRoots?: readonly string[]): Promise<KersorRunRef[]>;
 //# sourceMappingURL=scanner.d.ts.map

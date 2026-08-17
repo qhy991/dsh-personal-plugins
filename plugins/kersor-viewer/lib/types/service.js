@@ -71,6 +71,7 @@ let KersorViewerService = (() => {
             __esDecorate(this, null, _runBacklog_decorators, { kind: "method", name: "runBacklog", static: false, private: false, access: { has: obj => "runBacklog" in obj, get: obj => obj.runBacklog }, metadata: _metadata }, null, _instanceExtraInitializers);
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
+        static inject = ['workspaceRegistry'];
         static Config = z.object({
             roots: z.array(z.string()).default([]),
             noDefaultRoots: z.boolean().default(false),
@@ -158,11 +159,16 @@ let KersorViewerService = (() => {
             }
         }
         async performRescan() {
+            const workspaceRoots = [...new Set(this.rootCtx.workspaceRegistry.list().map(workspace => workspace.path))];
             const [found, classicSnapshot] = await Promise.all([
-                scanRoots(this.configuredRoots, this.includeDefaults),
+                scanRoots(this.configuredRoots, this.includeDefaults, workspaceRoots),
                 this.classicSessionLimit === 0
                     ? Promise.resolve({ sessions: [] })
-                    : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds),
+                    : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds, {
+                        includeCheckoutRoot: this.includeDefaults,
+                        sessionRoots: this.configuredRoots,
+                        workspaceRoots,
+                    }),
             ]);
             this.classicSnapshot = classicSnapshot;
             const byRunDir = new Map(found.map(ref => [ref.runDir, ref]));

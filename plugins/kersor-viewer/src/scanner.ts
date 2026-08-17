@@ -110,17 +110,26 @@ async function scanSession(
 /**
  * Scan every root (deduplicated) for KerSor runs.
  * @param roots - configured roots; defaults are appended when `includeDefaults`.
+ * @param workspaceRoots - DSH project directories whose `.kersor/` children are scanned.
  * @returns run refs; ordering is unspecified (the service sorts for display).
  */
-export async function scanRoots(roots: readonly string[], includeDefaults: boolean): Promise<KersorRunRef[]> {
+export async function scanRoots(
+  roots: readonly string[],
+  includeDefaults: boolean,
+  workspaceRoots: readonly string[] = [],
+): Promise<KersorRunRef[]> {
   const checkout = includeDefaults ? await configuredCheckout() : undefined
   const defaults = includeDefaults
     ? [...DEFAULT_KERSOR_ROOTS, ...(checkout === undefined ? [] : [path.join(checkout, '.kersor')])]
     : []
-  const all = [...new Set([...roots, ...defaults])]
+  const all = [...new Set([
+    ...roots.map(root => expandHome(root)),
+    ...defaults.map(root => expandHome(root)),
+    ...workspaceRoots.map(root => path.join(expandHome(root), '.kersor')),
+  ])]
   const found: KersorRunRef[] = []
   for (const root of all) {
-    const expanded = expandHome(root)
+    const expanded = root
     let sessions: string[]
     try {
       sessions = await readdir(expanded)

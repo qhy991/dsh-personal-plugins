@@ -37,8 +37,17 @@ export interface KersorClassicSnapshot {
     readonly sessions: readonly KersorClassicSession[];
     readonly warning?: string;
 }
+/** Machine-local roots supplied by viewer configuration and DSH workspaces. */
+export interface KersorClassicRoots {
+    /** Include the `.kersor/` of the checkout configured by the preset. */
+    readonly includeCheckoutRoot?: boolean;
+    /** Directories whose children are KerSor Sessions. */
+    readonly sessionRoots?: readonly string[];
+    /** Project directories whose `.kersor/` child owns the Sessions. */
+    readonly workspaceRoots?: readonly string[];
+}
 /** Path copied by the portable preset installer. */
 export declare function installedBridge(): string;
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
-export declare function readClassicSessions(limit: number, staleAfterSeconds?: number): Promise<KersorClassicSnapshot>;
+export declare function readClassicSessions(limit: number, staleAfterSeconds?: number, roots?: KersorClassicRoots): Promise<KersorClassicSnapshot>;
 //# sourceMappingURL=classic.d.ts.map

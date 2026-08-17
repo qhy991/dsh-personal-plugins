@@ -43,7 +43,7 @@ function isClassicSession(value) {
         && row.warnings.every(item => typeof item === 'string');
 }
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
-export async function readClassicSessions(limit, staleAfterSeconds = 1800) {
+export async function readClassicSessions(limit, staleAfterSeconds = 1800, roots = {}) {
     const bridge = installedBridge();
     try {
         await access(bridge);
@@ -52,12 +52,23 @@ export async function readClassicSessions(limit, staleAfterSeconds = 1800) {
         return { sessions: [] }; // autonomous-only installs do not require the preset
     }
     try {
-        const { stdout } = await execFileAsync('python3', [
+        const args = [
             bridge,
             'sessions',
             '--limit', String(limit),
             '--stale-after', String(staleAfterSeconds),
-        ], {
+        ];
+        for (const root of roots.sessionRoots ?? []) {
+            if (root.trim())
+                args.push('--root', root);
+        }
+        for (const workspace of roots.workspaceRoots ?? []) {
+            if (workspace.trim())
+                args.push('--workspace', workspace);
+        }
+        if (roots.includeCheckoutRoot === false)
+            args.push('--no-checkout-root');
+        const { stdout } = await execFileAsync('python3', args, {
             encoding: 'utf8',
             maxBuffer: 2 * 1024 * 1024,
             timeout: 10_000,

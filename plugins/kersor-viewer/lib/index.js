@@ -985,7 +985,7 @@ function isClassicSession(value) {
 	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
 }
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
-async function readClassicSessions(limit, staleAfterSeconds = 1800) {
+async function readClassicSessions(limit, staleAfterSeconds = 1800, roots = {}) {
 	const bridge = installedBridge();
 	try {
 		await access(bridge);
@@ -993,14 +993,18 @@ async function readClassicSessions(limit, staleAfterSeconds = 1800) {
 		return { sessions: [] };
 	}
 	try {
-		const { stdout } = await execFileAsync("python3", [
+		const args = [
 			bridge,
 			"sessions",
 			"--limit",
 			String(limit),
 			"--stale-after",
 			String(staleAfterSeconds)
-		], {
+		];
+		for (const root of roots.sessionRoots ?? []) if (root.trim()) args.push("--root", root);
+		for (const workspace of roots.workspaceRoots ?? []) if (workspace.trim()) args.push("--workspace", workspace);
+		if (roots.includeCheckoutRoot === false) args.push("--no-checkout-root");
+		const { stdout } = await execFileAsync("python3", args, {
 			encoding: "utf8",
 			maxBuffer: 2 * 1024 * 1024,
 			timeout: 1e4
@@ -1103,15 +1107,20 @@ async function scanSession(sessionDir, root, into) {
 /**
 * Scan every root (deduplicated) for KerSor runs.
 * @param roots - configured roots; defaults are appended when `includeDefaults`.
+* @param workspaceRoots - DSH project directories whose `.kersor/` children are scanned.
 * @returns run refs; ordering is unspecified (the service sorts for display).
 */
-async function scanRoots(roots, includeDefaults) {
+async function scanRoots(roots, includeDefaults, workspaceRoots = []) {
 	const checkout = includeDefaults ? await configuredCheckout() : void 0;
 	const defaults = includeDefaults ? [...DEFAULT_KERSOR_ROOTS, ...checkout === void 0 ? [] : [path.join(checkout, ".kersor")]] : [];
-	const all = [...new Set([...roots, ...defaults])];
+	const all = [...new Set([
+		...roots.map((root) => expandHome(root)),
+		...defaults.map((root) => expandHome(root)),
+		...workspaceRoots.map((root) => path.join(expandHome(root), ".kersor"))
+	])];
 	const found = [];
 	for (const root of all) {
-		const expanded = expandHome(root);
+		const expanded = root;
 		let sessions;
 		try {
 			sessions = await readdir(expanded);
@@ -1317,6 +1326,7 @@ let KersorViewerService = (() => {
 				value: _metadata
 			});
 		}
+		static inject = ["workspaceRegistry"];
 		static Config = Schema.object({
 			roots: Schema.array(Schema.string()).default([]),
 			noDefaultRoots: Schema.boolean().default(false),
@@ -1399,7 +1409,12 @@ let KersorViewerService = (() => {
 			}
 		}
 		async performRescan() {
-			const [found, classicSnapshot] = await Promise.all([scanRoots(this.configuredRoots, this.includeDefaults), this.classicSessionLimit === 0 ? Promise.resolve({ sessions: [] }) : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds)]);
+			const workspaceRoots = [...new Set(this.rootCtx.workspaceRegistry.list().map((workspace) => workspace.path))];
+			const [found, classicSnapshot] = await Promise.all([scanRoots(this.configuredRoots, this.includeDefaults, workspaceRoots), this.classicSessionLimit === 0 ? Promise.resolve({ sessions: [] }) : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds, {
+				includeCheckoutRoot: this.includeDefaults,
+				sessionRoots: this.configuredRoots,
+				workspaceRoots
+			})]);
 			this.classicSnapshot = classicSnapshot;
 			const byRunDir = new Map(found.map((ref) => [ref.runDir, ref]));
 			for (const [runDir, tracked] of this.tracked) {
