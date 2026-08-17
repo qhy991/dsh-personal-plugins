@@ -108,7 +108,11 @@ normalizer 同时从固定 6 位 hash 改为 bounded 6–16 位字母数字 hash
 - live 3197 UI：首卡为 Session `20260817-202423`，显示 fresh / baseline 通过、
   Profile 失败、DSH / ownership 待验证，并展示 `missing_kernel_profile` 的 bounded
   红色阻塞原因；用户的 3080 服务保持 PID `91238`，未重启。
-- commits / pushes / GitHub Actions：待填写。
+- KerSor commit：`6b31f71 fix: require profile evidence before authoring`，已推送；
+  [CI 32032132260](https://github.com/qhy991/KerSor/actions/runs/32032132260) success。
+- DSH 插件 commit：`651fe31 feat: surface KerSor profile evidence`，已推送；
+  [Validate 32032337047](https://github.com/qhy991/dsh-personal-plugins/actions/runs/32032337047)
+  success。
 
 ## 决策与下一轮
 
