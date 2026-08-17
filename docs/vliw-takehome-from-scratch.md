@@ -60,6 +60,10 @@ Session 创建后，用 baseline-witness.py init 原子写入当前两条权威�
 record 与 verify；不要手写最小 test-method.md，也不要用 Markdown code span 包命令。
 setup 字段必须通过 kersor-state.sh get 的稳定投影读取，不得猜
 session-config.json 的 extensions 内部布局。
+Session 只能通过
+`bash "$kersor_root/scripts/setup-session.sh" "$task_dir" ...` 启动；`commands/`
+只存协议文档，任务目录是不可省略的第一个位置参数。只有 setup 零退出后才允许消费
+`SESSION_DIR` 并进入稳定投影与 baseline gate，失败时不得猜另一个入口。
 baseline gate 未通过前不得进入 selection、authoring 或候选修改。
 这是 Python VLIW 模拟器，不是 CUDA；Session 必须冻结为
 python_reference/python/custom_simulator。已发布 Workflow 均不适配时应先

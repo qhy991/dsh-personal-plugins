@@ -25,3 +25,4 @@
 | [12](2026-08-17-vliw-from-scratch-12.md) | VLIW Take-Home fresh Session isolation | “从头开始”是否真的禁止读取旧 Session | baseline 前历史读取被停止；`--fresh-session` 物理 preflight 与红色隔离徽标实现 |
 | [13](2026-08-17-vliw-from-scratch-13.md) | VLIW Take-Home baseline witness | fresh Session 能否可靠建立 task-native baseline | fresh isolation 通过；手写 status 字段失败；原子 `init`、下一步 callout 与 blocker 可视化实现 |
 | [14](2026-08-17-vliw-from-scratch-14.md) | VLIW Take-Home setup contract | agent 能否在 init 前可靠验证 Session 配置 | setup 通过；raw JSON shape 猜测失败；稳定 state projection 与终态 action suppression 实现 |
+| [15](2026-08-17-vliw-from-scratch-15.md) | VLIW Take-Home session bootstrap | agent 能否从插件合同定位唯一可执行 setup 入口 | 错把 `commands/` 当脚本目录；唯一 `scripts/setup-session.sh <task>` 入口与回归门禁实现 |

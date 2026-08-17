@@ -39,6 +39,27 @@ or measurement. If setup finds prior Session history, stop and create the
 physical isolation before continuing. Prompt instructions alone are not an
 acceptable freshness boundary.
 
+Session bootstrap has one executable entrypoint. Resolve the checkout first,
+pass the task path as the required first positional argument, and invoke the
+owner script exactly:
+
+```bash
+bash "$kersor_root/scripts/setup-session.sh" "$TASK_DIR" \
+  --fresh-session \
+  --integration-pattern "$INTEGRATION_PATTERN" \
+  --allow-workflow-authoring \
+  --workflow-authoring-budget 1 \
+  --max-workflows 1 \
+  --mode explore \
+  --target-speedup "$TARGET_SPEEDUP"
+```
+
+Never call it from `commands/`: that directory owns Markdown command
+protocols, not executable setup scripts. Never omit or reorder `$TASK_DIR`.
+Only consume `SESSION_DIR` after this command exits successfully; a missing
+entrypoint or non-zero setup is a hard stop, not permission to guess another
+path.
+
 ### Task-native authoring
 
 When the task uses a custom simulator/build system and the user asks KerSor to

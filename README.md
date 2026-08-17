@@ -101,6 +101,11 @@ fresh task-native 路径应依次确认 `fresh_session_required`、
 与任务合同一致，retrieval／experience／transfer／KernelWiki experience export 四个 mode
 为 `off`。raw JSON 形状不是 DSH 调用合同。
 
+Session 启动同样只有一个入口：
+`bash "$kersor_root/scripts/setup-session.sh" "$TASK_DIR" ...`。`commands/`
+存放 Markdown 协议，不是可执行脚本目录；任务路径必须作为第一个位置参数，setup 非零
+退出时不得猜测备用路径。
+
 ## 在 DSH 中使用
 
 在 DSH 中新建 task 并选择 `KerSor` preset。遇到 kernel 优化、通用本地任务演化、KerSor 状态或恢复请求时，加载 `kersor` skill。skill 会读取 KerSor checkout 中当前的 `AGENTS.md` 与 command protocol；KerSor 仓库仍是行为和参数的唯一权威来源。

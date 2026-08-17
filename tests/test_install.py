@@ -205,6 +205,8 @@ class InstallTests(unittest.TestCase):
         self.assertIn('--session "$SESSION_DIR" --project-root "$TASK_DIR"', skill)
         self.assertIn("Output produced before Session creation", skill)
         self.assertIn("Never parse `session-config.json` directly", skill)
+        self.assertIn('bash "$kersor_root/scripts/setup-session.sh" "$TASK_DIR"', skill)
+        self.assertIn("Never call it from `commands/`", skill)
         self.assertIn('kersor-state.sh" "$SESSION_DIR" get fresh_session_required', skill)
         self.assertIn('get kernelwiki_experience_export_mode', skill)
         self.assertIn("scripts/prepare-dsh-workflow.mjs", skill)
