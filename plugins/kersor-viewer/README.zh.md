@@ -32,7 +32,7 @@ KerSor 始终是唯一状态所有者。bridge 导入 KerSor 规范的 `SessionS
 
 带 `workflow_status: "waiting"` 的 summary 在发现层属于终态：KerSor controller 已停止并写入 summary，只是 workflow 正在等待外部输入，而非语义完成。
 
-经典 Session 卡片把 KerSor 的规范 phase 与建议性 health 分开：阈值内存在稳定 artifact 活动是 `active`；陈旧的干净 `CONTINUE` 边界是 `needs_resume`；其他未结束的陈旧工作是 `stale`；终态是 `terminal`。经过时间绝不改写 phase。有界投影还携带 language/backend、integration pattern、workflow authoring gate／预算、严格 fresh-Session isolation、Session 自有 baseline witness 状态及其 artifact 驱动的 next action 与有界 canonical blocker、DSH-workflow compatibility、Host 自有 candidate-output ownership、selector 结果与最新规范协议决策。展开卡片会按需读取 artifact 派生的阶段时间线、selector 拒绝数、authoring／seal／save 状态、Proposal validation checks、dispatch lifecycle 与有上限的 Workflow 设计文本。bridge 只有在三文件 author handoff 存在且全部密封 hash 仍匹配时才会提供 staging 内容。投影同时携带最后稳定 artifact 时间；若绝对内核路径已失效，面板只显示不含路径的状态提醒，不把旧本地路径泄漏到浏览器。
+经典 Session 卡片把 KerSor 的规范 phase 与建议性 health 分开：阈值内存在稳定 artifact 活动是 `active`；陈旧的干净 `CONTINUE` 边界是 `needs_resume`；其他未结束的陈旧工作是 `stale`；终态是 `terminal`。经过时间绝不改写 phase。有界投影还携带 language/backend、integration pattern、workflow authoring gate／预算、严格 fresh-Session isolation、Session 自有 baseline witness 与 profile evidence 状态及其有界 canonical blockers、DSH-workflow compatibility、Host 自有 candidate-output ownership、selector 结果与最新规范协议决策。展开卡片会按需读取 artifact 派生的阶段时间线、selector 拒绝数、authoring／seal／save 状态、Proposal validation checks、dispatch lifecycle 与有上限的 Workflow 设计文本。bridge 只有在三文件 author handoff 存在且全部密封 hash 仍匹配时才会提供 staging 内容。投影同时携带最后稳定 artifact 时间；若绝对内核路径已失效，面板只显示不含路径的状态提醒，不把旧本地路径泄漏到浏览器。
 
 来源健康不会再从空数组推断。快照记录每个扫描根、接受的 Session 数、发现的 run 数、backfill/tailer 模式、行计数，以及最近一次有上限的 stage/code issue。缺失的可选默认根是中性状态；配置根缺失、权限失败、summary 损坏、事件日志不可读或事件行被拒绝都会成为 degraded 或 failed。原始异常、事件内容、bridge 输出与环境值绝不会跨过 Remote 边界。
 
