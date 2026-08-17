@@ -2,7 +2,7 @@
   "schema_version": 1,
   "authority": {
     "repository": "https://github.com/qhy991/deepseek-harness.git",
-    "revision": "71705c7ff0d47cc7823b240e4d3f2be1dd7d52bb",
+    "revision": "8394b95bb4475fe31202e98061fe4655be4f7501",
     "source_root": "packages/extensions",
     "reconciled": true
   },
@@ -29,7 +29,7 @@
     {
       "path": "plugins/kersor-viewer/lib/index.js",
       "source": "packages/extensions/kersor-viewer/lib/index.js",
-      "sha256": "0ae2d99d0985e16ec813c8e6198530844d51ce20343562f1b176dc26c2c23342"
+      "sha256": "6efe4b55202684254f664ef50c1d4f1b54e3381caf2abae1858f2fe0e680ef7c"
     },
     {
       "path": "plugins/kersor-viewer/lib/invariant.js",
@@ -44,7 +44,7 @@
     {
       "path": "plugins/kersor-viewer/lib/typert.host.js",
       "source": "packages/extensions/kersor-viewer/lib/typert.host.js",
-      "sha256": "86fc7dbf6cbc178790be9f184d2f7c498d03ecbd1ddb48cb7f36ba216c519ae6"
+      "sha256": "7a8b47d29cc6bba5a7b8a800639315d92c2b10dd21c09a85658c0b3acf5e3de0"
     },
     {
       "path": "plugins/kersor-viewer/lib/typert.remote-client.d.ts",
@@ -54,17 +54,17 @@
     {
       "path": "plugins/kersor-viewer/lib/typert.remote-client.js",
       "source": "packages/extensions/kersor-viewer/lib/typert.remote-client.js",
-      "sha256": "c707952c4e68d6e7adb62529c181a0d8bd2906c3cace2dd42f874598cb215468"
+      "sha256": "bcd9099c4026fa66863f9964f313f236ea7b526b5ef4694f12de04a20d10a580"
     },
     {
       "path": "plugins/kersor-viewer/lib/types/classic.d.ts",
       "source": "packages/extensions/kersor-viewer/lib/types/classic.d.ts",
-      "sha256": "4aa275d329abcd3dc4d56498832bcaec8e22f86ba1457d3ba358f7ccfc84b2db"
+      "sha256": "4f3312e6a0380a7525127fdf10ed522bd81db4b464751c07a791b14679798181"
     },
     {
       "path": "plugins/kersor-viewer/lib/types/classic.js",
       "source": "packages/extensions/kersor-viewer/lib/types/classic.js",
-      "sha256": "10dd9a28abedc03801ed482618b6ce2f616226da0ad2c50dfec60c9b5325cfaf"
+      "sha256": "68ffa468f65e54eff0ba6cf057d40449faeb302900d489d16cb4b6eb20555d9f"
     },
     {
       "path": "plugins/kersor-viewer/lib/types/diagnostics.d.ts",
@@ -149,7 +149,7 @@
     {
       "path": "plugins/kersor-viewer/src/classic.ts",
       "source": "packages/extensions/kersor-viewer/src/classic.ts",
-      "sha256": "60ae9dadb51ef1f82243e8e90e2623dd23ed0c17b79da02742bb4e2c2f4bba55"
+      "sha256": "d46c3ce28091d4518fb4d6265e269ac85e5987347f6b78b9d9ba49578a68be11"
     },
     {
       "path": "plugins/kersor-viewer/src/diagnostics.ts",
@@ -194,7 +194,7 @@
     {
       "path": "plugins/kersor-viewer/tests/classic.spec.ts",
       "source": "packages/extensions/kersor-viewer/tests/classic.spec.ts",
-      "sha256": "e5e0c508430fc4dec1ad9940865a7e140911a123683f221ea1731abcbd748065"
+      "sha256": "930eaed5108e5417277e2bf0117e39e0b7a99b70ba0db10240db6376278a0d0e"
     },
     {
       "path": "plugins/kersor-viewer/tests/fold.spec.ts",
@@ -344,22 +344,22 @@
     {
       "path": "plugins/ui-kersor-viewer/README.i18n.yaml",
       "source": "packages/extensions/ui-kersor-viewer/README.i18n.yaml",
-      "sha256": "50b7b1aeecdb4a40412397d0250344148283111d786bd0c72472432c5ef8deca"
+      "sha256": "cc9418a90f3ac500b07684a3fa95f3480543c08161b4a98de1391056d3c66f8d"
     },
     {
       "path": "plugins/ui-kersor-viewer/README.md",
       "source": "packages/extensions/ui-kersor-viewer/README.md",
-      "sha256": "2c370f545decefb73b528aba86b87c46b1429f6baa20fd6db65bbbe1d02f45ea"
+      "sha256": "52c5743b612dc2a95e4fc97c21312a408c75c29693d0f12cbc07b0e393ae7984"
     },
     {
       "path": "plugins/ui-kersor-viewer/README.zh.md",
       "source": "packages/extensions/ui-kersor-viewer/README.zh.md",
-      "sha256": "16dd2490f62280e64979aee44474e8924f990b808b2fb249a74792ccb5474205"
+      "sha256": "e06325e5717535a6596b20b3c6b2a6b34a0b80a6b121437110a98ae8b57f8840"
     },
     {
       "path": "plugins/ui-kersor-viewer/lib/client.js",
       "source": "packages/extensions/ui-kersor-viewer/lib/client.js",
-      "sha256": "2f2b1c4bdf709186d3edaaedff481c455503dd7f73cadff1f92dae4d31a71710"
+      "sha256": "105ce046d70cacd01e1b6b098d81cf8afc3131f3537489826258d8223420fc90"
     },
     {
       "path": "plugins/ui-kersor-viewer/lib/index.js",
@@ -379,12 +379,12 @@
     {
       "path": "plugins/ui-kersor-viewer/lib/types/client/KersorPanel.js",
       "source": "packages/extensions/ui-kersor-viewer/lib/types/client/KersorPanel.js",
-      "sha256": "9ba89e446075dbf456fc74f8da502c89b693201289cdc9fcde854505e8087958"
+      "sha256": "d649e4fc50189662cecf01cb9daad3c81b6555324cd4d360cc3c7165cbc3f3a8"
     },
     {
       "path": "plugins/ui-kersor-viewer/lib/types/client/index.d.ts",
       "source": "packages/extensions/ui-kersor-viewer/lib/types/client/index.d.ts",
-      "sha256": "e48789b5a434531e21ee6c9428f2a711f79821629d3079546f918603ebebd8d3"
+      "sha256": "5190ad4b2267e1ba9d016973c08b0dd529358b840bc154f5f201ef1f81cca65a"
     },
     {
       "path": "plugins/ui-kersor-viewer/lib/types/client/index.js",
@@ -394,12 +394,12 @@
     {
       "path": "plugins/ui-kersor-viewer/lib/types/client/locales.d.ts",
       "source": "packages/extensions/ui-kersor-viewer/lib/types/client/locales.d.ts",
-      "sha256": "0fe85f5099033b7fbf14ce39f225654021a1de94332b8b9dc6cae729e5671b6f"
+      "sha256": "4da77054d73149b88568c4b844fd3129bafee1975343c2bc7b52b88cde8f4461"
     },
     {
       "path": "plugins/ui-kersor-viewer/lib/types/client/locales.js",
       "source": "packages/extensions/ui-kersor-viewer/lib/types/client/locales.js",
-      "sha256": "47ebc344425b419d8a63060241bac94092bad23e113b3f9c5a76003fdb62069c"
+      "sha256": "7458bd4f0aaaf4e403b8f5f3bf0e94e8e157d6909516771e0391ac49e7e77426"
     },
     {
       "path": "plugins/ui-kersor-viewer/lib/types/client/readiness.d.ts",
@@ -459,17 +459,17 @@
     {
       "path": "plugins/ui-kersor-viewer/src/client/KersorPanel.tsx",
       "source": "packages/extensions/ui-kersor-viewer/src/client/KersorPanel.tsx",
-      "sha256": "3cb1c73c22121f7c7684ce1d403d81ee7f5559e38151e31cc236330cc51450b7"
+      "sha256": "b85165b62f34f5628b49c24db4f6d0a6632888771458f787aac72b5dabd494dc"
     },
     {
       "path": "plugins/ui-kersor-viewer/src/client/index.ts",
       "source": "packages/extensions/ui-kersor-viewer/src/client/index.ts",
-      "sha256": "fcad96b4ae4c513e21c3c25bad0c2546146dee7d45e02d93f79692720c9d9948"
+      "sha256": "6b0df17e9f851a957aaf12394658d19038c631643f9b006fd8e7cde5d6e7e926"
     },
     {
       "path": "plugins/ui-kersor-viewer/src/client/locales.ts",
       "source": "packages/extensions/ui-kersor-viewer/src/client/locales.ts",
-      "sha256": "e0d0b20cbfc27d90aca7ccbc05e03b90e2c2fba4b874c1dc38bdb9b1279cf3c8"
+      "sha256": "503a3d1dac23d2f1395b2587f14b084dd6613a376d3f0e020df92e6a7e8bc090"
     },
     {
       "path": "plugins/ui-kersor-viewer/src/client/readiness.ts",

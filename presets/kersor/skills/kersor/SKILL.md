@@ -85,6 +85,11 @@ preflight instead of routing by filename alone:
 
 Use the exact integration pattern evidenced by the task or explicitly supplied
 by the user; do not invent `custom_simulator` for an ordinary standalone task.
+Conversely, when the candidate emits/schedules instructions that a repository-
+local interpreter or virtual machine executes and the task-native harness
+reports simulator cycles, the topology is `custom_simulator`, not `standalone`.
+Freeze that fact during setup; a single Python candidate file does not make its
+evaluation topology standalone.
 After setup and before mutation, verify the frozen Session language/backend and
 integration pattern. If every released workflow is incompatible, selection must
 remain `STALLED` until Phase 3.6 validates and re-catalogs a Proposal. Do not
@@ -111,11 +116,39 @@ For a fresh task-native authoring run the expected values are respectively
 `true`, `true`, `true`, the grounded integration pattern, then four `off`
 values. A mismatch is a hard stop; do not repair raw Session JSON.
 
-Before selection or Phase 3.6 authoring, the current Session must own a
-non-empty `kernel-profile.md` produced by the Phase 2 kernel-profiler. Never
-author an optimizer from prompt constants or an empty profile. The canonical
-`author-workflow-context.py` builder enforces this boundary and must fail
-closed; do not create or patch its JSON by hand when the profile is absent.
+After the baseline witness passes and before selection, build the canonical
+Phase 2 profiler handoff:
+
+```bash
+python3 "$kersor_root/scripts/profile-handoff.py" context \
+  --session "$SESSION_DIR"
+```
+
+Read `profile-handoff/context.json`. Pass its exact `description`,
+`run_in_background`, and `prompt` fields unchanged to exactly one DSH
+`subagent` call in the foreground. The parent must not write/edit
+`kernel-profile.md`, create a second profiler prompt, poll the child, inspect
+the profile while it runs, or use prompt constants as profile evidence. The
+blocking subagent result is the only completion notification.
+
+The first parent action after that result must seal the exact profile bytes,
+using the returned child Session id, before reading the file:
+
+```bash
+python3 "$kersor_root/scripts/profile-handoff.py" seal \
+  --session "$SESSION_DIR" \
+  --producer-session-id "$PROFILER_CHILD_SESSION_ID"
+python3 "$kersor_root/scripts/profile-handoff.py" verify \
+  --session "$SESSION_DIR"
+```
+
+The seal binds the profiler context, child owner, parseable fields, immutable
+Session integration pattern, and profile hash. A missing/invalid seal or any
+parent/post-seal edit is a hard stop: record the Profile gate failure, set the
+Session to canonical `stalled`, and do not select, author, dispatch, or mutate
+the candidate. `select-workflow.sh` and `author-workflow-context.py` both
+re-verify this boundary for fresh Sessions; never create or patch their outputs
+by hand.
 
 In DSH Workspace Write, Phase 3.6 must keep the Proposal Registry below the
 Session: save with `--store "$SESSION_DIR/workflow-authoring/proposals"` and

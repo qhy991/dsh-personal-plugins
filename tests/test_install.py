@@ -206,8 +206,15 @@ class InstallTests(unittest.TestCase):
         self.assertIn('--session "$SESSION_DIR" --project-root "$TASK_DIR"', skill)
         self.assertIn("Output produced before Session creation", skill)
         self.assertIn("Never parse `session-config.json` directly", skill)
-        self.assertIn("non-empty `kernel-profile.md`", skill)
-        self.assertIn("author an optimizer from prompt constants", skill)
+        self.assertIn("scripts/profile-handoff.py\" context", skill)
+        self.assertIn("exact `description`,\n`run_in_background`, and `prompt`", skill)
+        self.assertIn("exactly one DSH\n`subagent` call in the foreground", skill)
+        self.assertIn("must not write/edit\n`kernel-profile.md`", skill)
+        self.assertIn("scripts/profile-handoff.py\" seal", skill)
+        self.assertIn('--producer-session-id "$PROFILER_CHILD_SESSION_ID"', skill)
+        self.assertIn("scripts/profile-handoff.py\" verify", skill)
+        self.assertIn("The first parent action after that result", skill)
+        self.assertIn("both\nre-verify this boundary", skill)
         self.assertIn('bash "$kersor_root/scripts/setup-session.sh" "$TASK_DIR"', skill)
         self.assertIn("Never call it from `commands/`", skill)
         self.assertIn('kersor-state.sh" "$SESSION_DIR" get fresh_session_required', skill)
@@ -262,8 +269,50 @@ class InstallTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        (session / "kernel-profile.md").write_text(
-            "- Operation Type: vliw\n- Bottleneck Hypothesis: scalar issue width\n",
+        profile = session / "kernel-profile.md"
+        profile.write_text(
+            "# Kernel Profile\n\n"
+            "## Parseable Fields\n\n"
+            "- Kernel Path: kernel.cu\n"
+            "- Language: python_reference\n"
+            "- Backend: python\n"
+            "- Integration Pattern: custom_simulator\n"
+            "- Operation Type: vliw\n"
+            "- Bottleneck Hypothesis: scalar issue width\n",
+            encoding="utf-8",
+        )
+        handoff_dir = session / "profile-handoff"
+        handoff_dir.mkdir()
+        context = handoff_dir / "context.json"
+        context.write_text(
+            json.dumps({"schema_version": 1, "session_dir": str(session.resolve())})
+            + "\n",
+            encoding="utf-8",
+        )
+
+        def digest(path: Path) -> str:
+            return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+        (handoff_dir / "seal.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "session_dir": str(session.resolve()),
+                    "owner_role": "kernel-profiler",
+                    "producer": {
+                        "runtime": "dsh-subagent",
+                        "session_id": "profile-child-123",
+                    },
+                    "context": {
+                        "path": "profile-handoff/context.json",
+                        "sha256": digest(context),
+                    },
+                    "profile": {
+                        "path": "kernel-profile.md",
+                        "sha256": digest(profile),
+                    },
+                }
+            ),
             encoding="utf-8",
         )
         (session / "round-1-selection.json").write_text(
@@ -326,6 +375,9 @@ class InstallTests(unittest.TestCase):
         self.assertIsNone(value["baseline_reason"])
         self.assertEqual(value["profile_evidence"], "pass")
         self.assertIsNone(value["profile_reason"])
+        self.assertEqual(
+            value["profile_owner"], "kernel-profiler · profile-child-123"
+        )
         self.assertEqual(value["dsh_compatibility"], "pass")
         self.assertEqual(value["candidate_ownership"], "pass")
         self.assertEqual(value["fresh_session"], "pass")
@@ -362,10 +414,37 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         value = json.loads(completed.stdout)
         self.assertEqual(value["profile_evidence"], "fail")
+        self.assertIsNone(value["profile_owner"])
         self.assertEqual(
             value["profile_reason"],
             "Phase 2 kernel-profile.md was never produced",
         )
+
+    def test_status_bridge_rejects_unsealed_fresh_profile(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        (session / "profile-handoff" / "seal.json").unlink()
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "status",
+                "--path",
+                str(project),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        value = json.loads(completed.stdout)
+        self.assertEqual(value["profile_evidence"], "fail")
+        self.assertEqual(
+            value["profile_reason"],
+            "profile handoff seal not found for fresh Session",
+        )
+        self.assertEqual(value["profile_owner"], "unsealed")
 
     def test_status_bridge_projects_a_fresh_boundary_failure(self) -> None:
         destination, _, _ = self.run_install()
@@ -707,12 +786,20 @@ console.log(JSON.stringify({
         self.assertEqual(result["meta"]["baseline_next_action"], "init")
         self.assertEqual(result["meta"]["profile_evidence"], "pass")
         self.assertIsNone(result["meta"]["profile_reason"])
+        self.assertEqual(
+            result["meta"]["profile_owner"],
+            "kernel-profiler · profile-child-123",
+        )
         self.assertEqual(result["meta"]["dsh_compatibility"], "pass")
         self.assertEqual(result["meta"]["candidate_ownership"], "pass")
         self.assertIn("custom_simulator", result["content"][0]["text"])
         self.assertIn("enabled · budget 1", result["content"][0]["text"])
         self.assertIn("| pending | pass | pass |", result["content"][0]["text"])
         self.assertIn("Baseline next action: init", result["content"][0]["text"])
+        self.assertIn(
+            "Profile owner: kernel-profiler · profile-child-123",
+            result["content"][0]["text"],
+        )
         self.assertIn("1.25x", result["content"][0]["text"])
         self.assertEqual(result["card"]["title"], "KerSor · optimizing · r2/4 · 1.25x")
         self.assertEqual(result["parameterProperties"], {})

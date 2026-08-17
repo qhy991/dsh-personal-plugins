@@ -314,6 +314,11 @@ function ClassicSessionRow({ session, selected, detail, loading, error, onToggle
             status: t(GATE_KEYS[session.profile_evidence]),
           })}</span>
           : null}
+        {session.allow_workflow_authoring === true && session.profile_owner != null
+          ? <span className={css.routeBadge} data-profile-owner={session.profile_owner}>{t('session.profileOwner', {
+            owner: session.profile_owner,
+          })}</span>
+          : null}
         {session.allow_workflow_authoring === true && session.dsh_compatibility != null
           ? <span className={css.gateBadge} data-gate={session.dsh_compatibility}>{t('session.dshGate', {
             status: t(GATE_KEYS[session.dsh_compatibility]),

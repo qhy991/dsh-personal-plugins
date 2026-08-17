@@ -20,6 +20,7 @@ export declare const zh: {
     readonly 'session.freshGate': "从零隔离：{status}";
     readonly 'session.baselineGate': "基线见证：{status}";
     readonly 'session.profileGate': "Profile 证据：{status}";
+    readonly 'session.profileOwner': "Profile 来源：{owner}";
     readonly 'session.profileBlocked': "Profile 阻塞";
     readonly 'session.baselineAction.init': "下一步：初始化基线方法";
     readonly 'session.baselineAction.recordVerify': "下一步：记录并验证基线";
@@ -126,6 +127,7 @@ export declare const en: {
     readonly 'session.freshGate': "Fresh isolation: {status}";
     readonly 'session.baselineGate': "Baseline witness: {status}";
     readonly 'session.profileGate': "Profile evidence: {status}";
+    readonly 'session.profileOwner': "Profile owner: {owner}";
     readonly 'session.profileBlocked': "Profile blocked";
     readonly 'session.baselineAction.init': "Initialize the baseline method";
     readonly 'session.baselineAction.recordVerify': "Record and verify the baseline";

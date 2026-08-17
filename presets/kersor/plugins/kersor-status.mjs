@@ -46,6 +46,7 @@ const STATUS_SCHEMA = {
     baseline_reason: nullable({ type: 'string' }),
     profile_evidence: nullable({ type: 'string' }),
     profile_reason: nullable({ type: 'string' }),
+    profile_owner: nullable({ type: 'string' }),
     dsh_compatibility: nullable({ type: 'string' }),
     candidate_ownership: nullable({ type: 'string' }),
     fresh_session: nullable({ type: 'string' }),
@@ -73,7 +74,7 @@ const STATUS_SCHEMA = {
     'allow_workflow_authoring', 'workflow_authoring_budget',
     'kernel_path', 'started_at', 'workflow',
     'fit_confidence', 'baseline_witness', 'baseline_next_action', 'baseline_reason',
-    'profile_evidence', 'profile_reason',
+    'profile_evidence', 'profile_reason', 'profile_owner',
     'dsh_compatibility', 'candidate_ownership',
     'fresh_session',
     'best_speedup', 'rounds', 'warnings',
@@ -148,6 +149,9 @@ export function renderStatus(value) {
   if (value.profile_reason !== null) {
     lines.push(`Profile blocker: ${value.profile_reason}`)
   }
+  if (value.profile_owner !== null) {
+    lines.push(`Profile owner: ${value.profile_owner}`)
+  }
 
   const recent = value.rounds.slice(-5)
   if (recent.length > 0) {
@@ -213,6 +217,7 @@ export function createTool() {
         baseline_reason: value.baseline_reason,
         profile_evidence: value.profile_evidence,
         profile_reason: value.profile_reason,
+        profile_owner: value.profile_owner,
         dsh_compatibility: value.dsh_compatibility,
         candidate_ownership: value.candidate_ownership,
         fresh_session: value.fresh_session,

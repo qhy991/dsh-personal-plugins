@@ -64,8 +64,11 @@ Session 只能通过
 `bash "$kersor_root/scripts/setup-session.sh" "$task_dir" ...` 启动；`commands/`
 只存协议文档，任务目录是不可省略的第一个位置参数。只有 setup 零退出后才允许消费
 `SESSION_DIR` 并进入稳定投影与 baseline gate，失败时不得猜另一个入口。
-baseline 通过后必须先由 Phase 2 kernel-profiler 写出非空的 Session 自有
-`kernel-profile.md`；它为空时不得 selection 或 authoring，也不得手写
+baseline 通过后先运行 `profile-handoff.py context`，把生成 JSON 中的
+description／run_in_background／prompt 原样交给唯一一个前台 kernel-profiler subagent。
+parent 不得代写或查看进行中的 `kernel-profile.md`；blocking result 返回后的第一动作必须
+用 child Session id 执行 `profile-handoff.py seal`，随后 `verify`。缺 seal、字段不规范、
+integration pattern 不一致或 seal 后修改时不得 selection／authoring，也不得手写
 `author-context.json` 绕过 owner gate。
 baseline gate 未通过前不得进入 selection、authoring 或候选修改。
 这是 Python VLIW 模拟器，不是 CUDA；Session 必须冻结为
@@ -91,6 +94,8 @@ KerSor state 工具转成 stalled，并由 kersor_status 与侧栏共同确认 0
 - Session 是否显示 `python_reference/python/custom_simulator` 与 authoring 预算 1？
 - Session 是否显示“从零隔离：通过”，且 retrieval、experience、transfer、seed 全部关闭？
 - baseline 是否按 `init → record → verify` 通过；若未通过，侧栏是否显示明确下一步与 blocker？
+- profile 是否由唯一前台 kernel-profiler 产生、返回后先 seal，且侧栏显示精确 owner？
+- 非空但无 seal 的 parent summary 是否在 selection 前被拒绝？
 - KSearch 是否因 integration mismatch 被拒绝，而不是得到伪高 fit？
 - Agent 是否先确认基线、保护文件和 ISA 语义？
 - 是否只有主 agent 写 `perf_takehome.py`，只读顾问没有写冲突？

@@ -44,6 +44,7 @@ print(json.dumps({"sessions": [{
   "integration_pattern": "custom_simulator",
   "allow_workflow_authoring": True, "workflow_authoring_budget": 1,
   "workflow": "vliw-schedule", "fit_confidence": "high",
+  "profile_evidence": "pass", "profile_owner": "kernel-profiler · child-s1",
   "decision": "CONTINUE: measure the candidate",
   "warnings": ["SECRET-SESSION-WARNING"], "extra": "SECRET-EXTRA-FIELD"
 }], "warnings": ["SECRET-BRIDGE-WARNING"]}))
@@ -60,6 +61,8 @@ print(json.dumps({"sessions": [{
         workflow_authoring_budget: 1,
         workflow: 'vliw-schedule',
         fit_confidence: 'high',
+        profile_evidence: 'pass',
+        profile_owner: 'kernel-profiler · child-s1',
         decision: 'CONTINUE: measure the candidate',
         warningCount: 1,
       }],

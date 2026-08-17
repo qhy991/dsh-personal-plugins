@@ -190,20 +190,82 @@ def baseline_projection(
 
 def profile_projection(
     session_dir: Path, round_number: int
-) -> tuple[str, str | None]:
+) -> tuple[str, str | None, str | None]:
     """Project the Session-owned Phase 2 profile and its hard-gate failure."""
     failure = read_json_object(
         session_dir / f"run-{round_number}" / "profile-gate.json"
     )
     if failure.get("verdict") == "fail":
-        return "fail", bounded_reason(failure.get("reason"))
+        return (
+            "fail",
+            bounded_reason(failure.get("reason")),
+            bounded_reason(failure.get("created_by"), limit=80),
+        )
     profile = session_dir / "kernel-profile.md"
     try:
-        if profile.is_file() and profile.read_text(encoding="utf-8").strip():
-            return "pass", None
+        if not profile.is_file() or not profile.read_text(encoding="utf-8").strip():
+            return "pending", None, None
     except OSError:
-        return "fail", "kernel profile could not be read"
-    return "pending", None
+        return "fail", "kernel profile could not be read", None
+
+    config = read_json_object(session_dir / "session-config.json")
+    extensions = config.get("extensions")
+    fresh_required = (
+        isinstance(extensions, dict)
+        and extensions.get("fresh_session_required") is True
+    )
+    if not fresh_required:
+        return "pass", None, "legacy-session"
+    if isinstance(config.get("prepared_spec"), str) and config["prepared_spec"].strip():
+        return "pass", None, "prepared-spec"
+
+    handoff = read_json_object(session_dir / "profile-handoff" / "seal.json")
+    if not handoff:
+        return "fail", "profile handoff seal not found for fresh Session", "unsealed"
+    if handoff.get("schema_version") != 1:
+        return "fail", "profile handoff schema is unsupported", "invalid"
+    try:
+        bound_session = Path(str(handoff.get("session_dir", ""))).resolve()
+    except OSError:
+        bound_session = Path(".")
+    if bound_session != session_dir.resolve():
+        return "fail", "profile handoff Session binding mismatch", "invalid"
+    if handoff.get("owner_role") != "kernel-profiler":
+        return "fail", "profile handoff owner is not kernel-profiler", "invalid"
+    producer = handoff.get("producer")
+    producer_id = producer.get("session_id") if isinstance(producer, dict) else None
+    if (
+        not isinstance(producer, dict)
+        or producer.get("runtime") != "dsh-subagent"
+        or not isinstance(producer_id, str)
+        or not producer_id.strip()
+    ):
+        return "fail", "profile handoff producer provenance is invalid", "invalid"
+
+    def digest(path: Path) -> str:
+        return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+    context = handoff.get("context")
+    sealed_profile = handoff.get("profile")
+    context_path = session_dir / "profile-handoff" / "context.json"
+    try:
+        context_matches = (
+            isinstance(context, dict)
+            and context.get("path") == "profile-handoff/context.json"
+            and context.get("sha256") == digest(context_path)
+        )
+        profile_matches = (
+            isinstance(sealed_profile, dict)
+            and sealed_profile.get("path") == "kernel-profile.md"
+            and sealed_profile.get("sha256") == digest(profile)
+        )
+    except OSError:
+        return "fail", "profile handoff files could not be verified", "invalid"
+    if not context_matches:
+        return "fail", "profile handoff context hash mismatch", "invalid"
+    if not profile_matches:
+        return "fail", "profile hash mismatch after handoff seal", "invalid"
+    return "pass", None, f"kernel-profiler · {producer_id}"
 
 
 def dsh_compatibility_gate(session_dir: Path, round_number: int) -> str:
@@ -328,6 +390,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "baseline_reason": None,
             "profile_evidence": None,
             "profile_reason": None,
+            "profile_owner": None,
             "dsh_compatibility": None,
             "candidate_ownership": None,
             "fresh_session": None,
@@ -399,7 +462,9 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
     baseline_witness, baseline_next_action, baseline_reason = baseline_projection(
         root, session_dir, round_number
     )
-    profile_evidence, profile_reason = profile_projection(session_dir, round_number)
+    profile_evidence, profile_reason, profile_owner = profile_projection(
+        session_dir, round_number
+    )
     terminal_before_baseline = (
         snapshot.get("phase") in {"complete", "stalled", "cancelled", "single_run"}
         and baseline_witness == "pending"
@@ -440,6 +505,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "baseline_reason": baseline_reason,
         "profile_evidence": profile_evidence,
         "profile_reason": profile_reason,
+        "profile_owner": profile_owner,
         "dsh_compatibility": dsh_compatibility_gate(session_dir, round_number),
         "candidate_ownership": candidate_ownership_gate(session_dir, round_number),
         "fresh_session": fresh_session,
@@ -596,6 +662,7 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "baseline_reason": value.get("baseline_reason"),
         "profile_evidence": value.get("profile_evidence"),
         "profile_reason": value.get("profile_reason"),
+        "profile_owner": value.get("profile_owner"),
         "dsh_compatibility": value.get("dsh_compatibility"),
         "candidate_ownership": value.get("candidate_ownership"),
         "fresh_session": value.get("fresh_session"),

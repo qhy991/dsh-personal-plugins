@@ -124,6 +124,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'baseline_reason': z.union([z.literal(null), z.string()]).readonly().optional(),
   'profile_evidence': z.union([z.literal(null), z.literal("pending"), z.literal("pass"), z.literal("fail"), z.literal("not_required")]).readonly().optional(),
   'profile_reason': z.union([z.literal(null), z.string()]).readonly().optional(),
+  'profile_owner': z.union([z.literal(null), z.string()]).readonly().optional(),
   'dsh_compatibility': z.union([z.literal(null), z.literal("pending"), z.literal("pass"), z.literal("fail"), z.literal("not_required")]).readonly().optional(),
   'candidate_ownership': z.union([z.literal(null), z.literal("pending"), z.literal("pass"), z.literal("fail"), z.literal("not_required")]).readonly().optional(),
   'fresh_session': z.union([z.literal(null), z.literal("pending"), z.literal("pass"), z.literal("fail"), z.literal("not_required")]).readonly().optional(),

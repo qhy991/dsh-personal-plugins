@@ -41,6 +41,7 @@ export interface KersorClassicSession {
     readonly baseline_reason?: string | null;
     readonly profile_evidence?: KersorClassicGate | null;
     readonly profile_reason?: string | null;
+    readonly profile_owner?: string | null;
     readonly dsh_compatibility?: KersorClassicGate | null;
     readonly candidate_ownership?: KersorClassicGate | null;
     readonly fresh_session?: KersorClassicGate | null;

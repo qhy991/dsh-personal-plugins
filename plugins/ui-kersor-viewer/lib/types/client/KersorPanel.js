@@ -161,6 +161,10 @@ function ClassicSessionRow({ session, selected, detail, loading, error, onToggle
                         ? _jsx("span", { className: css.gateBadge, "data-gate": session.profile_evidence, children: t('session.profileGate', {
                                 status: t(GATE_KEYS[session.profile_evidence]),
                             }) })
+                        : null, session.allow_workflow_authoring === true && session.profile_owner != null
+                        ? _jsx("span", { className: css.routeBadge, "data-profile-owner": session.profile_owner, children: t('session.profileOwner', {
+                                owner: session.profile_owner,
+                            }) })
                         : null, session.allow_workflow_authoring === true && session.dsh_compatibility != null
                         ? _jsx("span", { className: css.gateBadge, "data-gate": session.dsh_compatibility, children: t('session.dshGate', {
                                 status: t(GATE_KEYS[session.dsh_compatibility]),

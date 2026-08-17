@@ -25,6 +25,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface TypertRemoteEventSelection extends Record<'kersor/event' | 'kersor/active', true> {}
+}
+
 export type { KersorPanelFace } from './slots.ts'
 export type { KersorViewerState, KersorViewerStore, KersorRunRow } from './store.ts'
 export { KersorViewerStore as KersorViewerStoreClass } from './store.ts'
