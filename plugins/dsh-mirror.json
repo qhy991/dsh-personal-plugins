@@ -4,7 +4,7 @@
     "repository": "https://github.com/qhy991/deepseek-harness.git",
     "revision": "7724136c3a23ca7605a65054280f60f893b78dfb",
     "source_root": "packages/extensions",
-    "reconciled": true
+    "reconciled": false
   },
   "toolchain": {
     "node": "24",

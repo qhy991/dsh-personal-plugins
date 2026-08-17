@@ -64,6 +64,9 @@ Session 只能通过
 `bash "$kersor_root/scripts/setup-session.sh" "$task_dir" ...` 启动；`commands/`
 只存协议文档，任务目录是不可省略的第一个位置参数。只有 setup 零退出后才允许消费
 `SESSION_DIR` 并进入稳定投影与 baseline gate，失败时不得猜另一个入口。
+baseline 通过后必须先由 Phase 2 kernel-profiler 写出非空的 Session 自有
+`kernel-profile.md`；它为空时不得 selection 或 authoring，也不得手写
+`author-context.json` 绕过 owner gate。
 baseline gate 未通过前不得进入 selection、authoring 或候选修改。
 这是 Python VLIW 模拟器，不是 CUDA；Session 必须冻结为
 python_reference/python/custom_simulator。已发布 Workflow 均不适配时应先

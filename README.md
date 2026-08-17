@@ -106,6 +106,10 @@ Session 启动同样只有一个入口：
 存放 Markdown 协议，不是可执行脚本目录；任务路径必须作为第一个位置参数，setup 非零
 退出时不得猜测备用路径。
 
+Phase 2 的 `kernel-profile.md` 是 selection／authoring 的 Session 自有证据，不是可选
+说明文字。`author-workflow-context.py` 会在它缺失或为空时 fail closed；侧栏的
+“Profile 证据”徽标会显示通过、待验证或失败，并在失败时直接显示 blocker 原因。
+
 ## 在 DSH 中使用
 
 在 DSH 中新建 task 并选择 `KerSor` preset。遇到 kernel 优化、通用本地任务演化、KerSor 状态或恢复请求时，加载 `kersor` skill。skill 会读取 KerSor checkout 中当前的 `AGENTS.md` 与 command protocol；KerSor 仓库仍是行为和参数的唯一权威来源。

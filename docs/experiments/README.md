@@ -26,3 +26,4 @@
 | [13](2026-08-17-vliw-from-scratch-13.md) | VLIW Take-Home baseline witness | fresh Session 能否可靠建立 task-native baseline | fresh isolation 通过；手写 status 字段失败；原子 `init`、下一步 callout 与 blocker 可视化实现 |
 | [14](2026-08-17-vliw-from-scratch-14.md) | VLIW Take-Home setup contract | agent 能否在 init 前可靠验证 Session 配置 | setup 通过；raw JSON shape 猜测失败；稳定 state projection 与终态 action suppression 实现 |
 | [15](2026-08-17-vliw-from-scratch-15.md) | VLIW Take-Home session bootstrap | agent 能否从插件合同定位唯一可执行 setup 入口 | 错把 `commands/` 当脚本目录；唯一 `scripts/setup-session.sh <task>` 入口与回归门禁实现 |
+| [16](2026-08-17-vliw-from-scratch-16.md) | VLIW Take-Home Phase 2 evidence | baseline 通过后，多 Agent authoring 是否仍绑定 Session profile | setup/baseline/foreground handoff 首次全通过；无 profile 仍可 author 的缺陷复现；确定性 gate 与 Profile 徽标实现 |

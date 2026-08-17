@@ -56,6 +56,8 @@ export interface KersorClassicSession {
   readonly baseline_witness?: KersorClassicGate | null
   readonly baseline_next_action?: KersorBaselineAction | null
   readonly baseline_reason?: string | null
+  readonly profile_evidence?: KersorClassicGate | null
+  readonly profile_reason?: string | null
   readonly dsh_compatibility?: KersorClassicGate | null
   readonly candidate_ownership?: KersorClassicGate | null
   readonly fresh_session?: KersorClassicGate | null
@@ -307,6 +309,8 @@ function isClassicSession(value: unknown): value is RawClassicSession {
     && optionalGate(row.baseline_witness)
     && optionalBaselineAction(row.baseline_next_action)
     && optionalString(row.baseline_reason)
+    && optionalGate(row.profile_evidence)
+    && optionalString(row.profile_reason)
     && optionalGate(row.dsh_compatibility)
     && optionalGate(row.candidate_ownership)
     && optionalGate(row.fresh_session)
@@ -343,6 +347,8 @@ function projectSession(row: RawClassicSession): KersorClassicSession {
     baseline_witness: row.baseline_witness ?? null,
     baseline_next_action: row.baseline_next_action ?? null,
     baseline_reason: row.baseline_reason ?? null,
+    profile_evidence: row.profile_evidence ?? null,
+    profile_reason: row.profile_reason ?? null,
     dsh_compatibility: row.dsh_compatibility ?? null,
     candidate_ownership: row.candidate_ownership ?? null,
     fresh_session: row.fresh_session ?? null,

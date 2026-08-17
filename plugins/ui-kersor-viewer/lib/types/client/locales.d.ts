@@ -19,6 +19,8 @@ export declare const zh: {
     readonly 'session.authoring': "可创作 · 预算 {budget}";
     readonly 'session.freshGate': "从零隔离：{status}";
     readonly 'session.baselineGate': "基线见证：{status}";
+    readonly 'session.profileGate': "Profile 证据：{status}";
+    readonly 'session.profileBlocked': "Profile 阻塞";
     readonly 'session.baselineAction.init': "下一步：初始化基线方法";
     readonly 'session.baselineAction.recordVerify': "下一步：记录并验证基线";
     readonly 'session.baselineAction.newSession': "下一步：新建 Session 后重试";
@@ -123,6 +125,8 @@ export declare const en: {
     readonly 'session.authoring': "Authoring · budget {budget}";
     readonly 'session.freshGate': "Fresh isolation: {status}";
     readonly 'session.baselineGate': "Baseline witness: {status}";
+    readonly 'session.profileGate': "Profile evidence: {status}";
+    readonly 'session.profileBlocked': "Profile blocked";
     readonly 'session.baselineAction.init': "Initialize the baseline method";
     readonly 'session.baselineAction.recordVerify': "Record and verify the baseline";
     readonly 'session.baselineAction.newSession': "Start a new Session before retrying";
