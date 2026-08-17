@@ -143,9 +143,15 @@ pending baseline，但其 fresh isolation 已 fail，因此 action 被正确抑�
 - 新 CLI 的 red phase：3 个 `init` 测试按预期失败（尚无子命令）。
 - KerSor 聚焦：`tests/test_baseline_witness.py` 10 passed。
 - KerSor macOS Python 3.11 全量：1516 passed、7 skipped（596.15 秒）。
+- KerSor commit `bec7b09` 的
+  [GitHub CI 32026369208](https://github.com/qhy991/KerSor/actions/runs/32026369208)
+  在 Linux 全量通过（6 分 20 秒）。
 - DSH bridge 聚焦：4 个 status/session/tool 端到端安装测试通过。
 - Host TypeScript、Typert、Client TypeScript 与 browser bundle 重建通过。
 - 插件完整：25 tests passed。
+- 插件 commit `b31a899` 的
+  [GitHub Validate 32026367325](https://github.com/qhy991/dsh-personal-plugins/actions/runs/32026367325)
+  通过。
 - live 3197 UI 与 DOM style 验收通过。
 - DSH core 工作树保持干净；VLIW worktree 除当前 `.kersor/` 外无 diff。
 
