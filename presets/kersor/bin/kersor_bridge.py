@@ -620,18 +620,24 @@ def workflow_design(directory: Path) -> tuple[dict[str, Any] | None, str | None]
     metadata = read_json_object(directory / "metadata.json")
     if not metadata:
         return None, "invalid"
-    return {
-        "name": metadata.get("name") if isinstance(metadata.get("name"), str) else None,
-        "technique": metadata.get("technique") if isinstance(metadata.get("technique"), str) else None,
-        "methodCategory": metadata.get("method_category") if isinstance(metadata.get("method_category"), str) else None,
-        "topology": metadata.get("topology") if isinstance(metadata.get("topology"), str) else None,
+    design: dict[str, Any] = {
         "requiredArgs": string_list(metadata.get("required_args")),
         "languages": string_list(metadata.get("languages")),
         "backends": string_list(metadata.get("backends")),
         "integrationPatterns": string_list(metadata.get("integration_patterns")),
         "rationale": rationale,
         "source": source,
-    }, None
+    }
+    for output, source_name in (
+        ("name", "name"),
+        ("technique", "technique"),
+        ("methodCategory", "method_category"),
+        ("topology", "topology"),
+    ):
+        value = metadata.get(source_name)
+        if isinstance(value, str):
+            design[output] = value
+    return design, None
 
 
 def validation_detail(proposal: Path | None, rejected: bool) -> dict[str, Any]:

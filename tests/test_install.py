@@ -413,8 +413,6 @@ class InstallTests(unittest.TestCase):
                 {
                     "name": "vliw-author",
                     "technique": "instruction_scheduling",
-                    "method_category": "vliw_optimization",
-                    "topology": "pipeline",
                     "required_args": ["kernel_path"],
                     "languages": ["python_reference"],
                     "backends": ["python"],
@@ -455,6 +453,8 @@ class InstallTests(unittest.TestCase):
         after_value = json.loads(after.stdout)
         self.assertEqual(after_value["authoring"]["status"], "sealed")
         self.assertEqual(after_value["authoring"]["design"]["name"], "vliw-author")
+        self.assertNotIn("methodCategory", after_value["authoring"]["design"])
+        self.assertNotIn("topology", after_value["authoring"]["design"])
         self.assertIn("Bundle independent slots", after_value["authoring"]["design"]["rationale"])
         self.assertEqual(after_value["selection"]["status"], "selected")
 
