@@ -1,20 +1,17 @@
 /**
- * KerSor viewer host service: discovers run directories under configured
- * KerSor roots, tails each active run's `events.jsonl`, folds events into the
- * viewer view model, and pushes updates to every browser page through the
- * forwarded `kersor/event` Host event.
+ * KerSor viewer Host service: commits one inventory/diagnostics snapshot and
+ * folds each run's event stream for browser consumers.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
 import { Context, Service } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import type { KersorRunView } from './fold.ts';
-import type { KersorClassicSnapshot } from './classic.ts';
-import type { KersorRunRef } from './scanner.ts';
+import type { KersorViewerSnapshot } from './types.ts';
 export type { KersorEvent, KersorRunView } from './fold.ts';
 export type { KersorRunRef } from './scanner.ts';
 export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts';
-export type { KersorViewerFrame } from './types.ts';
+export type { KersorRunObservation, KersorViewerFrame, KersorViewerSnapshot } from './types.ts';
 export { EventsTailer } from './tailer.ts';
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from './scanner.ts';
 export { createRunView, foldEvent } from './fold.ts';
@@ -23,19 +20,16 @@ export { installedBridge, readClassicSessions } from './classic.ts';
 export interface Config {
     /** Extra KerSor session roots scanned in addition to the defaults. */
     roots?: string[];
-    /** Disable scanning of the built-in default roots. */
+    /** Disable built-in and preset-checkout roots. */
     noDefaultRoots?: boolean;
     /** Discovery rescan interval in milliseconds. */
     scanIntervalMs?: number;
     /** Number of recent classic optimization Sessions shown; zero disables it. */
     classicSessionLimit?: number;
-    /** Seconds without stable artifact activity before an unfinished Session is stale. */
+    /** Seconds without artifact activity before an unfinished Session is stale. */
     classicStaleAfterSeconds?: number;
 }
-/**
- * Host service: run inventory, live event folding, and browser push. Exposes
- * `listRuns` and `runBacklog` remotes for panel open and reconnect.
- */
+/** Host service owning the viewer's single snapshot and folded run views. */
 export declare class KersorViewerService extends TypertRemoteService {
     static inject: string[];
     static Config: z<Config>;
@@ -48,27 +42,29 @@ export declare class KersorViewerService extends TypertRemoteService {
     private readonly tracked;
     private group;
     private scanTimer;
-    private emittedRunsSignature;
-    private classicSnapshot;
     private scanInFlight;
+    private scanObservation;
+    private classicSnapshot;
     /** Create the service under the Host composition. */
     constructor(ctx: Context, config: Config);
     /** Start discovery and tailing under the plugin's fiber once ready. */
     [Service.init](): Generator<() => void, void, void>;
     private requireGroup;
-    /** Inventory snapshot for the panel's run list. */
-    listRuns(): KersorRunRef[];
-    /** Recent classic and Session-v2 optimization summaries from KerSor stores. */
-    listClassicSessions(): KersorClassicSnapshot;
+    /** Complete inventory and source-health snapshot for panel refresh/reconnect. */
+    snapshot(): KersorViewerSnapshot;
     /** Full folded view of one run (panel open / reconnect backlog). */
     runBacklog(runDir: string): KersorRunView | undefined;
-    /** Rescan roots; start and stop tailers to match discovery. */
+    /** Rescan roots once; concurrent callers share the in-flight scan. */
     rescan(): Promise<void>;
     private performRescan;
-    /** Read a discovered-terminated run's full event log once (no tailer). */
     private backfillTerminated;
     private attachTailer;
+    private foldLine;
+    private rejectLine;
+    private recordRunIssue;
+    private publishSnapshot;
+    private publishRun;
 }
-/** Cordis plugin entry: the service class itself (class plugin, default export). */
+/** Cordis plugin entry: the service class itself. */
 export default KersorViewerService;
 //# sourceMappingURL=service.d.ts.map

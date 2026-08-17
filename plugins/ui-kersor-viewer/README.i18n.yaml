@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/extensions/ui-kersor-viewer/README.md
-README.md: 3b100bfb00eccc7b1104772480172b34353ea013
-README.zh.md: 07c6ae5c8e0d0899c49148ba19990af0f4dbaaa0
+README.md: c299661182ebcf3201dec431c48d279a5b039efa
+README.zh.md: b57994e324668adc4919c110bbe059e9a9f903b4

@@ -4,9 +4,11 @@ export declare const NS = "kersorViewer";
 export declare const zh: {
     readonly 'panel.trigger': "KerSor 活动";
     readonly 'panel.title': "KerSor 活动";
-    readonly 'panel.empty': "没有发现 KerSor 优化会话或 Workflow 运行";
+    readonly 'panel.empty': "已扫描 {roots} 个来源，未发现 KerSor 优化会话或 Workflow 运行";
     readonly 'panel.loading': "读取中…";
     readonly 'panel.readFailed': "读取运行清单失败：{message}";
+    readonly 'panel.sourcesDegraded': "仅显示可读取数据：{roots} 个根、{readers} 个 run reader、{sources} 个异常来源；最近 {stage}/{code}（{occurrences} 次）";
+    readonly 'panel.sourcesFailed': "KerSor 来源读取失败：{roots} 个根、{readers} 个 run reader；最近 {stage}/{code}（{occurrences} 次）";
     readonly 'panel.hint': "优化会话摘要与 Workflow 实时进度";
     readonly 'session.title': "优化会话";
     readonly 'session.summary': "最近 {count} 个 · {active} 个活跃";
@@ -55,9 +57,11 @@ export declare const zh: {
 export declare const en: {
     readonly 'panel.trigger': "KerSor activity";
     readonly 'panel.title': "KerSor activity";
-    readonly 'panel.empty': "No KerSor optimization Sessions or Workflow runs discovered";
+    readonly 'panel.empty': "Scanned {roots} sources; no KerSor optimization Sessions or Workflow runs were discovered";
     readonly 'panel.loading': "Loading…";
     readonly 'panel.readFailed': "Reading the run inventory failed: {message}";
+    readonly 'panel.sourcesDegraded': "Showing readable data only: {roots} roots, {readers} run readers, {sources} unhealthy sources; latest {stage}/{code} ({occurrences} occurrence(s))";
+    readonly 'panel.sourcesFailed': "KerSor sources failed: {roots} roots, {readers} run readers; latest {stage}/{code} ({occurrences} occurrence(s))";
     readonly 'panel.hint': "Optimization summaries and live Workflow progress";
     readonly 'session.title': "Optimization Sessions";
     readonly 'session.summary': "Latest {count} · {active} active";

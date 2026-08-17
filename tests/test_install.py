@@ -143,6 +143,22 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(completed.stdout.strip(), str(self.kersor.resolve()))
 
+    def test_bridge_rejects_python_older_than_310_with_actionable_diagnostic(self) -> None:
+        destination, _, _ = self.run_install()
+        bridge_path = destination / "bin" / "kersor_bridge.py"
+        spec = importlib.util.spec_from_file_location(
+            "installed_kersor_bridge", bridge_path
+        )
+        assert spec is not None and spec.loader is not None
+        bridge = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bridge)
+        with self.assertRaisesRegex(
+            RuntimeError,
+            r"requires Python 3\.10\+.*'/usr/bin/python3'.*3\.9\.6.*"
+            r"Set KERSOR_PYTHON.*restart the DSH Host",
+        ):
+            bridge.require_supported_python((3, 9, 6), "/usr/bin/python3")
+
     def test_same_size_local_edit_is_not_mistaken_for_identical(self) -> None:
         destination, _, _ = self.run_install()
         preset = destination / "preset.yml"
@@ -384,6 +400,11 @@ class InstallTests(unittest.TestCase):
     @unittest.skipIf(shutil.which("node") is None, "Node.js is required by DSH")
     def test_status_tool_executes_for_the_current_workspace_only(self) -> None:
         project = self.make_status_project()
+        poisoned = self.root / "poisoned-path"
+        poisoned.mkdir()
+        fake_python = poisoned / "python3"
+        fake_python.write_text("#!/bin/sh\nexit 97\n", encoding="utf-8")
+        fake_python.chmod(0o755)
         plugin = ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs"
         script = r'''
 import { pathToFileURL } from 'node:url'
@@ -421,6 +442,8 @@ console.log(JSON.stringify({
                 "KERSOR_ROOT": str(self.kersor),
                 "PLUGIN_PATH": str(plugin),
                 "WORKSPACE": str(project),
+                "KERSOR_PYTHON": sys.executable,
+                "PATH": f"{poisoned}{os.pathsep}{environment.get('PATH', '')}",
             }
         )
         completed = subprocess.run(

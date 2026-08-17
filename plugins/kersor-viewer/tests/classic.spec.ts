@@ -1,4 +1,4 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -6,7 +6,7 @@ import { installedBridge, readClassicSessions } from '../src/classic.ts'
 
 const dirs: string[] = []
 const originalDshHome = process.env.DSH_HOME
-const originalArgvCapture = process.env.KERSOR_ARGV_CAPTURE
+const originalKersorPython = process.env.KERSOR_PYTHON
 
 async function tempDshHome(): Promise<string> {
   const dir = await mkdtemp(path.join(tmpdir(), 'kersor-classic-'))
@@ -17,78 +17,93 @@ async function tempDshHome(): Promise<string> {
 afterEach(async () => {
   if (originalDshHome === undefined) delete process.env.DSH_HOME
   else process.env.DSH_HOME = originalDshHome
-  if (originalArgvCapture === undefined) delete process.env.KERSOR_ARGV_CAPTURE
-  else process.env.KERSOR_ARGV_CAPTURE = originalArgvCapture
+  if (originalKersorPython === undefined) delete process.env.KERSOR_PYTHON
+  else process.env.KERSOR_PYTHON = originalKersorPython
   await Promise.all(dirs.splice(0).map(dir => rm(dir, { recursive: true, force: true })))
 })
 
-describe('classic Session bridge', () => {
-  it('is optional when the portable preset is not installed', async () => {
+describe('classic Session bridge diagnostics', () => {
+  it('distinguishes a bridge that is not installed from an empty inventory', async () => {
     process.env.DSH_HOME = await tempDshHome()
-    expect(await readClassicSessions(20)).toEqual({ sessions: [] })
+    expect(await readClassicSessions(20)).toEqual({
+      sessions: [], source: { state: 'not_installed' },
+    })
   })
 
-  it('invokes the installed bridge without a shell and validates rows', async () => {
+  it('projects warning counts without forwarding warning content', async () => {
     process.env.DSH_HOME = await tempDshHome()
+    process.env.KERSOR_PYTHON = 'python3'
     const bridge = installedBridge()
-    const capture = path.join(process.env.DSH_HOME, 'argv.json')
-    process.env.KERSOR_ARGV_CAPTURE = capture
     await mkdir(path.dirname(bridge), { recursive: true })
     await writeFile(bridge, `
 import json
-import os
-import sys
-open(os.environ["KERSOR_ARGV_CAPTURE"], "w").write(json.dumps(sys.argv[1:]))
 print(json.dumps({"sessions": [{
-  "session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "legacy",
-  "phase": "optimizing", "lifecycle": "active", "status": "pre-round-1",
-  "health": "active", "current_round": 1,
+  "session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "v2",
+  "lifecycle": "active", "status": "in-progress", "health": "active",
   "kernel_language": "python_reference", "backend": "python",
   "integration_pattern": "custom_simulator",
   "allow_workflow_authoring": True, "workflow_authoring_budget": 1,
-  "warnings": []
-}]}))
+  "workflow": "vliw-schedule", "fit_confidence": "high",
+  "decision": "CONTINUE: measure the candidate",
+  "warnings": ["SECRET-SESSION-WARNING"], "extra": "SECRET-EXTRA-FIELD"
+}], "warnings": ["SECRET-BRIDGE-WARNING"]}))
 `)
-    await chmod(bridge, 0o755)
-    const snapshot = await readClassicSessions(1, 45, {
-      includeCheckoutRoot: false,
-      sessionRoots: ['/configured/sessions'],
-      workspaceRoots: ['/registered/workspace'],
+
+    const snapshot = await readClassicSessions(1)
+    expect(snapshot).toMatchObject({
+      sessions: [{
+        session_id: 's1',
+        kernel_language: 'python_reference',
+        backend: 'python',
+        integration_pattern: 'custom_simulator',
+        allow_workflow_authoring: true,
+        workflow_authoring_budget: 1,
+        workflow: 'vliw-schedule',
+        fit_confidence: 'high',
+        decision: 'CONTINUE: measure the candidate',
+        warningCount: 1,
+      }],
+      source: { state: 'degraded', lastIssue: { stage: 'classic_bridge', code: 'io_error' } },
     })
-    expect(snapshot.sessions).toHaveLength(1)
-    expect(snapshot.sessions[0]).toMatchObject({
-      session_id: 's1', lifecycle: 'active', status: 'pre-round-1', health: 'active',
-      kernel_language: 'python_reference', backend: 'python',
-      integration_pattern: 'custom_simulator', allow_workflow_authoring: true,
-      workflow_authoring_budget: 1,
-    })
-    expect(JSON.parse(await readFile(capture, 'utf8'))).toEqual([
-      'sessions', '--limit', '1', '--stale-after', '45',
-      '--root', '/configured/sessions', '--workspace', '/registered/workspace',
-      '--no-checkout-root',
-    ])
+    expect(JSON.stringify(snapshot)).not.toContain('SECRET')
   })
 
-  it('rejects malformed bridge projections', async () => {
+  it('classifies malformed bridge output without forwarding stdout', async () => {
     process.env.DSH_HOME = await tempDshHome()
+    process.env.KERSOR_PYTHON = 'python3'
     const bridge = installedBridge()
     await mkdir(path.dirname(bridge), { recursive: true })
-    await writeFile(bridge, 'print(\'{"sessions":[{"session_id":1}]}\')\n')
+    await writeFile(bridge, 'print("{SECRET-MALFORMED")\n')
+
     const snapshot = await readClassicSessions(1)
-    expect(snapshot.sessions).toEqual([])
-    expect(snapshot.warning).toMatch(/invalid session inventory/)
+    expect(snapshot.source).toMatchObject({
+      state: 'failed', lastIssue: { stage: 'classic_bridge', code: 'invalid_json' },
+    })
+    expect(JSON.stringify(snapshot)).not.toContain('SECRET')
   })
 
-  it('forwards the bridge adapter warning without dropping valid rows', async () => {
+  it('contains invalid task-routing fields at the classic source boundary', async () => {
     process.env.DSH_HOME = await tempDshHome()
+    process.env.KERSOR_PYTHON = 'python3'
     const bridge = installedBridge()
     await mkdir(path.dirname(bridge), { recursive: true })
     await writeFile(bridge, `
 import json
-print(json.dumps({"sessions": [], "warnings": ["session root unavailable"]}))
+print(json.dumps({"sessions": [{
+  "session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "v2",
+  "lifecycle": "active", "status": "in-progress", "health": "active",
+  "decision": {"raw": "SECRET-DECISION"}, "warnings": []
+}]}))
 `)
-    expect(await readClassicSessions(1)).toEqual({
-      sessions: [], warning: 'session root unavailable',
+
+    const snapshot = await readClassicSessions(1)
+    expect(snapshot).toEqual({
+      sessions: [],
+      source: {
+        state: 'failed',
+        lastIssue: expect.objectContaining({ stage: 'classic_bridge', code: 'invalid_payload' }),
+      },
     })
+    expect(JSON.stringify(snapshot)).not.toContain('SECRET')
   })
 })

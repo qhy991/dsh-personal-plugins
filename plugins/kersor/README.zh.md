@@ -4,7 +4,7 @@
 
 让 [KerSor](https://github.com/qhy991/KerSor) autonomous Mission 可从 dsh 启动的 Host 插件，同时不把浏览器变成 shell。部署配置登记一份有限任务清单；remote 可以列出任务、通过 KerSor 的 Session-binding runner 启动其中一项、列出仍由 dsh 托管的进程树，并停止一棵受管进程树。
 
-KerSor 继续作为 Mission 校验、workflow 状态、事件历史、摘要、artifact 与 resume 行为的事实源。本包只负责启动授权、显式凭据转发和进程树生命周期。与 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.zh.md) 及 [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.zh.md) 组合后，可观察 workflow 状态，并在 Web UI 中显示可选控制区。
+KerSor 继续作为 Mission 校验、workflow 状态、事件历史、摘要、artifact 与 resume 行为的事实源。本包只负责启动授权、显式凭据转发和进程树生命周期。与 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 及 [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.md) 组合后，可观察 workflow 状态，并在 Web UI 中显示可选控制区。
 
 ## 配置
 

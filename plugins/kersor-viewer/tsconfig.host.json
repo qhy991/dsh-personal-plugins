@@ -8,9 +8,10 @@
     "src/index.ts",
     "src/service.ts",
     "src/types.ts",
-    "src/classic.ts",
     "src/scanner.ts",
     "src/tailer.ts",
+    "src/classic.ts",
+    "src/diagnostics.ts",
     "src/fold.ts",
     "src/invariant.ts"
   ],

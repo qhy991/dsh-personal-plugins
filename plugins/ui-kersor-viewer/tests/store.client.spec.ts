@@ -1,15 +1,37 @@
-// The browser store: how inventory frames, folded run frames, and backlog
-// answers compose into the panel's snapshot.
+// The browser store: one Host snapshot, folded run frames, backlog answers,
+// transport failures, and orthogonal launcher ownership.
 
 import { describe, expect, it } from 'vitest'
-import type { KersorViewerFrame } from '@deepseek-ai/dsh-kersor-viewer/types'
-import type { KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type {
+  KersorRunView,
+  KersorViewerFrame,
+  KersorViewerSnapshot,
+} from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorActiveFrame, KersorRunId, KersorTaskId } from '@deepseek-ai/dsh-kersor/types'
 import { KersorViewerStore } from '../src/client/store.ts'
 
 const REF = {
   runId: 'r1', runDir: '/runs/r1', sessionDir: '/sessions/s1', root: '/root', discovery: 'active',
 } as const
+
+function snapshot(overrides: Partial<KersorViewerSnapshot> = {}): KersorViewerSnapshot {
+  return {
+    asOf: '2026-08-17T00:00:00.000Z',
+    runs: [REF],
+    classic: { sessions: [], source: { state: 'healthy' } },
+    diagnostics: {
+      scan: {
+        state: 'healthy',
+        startedAt: '2026-08-17T00:00:00.000Z',
+        completedAt: '2026-08-17T00:00:00.001Z',
+        lastSuccessfulAt: '2026-08-17T00:00:00.001Z',
+        roots: [],
+      },
+      runs: [],
+    },
+    ...overrides,
+  }
+}
 
 function runFrame(status: 'running' | 'completed' | 'failed' = 'running'): KersorViewerFrame {
   return { kind: 'run', run: runView(status) }
@@ -24,86 +46,110 @@ function runView(status: 'running' | 'completed' | 'failed' = 'running'): Kersor
   }
 }
 
-describe('inventory', () => {
-  it('starts loading; setInventory replaces rows and clears loading', () => {
+describe('Host snapshot', () => {
+  it('atomically replaces runs, classic Sessions, and diagnostics', () => {
     const store = new KersorViewerStore()
     expect(store.getSnapshot().loading).toBe(true)
-    store.setInventory([REF])
-    expect(store.getSnapshot().rows).toHaveLength(1)
+    store.setSnapshot(snapshot({
+      classic: {
+        source: { state: 'healthy' },
+        sessions: [{
+          session_id: 's1',
+          session_dir: '/sessions/s1',
+          storage_kind: 'v2',
+          lifecycle: 'active',
+          status: 'in-progress',
+          health: 'active',
+          warningCount: 0,
+        }],
+      },
+    }))
+    expect(store.rows).toHaveLength(1)
+    expect(store.getSnapshot().snapshot?.classic.sessions[0]?.session_id).toBe('s1')
+    expect(store.getSnapshot().snapshot?.diagnostics.scan.state).toBe('healthy')
     expect(store.getSnapshot().loading).toBe(false)
   })
 
-  it('keeps classic optimization Sessions separate from autonomous runs', () => {
-    const store = new KersorViewerStore()
-    store.setClassic({
-      sessions: [{
-        session_id: '20260817-120000',
-        session_dir: '/sessions/20260817-120000',
-        storage_kind: 'legacy',
-        phase: 'optimizing',
-        lifecycle: 'active',
-        status: 'in-progress',
-        health: 'active',
-        current_round: 2,
-        max_workflows: 4,
-        best_speedup: 1.25,
-        warnings: [],
-      }],
-    })
-    expect(store.getSnapshot().classicSessions[0]).toMatchObject({
-      session_id: '20260817-120000', lifecycle: 'active', health: 'active', best_speedup: 1.25,
-    })
-    expect(store.getSnapshot().rows).toEqual([])
-  })
-
-  it('replaces and clears the non-fatal classic bridge warning', () => {
-    const store = new KersorViewerStore()
-    store.setClassic({ sessions: [], warning: 'bridge unavailable' })
-    expect(store.getSnapshot().classicWarning).toBe('bridge unavailable')
-    store.setClassic({ sessions: [] })
-    expect(store.getSnapshot().classicWarning).toBeUndefined()
-  })
-
-  it('a runs frame replaces the inventory but keeps folded views', () => {
+  it('a snapshot frame preserves a folded view for a still-discovered run', () => {
     const store = new KersorViewerStore()
     store.applyFrame(runFrame())
-    store.applyFrame({ kind: 'runs', runs: [REF] })
-    const row = store.getSnapshot().rows[0]!
-    expect(row.discovery).toBe('active')
-    expect(row.view?.currentPhase).toBe('Setup')
+    store.applyFrame({ kind: 'snapshot', snapshot: snapshot() })
+    expect(store.rows[0]?.view?.currentPhase).toBe('Setup')
+  })
+
+  it('drops views whose run left the authoritative inventory', () => {
+    const store = new KersorViewerStore()
+    store.applyFrame(runFrame())
+    store.setSnapshot(snapshot({ runs: [] }))
+    expect(store.rows).toEqual([])
+    expect(store.getSnapshot().views.size).toBe(0)
   })
 })
-
-describe('folded run frames', () => {
-  it('a run frame for an unknown run appends a row', () => {
+describe('folded run views', () => {
+  it('does not fabricate an all-zero view before backlog arrives', () => {
     const store = new KersorViewerStore()
-    store.applyFrame(runFrame())
-    expect(store.getSnapshot().rows).toHaveLength(1)
-    expect(store.activeView?.runDir).toBe('/runs/r1')
+    store.setSnapshot(snapshot())
+    expect(store.activeView).toBeUndefined()
   })
 
-  it('selecting a run pins the detail view', () => {
+  it('selecting a run pins its real detail view', () => {
     const store = new KersorViewerStore()
-    store.setInventory([REF, { ...REF, runId: 'r2', runDir: '/runs/r2' }])
+    store.setSnapshot(snapshot({
+      runs: [REF, { ...REF, runId: 'r2', runDir: '/runs/r2' }],
+    }))
     store.select('/runs/r2')
-    expect(store.selectedRunDir).toBe('/runs/r2')
-    store.applyFrame({ kind: 'run', run: { ...runView('completed'), runId: 'r2', runDir: '/runs/r2' } })
+    store.applyFrame({
+      kind: 'run',
+      run: { ...runView('completed'), runId: 'r2', runDir: '/runs/r2' },
+    })
     expect(store.activeView?.runId).toBe('r2')
+    expect(store.activeView?.status).toBe('completed')
+  })
+
+  it('setBacklog attaches a successful answer and ignores undefined', () => {
+    const store = new KersorViewerStore()
+    store.setSnapshot(snapshot())
+    store.setBacklog('/runs/r1', undefined)
+    expect(store.activeView).toBeUndefined()
+    store.setBacklog('/runs/r1', runView('completed'))
     expect(store.activeView?.status).toBe('completed')
   })
 })
 
-describe('backlog and reset', () => {
-  it('setBacklog attaches the view without dropping the inventory', () => {
+describe('transport and reset', () => {
+  it('a successful Host snapshot clears an older transport failure', () => {
     const store = new KersorViewerStore()
-    store.setInventory([REF])
-    store.setBacklog('/runs/r1', runView('completed'))
-    expect(store.getSnapshot().rows[0]!.view?.status).toBe('completed')
+    store.setTransportError('ECONNREFUSED')
+    expect(store.getSnapshot().transportError).toBe('ECONNREFUSED')
+    store.setSnapshot(snapshot())
+    expect(store.getSnapshot().transportError).toBeUndefined()
+  })
+
+  it('keeps degraded source health inside the Host snapshot', () => {
+    const store = new KersorViewerStore()
+    store.setSnapshot(snapshot({
+      diagnostics: {
+        scan: {
+          state: 'degraded',
+          roots: [],
+          lastIssue: {
+            stage: 'root_scan',
+            code: 'permission_denied',
+            severity: 'error',
+            occurrences: 1,
+            lastSeenAt: '2026-08-17T00:00:00.000Z',
+          },
+        },
+        runs: [],
+      },
+    }))
+    expect(store.getSnapshot().transportError).toBeUndefined()
+    expect(store.getSnapshot().snapshot?.diagnostics.scan.state).toBe('degraded')
   })
 
   it('reset returns to the loading state', () => {
     const store = new KersorViewerStore()
-    store.setInventory([REF])
+    store.setSnapshot(snapshot())
     store.select('/runs/r1')
     store.reset()
     expect(store.getSnapshot().loading).toBe(true)
@@ -112,17 +158,15 @@ describe('backlog and reset', () => {
 })
 
 describe('optional launcher composition', () => {
-  it('keeps configured tasks separate from the viewer run inventory', () => {
+  it('keeps configured tasks separate from the Host viewer snapshot', () => {
     const store = new KersorViewerStore()
-    store.setInventory([REF])
+    store.setSnapshot(snapshot())
     store.setLauncher([{ id: 'memo' as KersorTaskId, label: 'Memo' }], [])
-    expect(store.getSnapshot()).toMatchObject({
-      rows: [{ runId: 'r1' }],
-      launcher: { tasks: [{ id: 'memo', label: 'Memo' }], active: [] },
-    })
+    expect(store.rows[0]?.runId).toBe('r1')
+    expect(store.getSnapshot().launcher?.tasks[0]?.id).toBe('memo')
   })
 
-  it('replaces owned processes from an active frame and hides unavailable controls', () => {
+  it('replaces owned processes and hides unavailable controls', () => {
     const store = new KersorViewerStore()
     store.setLauncher([{ id: 'memo' as KersorTaskId, label: 'Memo' }], [])
     store.applyActiveFrame({
@@ -140,26 +184,17 @@ describe('optional launcher composition', () => {
     expect(store.getSnapshot().launcher).toBeUndefined()
   })
 
-  it('ignores active frames until the optional launcher is confirmed', () => {
-    const store = new KersorViewerStore()
-    store.applyActiveFrame({ kind: 'active', launches: [] })
-    expect(store.getSnapshot().launcher).toBeUndefined()
-  })
-})
-
-describe('errors', () => {
-  it('records the message and clears loading', () => {
-    const store = new KersorViewerStore()
-    store.setError('ECONNREFUSED')
-    expect(store.getSnapshot().error).toBe('ECONNREFUSED')
-    expect(store.getSnapshot().loading).toBe(false)
-  })
-
-  it('keeps launcher failures out of viewer read state', () => {
+  it('keeps launcher failures out of viewer transport state', () => {
     const store = new KersorViewerStore()
     store.setLauncher([{ id: 'memo' as KersorTaskId, label: 'Memo' }], [])
     store.setLauncherError('spawn failed')
     expect(store.getSnapshot().launcher?.error).toBe('spawn failed')
-    expect(store.getSnapshot().error).toBeUndefined()
+    expect(store.getSnapshot().transportError).toBeUndefined()
+  })
+
+  it('ignores active frames until the optional launcher is confirmed', () => {
+    const store = new KersorViewerStore()
+    store.applyActiveFrame({ kind: 'active', launches: [] })
+    expect(store.getSnapshot().launcher).toBeUndefined()
   })
 })

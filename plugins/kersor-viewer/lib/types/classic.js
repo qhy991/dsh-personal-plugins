@@ -1,8 +1,5 @@
 /**
  * Read-only adapter from the installed KerSor preset bridge to the viewer.
- * KerSor's Python SessionStore remains the canonical parser for both v2 and
- * legacy state; this module only launches the bounded projection and checks
- * its wire shape.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
 import { execFile } from 'node:child_process';
@@ -10,6 +7,7 @@ import { access } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { createIssue, errorCode, issueFromError } from "./diagnostics.js";
 const execFileAsync = promisify(execFile);
 function dshHome() {
     const configured = process.env.DSH_HOME?.trim();
@@ -25,6 +23,18 @@ function dshHome() {
 export function installedBridge() {
     return path.join(dshHome(), '.agent-presets', 'kersor', 'bin', 'kersor_bridge.py');
 }
+function kersorPython() {
+    return process.env.KERSOR_PYTHON?.trim() || 'python3';
+}
+function optionalString(value) {
+    return value === undefined || value === null || typeof value === 'string';
+}
+function optionalBoolean(value) {
+    return value === undefined || value === null || typeof value === 'boolean';
+}
+function optionalNumber(value) {
+    return value === undefined || value === null || typeof value === 'number';
+}
 function isClassicSession(value) {
     if (value === null || typeof value !== 'object')
         return false;
@@ -39,8 +49,44 @@ function isClassicSession(value) {
         && (row.status === 'terminal-complete' || row.status === 'terminal-stalled'
             || row.status === 'terminal-cancelled' || row.status === 'resumable'
             || row.status === 'in-progress' || row.status === 'pre-round-1')
+        && optionalString(row.kernel_language)
+        && optionalString(row.backend)
+        && optionalString(row.integration_pattern)
+        && optionalBoolean(row.allow_workflow_authoring)
+        && optionalNumber(row.workflow_authoring_budget)
+        && optionalString(row.decision)
+        && optionalString(row.fit_confidence)
         && Array.isArray(row.warnings)
         && row.warnings.every(item => typeof item === 'string');
+}
+function projectSession(row) {
+    return {
+        session_id: row.session_id,
+        session_dir: row.session_dir,
+        storage_kind: row.storage_kind,
+        phase: row.phase ?? null,
+        lifecycle: row.lifecycle,
+        status: row.status,
+        health: row.health,
+        started_at: row.started_at ?? null,
+        last_activity_at: row.last_activity_at ?? null,
+        current_round: row.current_round ?? null,
+        max_workflows: row.max_workflows ?? null,
+        target_speedup: row.target_speedup ?? null,
+        target_met: row.target_met ?? null,
+        mode: row.mode ?? null,
+        backend: row.backend ?? null,
+        kernel_language: row.kernel_language ?? null,
+        integration_pattern: row.integration_pattern ?? null,
+        allow_workflow_authoring: row.allow_workflow_authoring ?? null,
+        workflow_authoring_budget: row.workflow_authoring_budget ?? null,
+        kernel_name: row.kernel_name ?? null,
+        workflow: row.workflow ?? null,
+        decision: row.decision ?? null,
+        fit_confidence: row.fit_confidence ?? null,
+        best_speedup: row.best_speedup ?? null,
+        warningCount: row.warnings.length,
+    };
 }
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
 export async function readClassicSessions(limit, staleAfterSeconds = 1800, roots = {}) {
@@ -48,8 +94,10 @@ export async function readClassicSessions(limit, staleAfterSeconds = 1800, roots
     try {
         await access(bridge);
     }
-    catch {
-        return { sessions: [] }; // autonomous-only installs do not require the preset
+    catch (error) {
+        if (errorCode(error) === 'ENOENT')
+            return { sessions: [], source: { state: 'not_installed' } };
+        return { sessions: [], source: { state: 'failed', lastIssue: issueFromError('classic_bridge', error) } };
     }
     try {
         const args = [
@@ -68,33 +116,34 @@ export async function readClassicSessions(limit, staleAfterSeconds = 1800, roots
         }
         if (roots.includeCheckoutRoot === false)
             args.push('--no-checkout-root');
-        const { stdout } = await execFileAsync('python3', args, {
+        const { stdout } = await execFileAsync(kersorPython(), args, {
             encoding: 'utf8',
             maxBuffer: 2 * 1024 * 1024,
             timeout: 10_000,
         });
-        const decoded = JSON.parse(stdout);
-        if (!Array.isArray(decoded.sessions) || !decoded.sessions.every(isClassicSession)) {
-            return { sessions: [], warning: 'KerSor bridge returned an invalid session inventory' };
+        let decoded;
+        try {
+            decoded = JSON.parse(stdout);
         }
-        const warning = Array.isArray(decoded.warnings)
-            && decoded.warnings.every(item => typeof item === 'string')
-            && decoded.warnings.length > 0
-            ? decoded.warnings.join('; ')
-            : undefined;
+        catch (error) {
+            return { sessions: [], source: { state: 'failed', lastIssue: issueFromError('classic_bridge', error) } };
+        }
+        if (!Array.isArray(decoded.sessions) || !decoded.sessions.every(isClassicSession)) {
+            return {
+                sessions: [],
+                source: { state: 'failed', lastIssue: createIssue('classic_bridge', 'invalid_payload') },
+            };
+        }
+        const degraded = Array.isArray(decoded.warnings) && decoded.warnings.length > 0;
         return {
-            sessions: decoded.sessions.slice(0, limit),
-            ...(warning === undefined ? {} : { warning }),
+            sessions: decoded.sessions.slice(0, limit).map(projectSession),
+            source: degraded
+                ? { state: 'degraded', lastIssue: createIssue('classic_bridge', 'io_error', 'warning') }
+                : { state: 'healthy' },
         };
     }
     catch (error) {
-        const code = typeof error === 'object' && error !== null && 'code' in error
-            ? String(error.code)
-            : undefined;
-        return {
-            sessions: [],
-            warning: `KerSor session inventory unavailable${code === undefined ? '' : ` (${code})`}`,
-        };
+        return { sessions: [], source: { state: 'failed', lastIssue: issueFromError('classic_bridge', error) } };
     }
 }
 //# sourceMappingURL=classic.js.map

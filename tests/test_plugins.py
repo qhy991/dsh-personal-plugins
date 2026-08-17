@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -64,23 +65,36 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn("name: '@deepseek-ai/dsh-client-ui-kersor-viewer'", patch)
         self.assertNotIn("name: '@deepseek-ai/dsh-kersor'", patch)
 
-    def test_built_ui_uses_its_self_mounted_viewer_remote(self) -> None:
-        client = (
-            ROOT / "plugins" / "ui-kersor-viewer" / "lib" / "client.js"
-        ).read_text(encoding="utf-8")
+    def test_ui_consumes_the_api_assembly_without_remounting_remotes(self) -> None:
+        package = ROOT / "plugins" / "ui-kersor-viewer"
+        for path in (
+            package / "src" / "client" / "index.ts",
+            package / "lib" / "types" / "client" / "index.js",
+            package / "lib" / "client.js",
+        ):
+            client = path.read_text(encoding="utf-8")
+            self.assertNotIn("ctx.remote.$mount(", client, str(path))
+            self.assertNotIn("remoteDisposers", client, str(path))
+
+        client = (package / "lib" / "client.js").read_text(encoding="utf-8")
         self.assertIn('ctx.get("remote.kersorViewer")', client)
         self.assertNotIn("ctx.remote.kersorViewer", client)
-        self.assertIn("kersor-viewer: remote snapshot polling", client)
-        self.assertIn("listClassicSessions", client)
-        self.assertIn("classicSessions", client)
+        self.assertIn("ctx.remote.pluginInventory.list()", client)
+        self.assertIn('entry.moduleName === "@deepseek-ai/dsh-kersor"', client)
+        self.assertIn("remote.snapshot()", client)
+        self.assertIn('ctx.remote.$on("kersor/event"', client)
+        self.assertNotIn("setInterval", client)
+        self.assertNotIn("listClassicSessions", client)
+        self.assertNotIn("listRuns", client)
         self.assertIn("integration_pattern", client)
         self.assertIn("allow_workflow_authoring", client)
         self.assertIn("workflow_authoring_budget", client)
         self.assertIn("decisionReason", client)
         self.assertIn("fitBadge", client)
         self.assertIn("Fit: {confidence}", client)
-        self.assertIn('session.lifecycle !== "stalled"', client)
-        self.assertIn('session.lifecycle !== "cancelled"', client)
+        self.assertIn("function visibleFitConfidence", client)
+        self.assertIn('session.lifecycle === "stalled"', client)
+        self.assertIn('session.lifecycle === "cancelled"', client)
         self.assertIn("routeBadge", client)
         self.assertIn("Authoring · budget {budget}", client)
 
@@ -116,7 +130,15 @@ for (const event of [
   { type: 'workflow.completed', ts: '2026-08-17T00:00:02Z', usage: { total_tokens: 42 } },
 ]) fold.foldEvent(view, event)
 const store = new ui.KersorViewerStore()
-store.setInventory([{ runId: 'r1', runDir: '/runs/r1', sessionDir: '/sessions/s1', root: '/sessions', discovery: 'completed' }])
+store.setSnapshot({
+  asOf: '2026-08-17T00:00:02Z',
+  runs: [{ runId: 'r1', runDir: '/runs/r1', sessionDir: '/sessions/s1', root: '/sessions', discovery: 'completed' }],
+  classic: { sessions: [], source: { state: 'healthy' } },
+  diagnostics: {
+    scan: { state: 'healthy', roots: [] },
+    runs: [],
+  },
+})
 store.applyFrame({ kind: 'run', run: view })
 console.log(JSON.stringify({ view, state: store.getSnapshot(), active: store.activeView }))
 '''
@@ -173,7 +195,8 @@ console.log(JSON.stringify(await scanner.scanRoots([process.env.ROOT], false)))
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             value = json.loads(completed.stdout)
-            self.assertEqual(value[0]["discovery"], "completed")
+            self.assertEqual(value["runs"][0]["discovery"], "completed")
+            self.assertEqual(value["observation"]["state"], "healthy")
 
     def test_built_scanner_reuses_installed_preset_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -215,11 +238,16 @@ console.log(JSON.stringify(await scanner.scanRoots([], true)))
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             value = json.loads(completed.stdout)
-            self.assertTrue(any(item["runDir"] == str(run) for item in value))
+            self.assertTrue(any(item["runDir"] == str(run) for item in value["runs"]))
 
     def test_built_classic_adapter_uses_the_installed_preset_bridge(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
+            poisoned = root / "poisoned-path"
+            poisoned.mkdir()
+            fake_python = poisoned / "python3"
+            fake_python.write_text("#!/bin/sh\nexit 97\n", encoding="utf-8")
+            fake_python.chmod(0o755)
             bridge = (
                 root / "dsh" / ".agent-presets" / "kersor" / "bin" / "kersor_bridge.py"
             )
@@ -239,6 +267,8 @@ console.log(JSON.stringify(await viewer.readClassicSessions(1)))
             environment.update(
                 {
                     "DSH_HOME": str(root / "dsh"),
+                    "KERSOR_PYTHON": sys.executable,
+                    "PATH": f"{poisoned}{os.pathsep}{environment.get('PATH', '')}",
                     "VIEWER": str(
                         ROOT
                         / "plugins"
@@ -259,6 +289,25 @@ console.log(JSON.stringify(await viewer.readClassicSessions(1)))
             self.assertEqual(completed.returncode, 0, completed.stderr)
             value = json.loads(completed.stdout)
             self.assertEqual(value["sessions"][0]["session_id"], "s1")
+
+    def test_skill_uses_one_configured_python_for_every_bridge_call(self) -> None:
+        skill = (
+            ROOT / "presets" / "kersor" / "skills" / "kersor" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        configured_calls = skill.count('"${KERSOR_PYTHON:-python3}" "$bridge"')
+        self.assertGreater(configured_calls, 0)
+        self.assertEqual(configured_calls, skill.count('"$bridge"'))
+        self.assertNotIn('python3 "$bridge"', skill)
+
+    def test_skill_preserves_typed_tasks_and_explicit_authoring_grants(self) -> None:
+        skill = (
+            ROOT / "presets" / "kersor" / "skills" / "kersor" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--backend python --language python_reference", skill)
+        self.assertIn("--allow-workflow-authoring", skill)
+        self.assertIn("--workflow-authoring-budget", skill)
+        self.assertIn("`--yolo` is not a creation grant", skill)
+        self.assertIn("commands/research.md", skill)
 
     def test_built_viewer_depends_on_the_dsh_workspace_registry(self) -> None:
         package = ROOT / "plugins" / "kersor-viewer"

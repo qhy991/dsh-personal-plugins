@@ -89,6 +89,47 @@ describe('missing file', () => {
     tailer.stop()
     expect(batches).toEqual([['{"type":"first"}']])
   })
+
+  it('reports waiting separately from a successful empty read', async () => {
+    const dir = await tempDir()
+    const file = path.join(dir, 'events.jsonl')
+    const tailer = new EventsTailer(file, () => {})
+    await tailer.drain()
+    expect(tailer.observation.state).toBe('waiting')
+    expect(tailer.observation.lastIssue).toBeUndefined()
+    await writeFile(file, '')
+    await tailer.drain()
+    expect(tailer.observation.state).toBe('healthy')
+    expect(tailer.observation.lastReadAt).toBeDefined()
+  })
+})
+
+describe('diagnostics', () => {
+  it('does not advance the offset when the consumer rejects a batch', async () => {
+    const dir = await tempDir()
+    const file = path.join(dir, 'events.jsonl')
+    const secret = 'SECRET-CONSUMER-MESSAGE'
+    await writeFile(file, '{"type":"first"}\n')
+    let attempts = 0
+    const batches: string[][] = []
+    const tailer = new EventsTailer(file, (lines) => {
+      attempts += 1
+      if (attempts === 1) throw new Error(secret)
+      batches.push(lines)
+    })
+
+    await tailer.drain()
+    expect(tailer.byteOffset).toBe(0)
+    expect(tailer.observation).toMatchObject({
+      state: 'failed', lastIssue: { stage: 'tailer_read', code: 'unexpected' },
+    })
+    expect(JSON.stringify(tailer.observation)).not.toContain(secret)
+
+    await tailer.drain()
+    expect(batches).toEqual([['{"type":"first"}']])
+    expect(tailer.byteOffset).toBe(Buffer.byteLength('{"type":"first"}\n'))
+    expect(tailer.observation.state).toBe('healthy')
+  })
 })
 
 describe('stop', () => {

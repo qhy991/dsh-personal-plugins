@@ -2,9 +2,9 @@
 
 English | [中文](README.zh.md)
 
-Viewer for [KerSor](https://github.com/qhy991/KerSor) activity inside the dsh Web UI. It exposes two intentionally separate projections: recent optimization Sessions (including the existing classic `state.md` format) and live autonomous-workflow runs. This host package asks the installed KerSor preset bridge for bounded Session summaries, discovers autonomous run directories, tails each active run's `.runtime/events.jsonl`, and exposes both snapshot paths through generated remotes. The browser half lives in [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.md).
+Viewer for [KerSor](https://github.com/qhy991/KerSor) activity inside the dsh Web UI. It exposes two intentionally separate projections: recent optimization Sessions (including the existing classic `state.md` format) and live autonomous-workflow runs. This host package asks the installed KerSor preset bridge for bounded Session summaries, discovers autonomous run directories, and tails each active run's `.runtime/events.jsonl`. One generated `snapshot` Remote and one replacement event carry both inventories with their source health atomically; `runBacklog` carries only a selected run's folded detail. The browser half lives in [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.md).
 
-KerSor remains the single state owner. The bridge imports KerSor's canonical `SessionStore` and `AttemptResultStore`; the TypeScript package does not reimplement legacy frontmatter parsing. The viewer uses DSH's `workspaceRegistry` as the canonical list of managed projects and automatically scans each registered workspace's `.kersor/` child. If the preset is absent, classic Session inventory is quietly unavailable while autonomous run discovery continues.
+KerSor remains the single state owner. The bridge imports KerSor's canonical `SessionStore` and `AttemptResultStore`; the TypeScript package does not reimplement legacy frontmatter parsing. The viewer uses DSH's `workspaceRegistry` as the canonical list of managed projects and automatically scans each registered workspace's `.kersor/` child. If the preset is absent, the snapshot records `not_installed` while autonomous run discovery continues.
 
 This package is observation-only. To start a finite deployment-configured set of Missions from the same panel, compose the sibling launcher [`@deepseek-ai/dsh-kersor`](../kersor/README.md). KerSor run files remain authoritative whether or not that launcher is loaded.
 
@@ -34,11 +34,14 @@ A summary with `workflow_status: "waiting"` is terminal for discovery: the KerSo
 
 Classic Session cards keep KerSor's canonical phase separate from advisory health. Stable-artifact activity within the threshold is `active`; an old clean `CONTINUE` boundary is `needs_resume`; other unfinished old work is `stale`; terminal phases are `terminal`. Elapsed time never mutates phase. The bounded projection also carries language/backend, integration pattern, the workflow-authoring gate/budget, and the latest canonical protocol decision so routing drift and terminal reasons are visible without opening Session files. It includes the last stable-artifact timestamp, and a missing absolute kernel path becomes a path-free warning rather than leaking the old local path to the browser.
 
+Source health is structured rather than inferred from an empty array. The snapshot records every scanned root, accepted Session count, discovered run count, backfill/tailer mode, line counters, and the latest bounded stage/code issue. Missing optional defaults are neutral; a configured missing root, permission failure, malformed summary, unreadable event log, or rejected event line is degraded or failed. Raw exceptions, event content, bridge output, and environment values never cross the Remote boundary.
+
 ## Layout
 
 | File | Role |
 |---|---|
-| `src/service.ts` | Host half: cached Session/run snapshots, tailing, folding, and generated remotes |
+| `src/service.ts` | Host half: one cached atomic snapshot, run backlogs, tailing, folding, and replacement events |
+| `src/diagnostics.ts` | Content-free issue classification and bounded occurrence tracking |
 | `src/classic.ts` | Bounded no-shell invocation of the installed preset bridge and wire-shape validation |
 | `src/scanner.ts` | Root scanning: session-v2 directories and their `autonomous-runs/` children |
 | `src/tailer.ts` | Position-tracking `events.jsonl` tail with truncation detection |

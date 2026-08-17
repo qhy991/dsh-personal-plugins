@@ -1,10 +1,8 @@
 /**
  * Read-only adapter from the installed KerSor preset bridge to the viewer.
- * KerSor's Python SessionStore remains the canonical parser for both v2 and
- * legacy state; this module only launches the bounded projection and checks
- * its wire shape.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
+import type { KersorDiagnosticIssue } from './diagnostics.ts';
 export type KersorClassicLifecycle = 'active' | 'completed' | 'stalled' | 'cancelled';
 export type KersorClassicHealth = 'active' | 'stale' | 'needs_resume' | 'terminal' | 'unknown';
 export type KersorClassicStatus = 'terminal-complete' | 'terminal-stalled' | 'terminal-cancelled' | 'resumable' | 'in-progress' | 'pre-round-1';
@@ -35,20 +33,22 @@ export interface KersorClassicSession {
     readonly decision?: string | null;
     readonly fit_confidence?: string | null;
     readonly best_speedup?: number | null;
-    readonly warnings: readonly string[];
+    readonly warningCount: number;
 }
-/** Bounded recent-session inventory plus a non-fatal adapter warning. */
+/** Health of the optional classic-Session bridge. */
+export interface KersorClassicSource {
+    readonly state: 'disabled' | 'not_installed' | 'healthy' | 'degraded' | 'failed';
+    readonly lastIssue?: KersorDiagnosticIssue;
+}
+/** Bounded recent-session inventory and its structured source state. */
 export interface KersorClassicSnapshot {
     readonly sessions: readonly KersorClassicSession[];
-    readonly warning?: string;
+    readonly source: KersorClassicSource;
 }
 /** Machine-local roots supplied by viewer configuration and DSH workspaces. */
 export interface KersorClassicRoots {
-    /** Include the `.kersor/` of the checkout configured by the preset. */
     readonly includeCheckoutRoot?: boolean;
-    /** Directories whose children are KerSor Sessions. */
     readonly sessionRoots?: readonly string[];
-    /** Project directories whose `.kersor/` child owns the Sessions. */
     readonly workspaceRoots?: readonly string[];
 }
 /** Path copied by the portable preset installer. */

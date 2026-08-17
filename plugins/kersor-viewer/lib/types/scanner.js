@@ -1,127 +1,203 @@
 /**
- * Root-directory discovery of KerSor autonomous runs. A root is scanned for
- * Session-v2 directories (`session-config.json` + `state.json`) that carry an
- * `autonomous-runs/` child; each child directory is one run.
+ * Root-directory discovery of KerSor autonomous runs and bounded source observations.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
 import { readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { createIssue, errorCode, issueFromError, mergeIssue } from "./diagnostics.js";
 /** Default roots scanned in addition to configured ones. */
 export const DEFAULT_KERSOR_ROOTS = [
     path.join(homedir(), '.local', 'share', 'kersor'),
     path.join(homedir(), 'Agent4Kernel', 'KerSor', '.kersor'),
 ];
-async function configuredCheckout() {
-    const fromEnvironment = process.env.KERSOR_ROOT?.trim();
-    if (fromEnvironment)
-        return path.resolve(expandHome(fromEnvironment));
-    const dshHome = process.env.DSH_HOME?.trim();
-    const pointer = path.join(dshHome ? expandHome(dshHome) : path.join(homedir(), '.dsh'), '.agent-presets', 'kersor', '.local', 'kersor-root');
-    try {
-        const recorded = (await readFile(pointer, 'utf8')).trim();
-        return recorded ? path.resolve(expandHome(recorded)) : undefined;
-    }
-    catch {
-        return undefined;
-    }
-}
 function expandHome(value) {
     if (value === '~')
         return homedir();
     return value.startsWith('~/') ? path.join(homedir(), value.slice(2)) : value;
 }
-async function exists(entry) {
+async function configuredCheckout() {
+    const fromEnvironment = process.env.KERSOR_ROOT?.trim();
+    if (fromEnvironment)
+        return { root: path.resolve(expandHome(fromEnvironment)) };
+    const dshHome = process.env.DSH_HOME?.trim();
+    const pointer = path.join(dshHome ? expandHome(dshHome) : path.join(homedir(), '.dsh'), '.agent-presets', 'kersor', '.local', 'kersor-root');
     try {
-        await readdir(entry);
-        return true;
+        const recorded = (await readFile(pointer, 'utf8')).trim();
+        return recorded ? { root: path.resolve(expandHome(recorded)) } : {};
     }
-    catch {
-        return false;
+    catch (error) {
+        if (errorCode(error) === 'ENOENT')
+            return {};
+        return { issue: issueFromError('checkout_pointer', error, 'warning') };
     }
+}
+function addCandidate(into, root, origin) {
+    const expanded = path.resolve(expandHome(root));
+    if (!into.has(expanded))
+        into.set(expanded, { root: expanded, origin });
+}
+function recordRootIssue(observation, issue) {
+    observation.lastIssue = mergeIssue(observation.lastIssue, issue);
+    observation.state = observation.state === 'failed' ? 'failed' : 'degraded';
 }
 async function isSessionV2(dir) {
     try {
         const entries = await readdir(dir, { withFileTypes: true });
-        return entries.some(entry => entry.isFile() && entry.name === 'session-config.json')
-            && entries.some(entry => entry.isFile() && entry.name === 'state.json');
+        return {
+            accepted: entries.some(entry => entry.isFile() && entry.name === 'session-config.json')
+                && entries.some(entry => entry.isFile() && entry.name === 'state.json'),
+        };
     }
-    catch {
-        return false;
+    catch (error) {
+        const code = errorCode(error);
+        if (code === 'ENOENT' || code === 'ENOTDIR')
+            return { accepted: false };
+        return { accepted: false, issue: issueFromError('session_inspect', error, 'warning') };
     }
 }
-async function readJson(file) {
+async function readSummary(file) {
+    let text;
     try {
-        return JSON.parse(await (await import('node:fs/promises')).readFile(file, 'utf8'));
+        text = await readFile(file, 'utf8');
     }
-    catch {
-        return undefined;
+    catch (error) {
+        if (errorCode(error) === 'ENOENT')
+            return {};
+        return { issue: issueFromError('summary_read', error, 'warning') };
     }
+    let decoded;
+    try {
+        decoded = JSON.parse(text);
+    }
+    catch (error) {
+        return { issue: issueFromError('summary_read', error, 'warning') };
+    }
+    if (decoded === null || typeof decoded !== 'object' || Array.isArray(decoded)) {
+        return { issue: createIssue('summary_read', 'invalid_payload', 'warning') };
+    }
+    return { value: decoded };
 }
-/** Scan one session directory's `autonomous-runs/` for run children. */
-async function scanSession(sessionDir, root, into) {
+async function scanSession(sessionDir, root) {
     const runsDir = path.join(sessionDir, 'autonomous-runs');
     let children;
     try {
-        children = await readdir(runsDir);
+        children = await readdir(runsDir, { withFileTypes: true });
     }
-    catch {
-        return;
+    catch (error) {
+        if (errorCode(error) === 'ENOENT')
+            return { runs: [], issues: [] };
+        return { runs: [], issues: [], issue: issueFromError('runs_scan', error, 'warning') };
     }
-    for (const runId of children) {
-        const runDir = path.join(runsDir, runId);
-        if (!(await exists(runDir)))
+    const runs = [];
+    const issues = [];
+    for (const child of children) {
+        if (!child.isDirectory() && !child.isSymbolicLink())
             continue;
-        const summary = await readJson(path.join(runDir, '.runtime', 'summary.json'));
+        const runId = child.name;
+        const runDir = path.join(runsDir, runId);
+        const summary = await readSummary(path.join(runDir, '.runtime', 'summary.json'));
         let discovery = 'active';
-        if (summary !== undefined) {
-            // workflow-host writes `status: 'completed' | 'error'` (failure summary
-            // has no workflow_status); the controller's terminal statuses are
-            // 'completed' | 'failed' | 'waiting' (autonomous-controller.js status
-            // enum). 'waiting' means the run stopped awaiting external input — the
-            // host has written its summary, so it is terminal here, shown completed.
-            const status = summary.workflow_status ?? summary.status;
+        if (summary.value !== undefined) {
+            const status = summary.value.workflow_status ?? summary.value.status;
             if (status === 'completed' || status === 'waiting')
                 discovery = 'completed';
             else if (status === 'error' || status === 'failed')
                 discovery = 'failed';
+            else if (status !== undefined) {
+                issues.push({ runDir, issue: createIssue('summary_read', 'invalid_payload', 'warning') });
+            }
         }
-        into.push({ runId, runDir, sessionDir, root, discovery });
+        if (summary.issue !== undefined)
+            issues.push({ runDir, issue: summary.issue });
+        runs.push({ runId, runDir, sessionDir, root, discovery });
     }
+    return { runs, issues };
 }
-/**
- * Scan every root (deduplicated) for KerSor runs.
- * @param roots - configured roots; defaults are appended when `includeDefaults`.
- * @param workspaceRoots - DSH project directories whose `.kersor/` children are scanned.
- * @returns run refs; ordering is unspecified (the service sorts for display).
- */
+/** Scan all roots and return discovered runs plus bounded observations. */
 export async function scanRoots(roots, includeDefaults, workspaceRoots = []) {
-    const checkout = includeDefaults ? await configuredCheckout() : undefined;
-    const defaults = includeDefaults
-        ? [...DEFAULT_KERSOR_ROOTS, ...(checkout === undefined ? [] : [path.join(checkout, '.kersor')])]
-        : [];
-    const all = [...new Set([
-            ...roots.map(root => expandHome(root)),
-            ...defaults.map(root => expandHome(root)),
-            ...workspaceRoots.map(root => path.join(expandHome(root), '.kersor')),
-        ])];
-    const found = [];
-    for (const root of all) {
-        const expanded = root;
+    const startedAt = new Date().toISOString();
+    const checkout = includeDefaults ? await configuredCheckout() : {};
+    const candidates = new Map();
+    for (const root of roots)
+        addCandidate(candidates, root, 'configured');
+    if (includeDefaults) {
+        for (const root of DEFAULT_KERSOR_ROOTS)
+            addCandidate(candidates, root, 'default');
+        if (checkout.root !== undefined)
+            addCandidate(candidates, path.join(checkout.root, '.kersor'), 'checkout');
+    }
+    for (const workspace of workspaceRoots)
+        addCandidate(candidates, path.join(workspace, '.kersor'), 'workspace');
+    const runs = [];
+    const runIssues = [];
+    const observations = [];
+    for (const candidate of candidates.values()) {
+        const observation = {
+            ...candidate,
+            state: 'healthy',
+            sessionsExamined: 0,
+            sessionsAccepted: 0,
+            runsFound: 0,
+        };
         let sessions;
         try {
-            sessions = await readdir(expanded);
+            sessions = await readdir(candidate.root, { withFileTypes: true });
         }
-        catch {
-            continue; // root absent or unreadable: not an error, just no runs there
+        catch (error) {
+            if (errorCode(error) === 'ENOENT') {
+                observation.state = 'absent';
+                if (candidate.origin === 'configured')
+                    observation.lastIssue = issueFromError('root_scan', error, 'warning');
+            }
+            else {
+                observation.state = 'failed';
+                observation.lastIssue = issueFromError('root_scan', error);
+            }
+            observations.push(observation);
+            continue;
         }
         for (const session of sessions) {
-            const sessionDir = path.join(expanded, session);
-            if (!(await isSessionV2(sessionDir)))
+            if (!session.isDirectory() && !session.isSymbolicLink())
                 continue;
-            await scanSession(sessionDir, expanded, found);
+            observation.sessionsExamined += 1;
+            const sessionDir = path.join(candidate.root, session.name);
+            const inspected = await isSessionV2(sessionDir);
+            if (inspected.issue !== undefined)
+                recordRootIssue(observation, inspected.issue);
+            if (!inspected.accepted)
+                continue;
+            observation.sessionsAccepted += 1;
+            const scanned = await scanSession(sessionDir, candidate.root);
+            if (scanned.issue !== undefined)
+                recordRootIssue(observation, scanned.issue);
+            runs.push(...scanned.runs);
+            runIssues.push(...scanned.issues);
+            observation.runsFound += scanned.runs.length;
+            for (const scoped of scanned.issues)
+                recordRootIssue(observation, scoped.issue);
         }
+        observations.push(observation);
     }
-    return found;
+    const hasReadable = observations.some(root => root.state === 'healthy' || root.state === 'degraded');
+    const hasProblem = checkout.issue !== undefined || observations.some(root => root.state === 'failed' || root.state === 'degraded'
+        || (root.state === 'absent' && root.origin === 'configured'));
+    const state = hasProblem
+        ? (hasReadable ? 'degraded' : 'failed')
+        : 'healthy';
+    const completedAt = new Date().toISOString();
+    const lastIssue = checkout.issue ?? [...observations].reverse().find(root => root.lastIssue !== undefined)?.lastIssue;
+    return {
+        runs,
+        runIssues,
+        observation: {
+            state,
+            startedAt,
+            completedAt,
+            ...(state === 'failed' ? {} : { lastSuccessfulAt: completedAt }),
+            roots: observations,
+            ...(lastIssue === undefined ? {} : { lastIssue }),
+        },
+    };
 }
 //# sourceMappingURL=scanner.js.map

@@ -1,8 +1,6 @@
 /**
- * KerSor viewer host service: discovers run directories under configured
- * KerSor roots, tails each active run's `events.jsonl`, folds events into the
- * viewer view model, and pushes updates to every browser page through the
- * forwarded `kersor/event` Host event.
+ * KerSor viewer Host service: commits one inventory/diagnostics snapshot and
+ * folds each run's event stream for browser consumers.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
 var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
@@ -42,32 +40,27 @@ var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, 
 import { Service } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
-import { createRunView, foldEvent } from "./fold.js";
 import { readClassicSessions } from "./classic.js";
+import { createIssue, issueFromError, mergeIssue } from "./diagnostics.js";
+import { createRunView, foldEvent } from "./fold.js";
 import { scanRoots } from "./scanner.js";
 import { EventsTailer } from "./tailer.js";
 export { EventsTailer } from "./tailer.js";
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from "./scanner.js";
 export { createRunView, foldEvent } from "./fold.js";
 export { installedBridge, readClassicSessions } from "./classic.js";
-/**
- * Host service: run inventory, live event folding, and browser push. Exposes
- * `listRuns` and `runBacklog` remotes for panel open and reconnect.
- */
+/** Host service owning the viewer's single snapshot and folded run views. */
 let KersorViewerService = (() => {
     let _classSuper = TypertRemoteService;
     let _instanceExtraInitializers = [];
-    let _listRuns_decorators;
-    let _listClassicSessions_decorators;
+    let _snapshot_decorators;
     let _runBacklog_decorators;
     return class KersorViewerService extends _classSuper {
         static {
             const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
-            _listRuns_decorators = [Remote('listRuns')];
-            _listClassicSessions_decorators = [Remote('listClassicSessions')];
+            _snapshot_decorators = [Remote('snapshot')];
             _runBacklog_decorators = [Remote('runBacklog')];
-            __esDecorate(this, null, _listRuns_decorators, { kind: "method", name: "listRuns", static: false, private: false, access: { has: obj => "listRuns" in obj, get: obj => obj.listRuns }, metadata: _metadata }, null, _instanceExtraInitializers);
-            __esDecorate(this, null, _listClassicSessions_decorators, { kind: "method", name: "listClassicSessions", static: false, private: false, access: { has: obj => "listClassicSessions" in obj, get: obj => obj.listClassicSessions }, metadata: _metadata }, null, _instanceExtraInitializers);
+            __esDecorate(this, null, _snapshot_decorators, { kind: "method", name: "snapshot", static: false, private: false, access: { has: obj => "snapshot" in obj, get: obj => obj.snapshot }, metadata: _metadata }, null, _instanceExtraInitializers);
             __esDecorate(this, null, _runBacklog_decorators, { kind: "method", name: "runBacklog", static: false, private: false, access: { has: obj => "runBacklog" in obj, get: obj => obj.runBacklog }, metadata: _metadata }, null, _instanceExtraInitializers);
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
@@ -88,9 +81,12 @@ let KersorViewerService = (() => {
         tracked = new Map();
         group;
         scanTimer;
-        emittedRunsSignature = '';
-        classicSnapshot = { sessions: [] };
         scanInFlight;
+        scanObservation = { state: 'never', roots: [] };
+        classicSnapshot = {
+            sessions: [],
+            source: { state: 'not_installed' },
+        };
         /** Create the service under the Host composition. */
         constructor(ctx, config) {
             super(ctx, 'kersorViewer');
@@ -104,8 +100,6 @@ let KersorViewerService = (() => {
         /** Start discovery and tailing under the plugin's fiber once ready. */
         *[Service.init]() {
             yield () => {
-                // Teardown: stop every tailer and the scan loop; the group fiber's own
-                // disposers (registered via group.effect below) run on group dispose.
                 for (const tracked of this.tracked.values())
                     tracked.tailer?.stop();
                 this.tracked.clear();
@@ -131,24 +125,44 @@ let KersorViewerService = (() => {
             this.group ??= this.rootCtx.plugin({ name: 'kersor-viewer-group', apply: () => { } });
             return this.group;
         }
-        /** Inventory snapshot for the panel's run list. */
-        listRuns() {
-            return [...this.tracked.values()].map(tracked => tracked.ref)
-                .sort((left, right) => rank(right) - rank(left) || right.runId.localeCompare(left.runId));
-        }
-        /** Recent classic and Session-v2 optimization summaries from KerSor stores. */
-        listClassicSessions() {
-            return this.classicSnapshot;
+        /** Complete inventory and source-health snapshot for panel refresh/reconnect. */
+        snapshot() {
+            return {
+                asOf: new Date().toISOString(),
+                runs: [...this.tracked.values()].map(tracked => tracked.ref)
+                    .sort((left, right) => rank(right) - rank(left) || right.runId.localeCompare(left.runId)),
+                classic: this.classicSnapshot,
+                diagnostics: {
+                    scan: this.scanObservation,
+                    runs: [...this.tracked.values()].map(tracked => tracked.observation)
+                        .sort((left, right) => left.runDir.localeCompare(right.runDir)),
+                },
+            };
         }
         /** Full folded view of one run (panel open / reconnect backlog). */
         runBacklog(runDir) {
             return this.tracked.get(runDir)?.view;
         }
-        /** Rescan roots; start and stop tailers to match discovery. */
+        /** Rescan roots once; concurrent callers share the in-flight scan. */
         async rescan() {
             if (this.scanInFlight !== undefined)
                 return this.scanInFlight;
-            const current = this.performRescan();
+            this.scanObservation = {
+                ...this.scanObservation,
+                state: 'running',
+                startedAt: new Date().toISOString(),
+            };
+            this.publishSnapshot();
+            const current = this.performRescan().catch((error) => {
+                const now = new Date().toISOString();
+                this.scanObservation = {
+                    ...this.scanObservation,
+                    state: 'failed',
+                    completedAt: now,
+                    lastIssue: issueFromError('root_scan', error),
+                };
+                this.publishSnapshot();
+            });
             this.scanInFlight = current;
             try {
                 await current;
@@ -160,42 +174,48 @@ let KersorViewerService = (() => {
         }
         async performRescan() {
             const workspaceRoots = [...new Set(this.rootCtx.workspaceRegistry.list().map(workspace => workspace.path))];
-            const [found, classicSnapshot] = await Promise.all([
+            const [scanned, classic] = await Promise.all([
                 scanRoots(this.configuredRoots, this.includeDefaults, workspaceRoots),
                 this.classicSessionLimit === 0
-                    ? Promise.resolve({ sessions: [] })
+                    ? Promise.resolve({ sessions: [], source: { state: 'disabled' } })
                     : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds, {
                         includeCheckoutRoot: this.includeDefaults,
                         sessionRoots: this.configuredRoots,
                         workspaceRoots,
                     }),
             ]);
-            this.classicSnapshot = classicSnapshot;
-            const byRunDir = new Map(found.map(ref => [ref.runDir, ref]));
+            const previousSuccess = this.scanObservation.lastSuccessfulAt;
+            this.scanObservation = scanned.observation.state === 'failed' && previousSuccess !== undefined
+                ? { ...scanned.observation, lastSuccessfulAt: previousSuccess }
+                : scanned.observation;
+            this.classicSnapshot = classic;
+            const byRunDir = new Map(scanned.runs.map(ref => [ref.runDir, ref]));
+            const scanIssues = new Map(scanned.runIssues.map(entry => [entry.runDir, entry.issue]));
             for (const [runDir, tracked] of this.tracked) {
                 if (byRunDir.has(runDir))
                     continue;
                 tracked.tailer?.stop();
                 this.tracked.delete(runDir);
             }
-            for (const ref of found) {
+            for (const ref of scanned.runs) {
+                const issue = scanIssues.get(ref.runDir);
                 const existing = this.tracked.get(ref.runDir);
                 if (existing !== undefined) {
+                    if (issue !== undefined)
+                        this.recordRunIssue(existing, issue);
                     if (existing.ref.discovery !== ref.discovery) {
-                        // Lifecycle is monotonic. A summary can be momentarily unreadable
-                        // while it is replaced, but a terminal run must not become active
-                        // again because of that transient scan result.
                         if (existing.ref.discovery !== 'active' && ref.discovery === 'active')
                             continue;
                         existing.ref = ref;
                         if (ref.discovery !== 'active') {
                             existing.tailer?.stop();
                             existing.tailer = undefined;
-                            // A waiting summary is terminal even when the event stream has no
-                            // workflow.completed frame. Summary-backed discovery is the
-                            // authoritative lifecycle shown in the inventory.
                             existing.view.status = terminalStatus(ref);
-                            this.rootCtx.emit('kersor/event', { kind: 'run', run: existing.view });
+                            existing.observation = {
+                                ...existing.observation,
+                                state: existing.observation.lastIssue === undefined ? 'complete' : 'degraded',
+                            };
+                            this.publishRun(existing.view);
                         }
                         else {
                             this.attachTailer(existing);
@@ -203,77 +223,169 @@ let KersorViewerService = (() => {
                     }
                     continue;
                 }
-                const view = createRunView(ref.runId, ref.runDir, ref.sessionDir);
-                const tracked = { ref, view, tailer: undefined };
+                const tracked = {
+                    ref,
+                    view: createRunView(ref.runId, ref.runDir, ref.sessionDir),
+                    tailer: undefined,
+                    observation: {
+                        runDir: ref.runDir,
+                        mode: ref.discovery === 'active' ? 'tail' : 'backfill',
+                        state: issue === undefined ? 'waiting' : 'degraded',
+                        byteOffset: 0,
+                        linesRead: 0,
+                        linesRejected: 0,
+                        ...(issue === undefined ? {} : { lastIssue: issue }),
+                    },
+                };
                 this.tracked.set(ref.runDir, tracked);
                 if (ref.discovery === 'active')
                     this.attachTailer(tracked);
                 else
                     void this.backfillTerminated(tracked);
             }
-            const signature = found.map(ref => `${ref.runDir}:${ref.discovery}`).sort().join('|');
-            if (signature !== this.emittedRunsSignature) {
-                this.emittedRunsSignature = signature;
-                this.rootCtx.emit('kersor/event', { kind: 'runs', runs: this.listRuns() });
-            }
+            this.publishSnapshot();
         }
-        /** Read a discovered-terminated run's full event log once (no tailer). */
         async backfillTerminated(tracked) {
             const { ref, view } = tracked;
             let text;
             try {
                 text = await (await import('node:fs/promises')).readFile(`${ref.runDir}/.runtime/events.jsonl`, 'utf8');
             }
-            catch {
-                return; // no event log (e.g. crashed before the first flush): empty view
+            catch (error) {
+                view.status = terminalStatus(ref);
+                this.recordRunIssue(tracked, issueFromError('backfill_read', error));
+                tracked.observation = { ...tracked.observation, state: 'failed' };
+                if (this.tracked.get(ref.runDir) === tracked) {
+                    this.publishRun(view);
+                    this.publishSnapshot();
+                }
+                return;
             }
             for (const line of text.split('\n')) {
                 if (line.length === 0)
                     continue;
-                try {
-                    foldEvent(view, JSON.parse(line));
-                }
-                catch {
-                    // partial or non-JSON line: skip
-                }
+                tracked.observation = {
+                    ...tracked.observation,
+                    linesRead: tracked.observation.linesRead + 1,
+                    lastReadAt: new Date().toISOString(),
+                };
+                this.foldLine(tracked, line);
             }
-            if (view.status !== 'completed' && view.status !== 'failed') {
+            if (view.status !== 'completed' && view.status !== 'failed')
                 view.status = terminalStatus(ref);
-            }
+            tracked.observation = {
+                ...tracked.observation,
+                state: tracked.observation.lastIssue === undefined ? 'complete' : 'degraded',
+                byteOffset: Buffer.byteLength(text),
+            };
             if (this.tracked.get(ref.runDir) !== tracked)
                 return;
-            this.rootCtx.emit('kersor/event', { kind: 'run', run: view });
+            this.publishRun(view);
+            this.publishSnapshot();
         }
         attachTailer(tracked) {
             if (tracked.tailer !== undefined)
                 return;
             const { ref, view } = tracked;
-            const eventsFile = `${ref.runDir}/.runtime/events.jsonl`;
-            const tailer = new EventsTailer(eventsFile, (lines) => {
-                let mutated = false;
-                for (const line of lines) {
-                    let event;
-                    try {
-                        event = JSON.parse(line);
-                    }
-                    catch {
-                        continue; // partial or non-JSON line: skip
-                    }
-                    mutated = true;
-                    foldEvent(view, event);
-                }
-                if (mutated)
-                    this.rootCtx.emit('kersor/event', { kind: 'run', run: view });
+            const tailer = new EventsTailer(`${ref.runDir}/.runtime/events.jsonl`, (lines) => {
+                for (const line of lines)
+                    this.foldLine(tracked, line);
+                tracked.observation = {
+                    ...tracked.observation,
+                    state: tracked.observation.lastIssue === undefined ? 'healthy' : 'degraded',
+                    byteOffset: tailer.byteOffset,
+                    linesRead: tracked.observation.linesRead + lines.length,
+                    lastReadAt: new Date().toISOString(),
+                };
+                this.publishRun(view);
                 if (view.status === 'completed' || view.status === 'failed') {
                     tracked.ref = { ...tracked.ref, discovery: view.status };
+                    tracked.observation = {
+                        ...tracked.observation,
+                        state: tracked.observation.lastIssue === undefined ? 'complete' : 'degraded',
+                    };
                     tailer.stop();
                 }
             }, () => {
                 if (tracked.tailer === tailer)
                     tracked.tailer = undefined;
+            }, {
+                onObservation: (observation) => {
+                    const previousFingerprint = observationFingerprint(tracked.observation);
+                    const currentIssue = tracked.observation.lastIssue;
+                    const tailerIssue = observation.lastIssue;
+                    const lastIssue = tailerIssue !== undefined
+                        && (currentIssue === undefined || tailerIssue.lastSeenAt >= currentIssue.lastSeenAt)
+                        ? tailerIssue
+                        : currentIssue;
+                    const terminal = tracked.view.status === 'completed' || tracked.view.status === 'failed';
+                    tracked.observation = {
+                        ...tracked.observation,
+                        state: terminal
+                            ? (lastIssue === undefined ? 'complete' : 'degraded')
+                            : observation.state === 'healthy' && lastIssue !== undefined
+                                ? 'degraded'
+                                : observation.state,
+                        byteOffset: observation.byteOffset,
+                        linesRead: observation.linesRead,
+                        ...(observation.lastReadAt === undefined ? {} : { lastReadAt: observation.lastReadAt }),
+                        ...(lastIssue === undefined ? {} : { lastIssue }),
+                    };
+                    if (observationFingerprint(tracked.observation) !== previousFingerprint)
+                        this.publishSnapshot();
+                },
             });
             tracked.tailer = tailer;
-            tailer.start();
+            try {
+                tailer.start();
+            }
+            catch (error) {
+                tracked.tailer = undefined;
+                this.recordRunIssue(tracked, issueFromError('tailer_watch', error));
+                tracked.observation = { ...tracked.observation, state: 'failed' };
+                this.publishSnapshot();
+            }
+        }
+        foldLine(tracked, line) {
+            let decoded;
+            try {
+                decoded = JSON.parse(line);
+            }
+            catch (error) {
+                this.rejectLine(tracked, issueFromError('event_parse', error, 'warning'));
+                return;
+            }
+            if (decoded === null || typeof decoded !== 'object'
+                || typeof decoded.type !== 'string') {
+                this.rejectLine(tracked, createIssue('event_parse', 'invalid_payload', 'warning'));
+                return;
+            }
+            try {
+                foldEvent(tracked.view, decoded);
+            }
+            catch (error) {
+                this.rejectLine(tracked, issueFromError('event_fold', error, 'warning'));
+            }
+        }
+        rejectLine(tracked, issue) {
+            this.recordRunIssue(tracked, issue);
+            tracked.observation = {
+                ...tracked.observation,
+                state: 'degraded',
+                linesRejected: tracked.observation.linesRejected + 1,
+            };
+        }
+        recordRunIssue(tracked, issue) {
+            tracked.observation = {
+                ...tracked.observation,
+                lastIssue: mergeIssue(tracked.observation.lastIssue, issue),
+            };
+        }
+        publishSnapshot() {
+            this.rootCtx.emit('kersor/event', { kind: 'snapshot', snapshot: this.snapshot() });
+        }
+        publishRun(run) {
+            this.rootCtx.emit('kersor/event', { kind: 'run', run });
         }
     };
 })();
@@ -288,6 +400,10 @@ function rank(ref) {
 function terminalStatus(ref) {
     return ref.discovery === 'failed' ? 'failed' : 'completed';
 }
-/** Cordis plugin entry: the service class itself (class plugin, default export). */
+function observationFingerprint(observation) {
+    const issue = observation.lastIssue;
+    return `${observation.state}:${observation.byteOffset}:${observation.linesRead}:${issue?.stage ?? ''}:${issue?.code ?? ''}:${issue?.occurrences ?? 0}`;
+}
+/** Cordis plugin entry: the service class itself. */
 export default KersorViewerService;
 //# sourceMappingURL=service.js.map

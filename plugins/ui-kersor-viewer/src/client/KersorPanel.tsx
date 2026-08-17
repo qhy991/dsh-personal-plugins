@@ -3,12 +3,20 @@
 import { useState, useSyncExternalStore } from 'react'
 import { IconChevronRightOutline14, StateDot, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { KersorCallView, KersorPhaseView, KersorRunStatus, KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type {
+  KersorCallView,
+  KersorDiagnosticIssue,
+  KersorPhaseView,
+  KersorRunStatus,
+  KersorRunView,
+  KersorViewerSnapshot,
+} from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorTaskId } from '@deepseek-ai/dsh-kersor/types'
 import type { KersorViewerState } from './store.ts'
 import type { KersorViewerKey } from './locales.ts'
 import type { KersorPanelFace } from './slots.ts'
+import { visibleFitConfidence } from './readiness.ts'
 import css from './KersorPanel.module.css'
 
 /** Full panel props composed by the sidebar footer-action slot. */
@@ -106,6 +114,7 @@ function ClassicSessionRow({ session, t }: {
   const activity = session.last_activity_at !== null && session.last_activity_at !== undefined
     ? displayTime(session.last_activity_at)
     : undefined
+  const fitConfidence = visibleFitConfidence(session)
   return (
     <li className={css.classicRow} data-session-health={session.health} data-session-lifecycle={session.lifecycle}>
       <div className={css.classicHead}>
@@ -128,8 +137,8 @@ function ClassicSessionRow({ session, t }: {
           : null}
         {session.allow_workflow_authoring === true
           ? <span className={css.authoringBadge}>{t('session.authoring', {
-              budget: session.workflow_authoring_budget ?? '—',
-            })}</span>
+            budget: session.workflow_authoring_budget ?? '—',
+          })}</span>
           : null}
         {activity !== undefined ? <span>{t('session.lastActivity', { time: activity })}</span> : null}
       </div>
@@ -139,12 +148,11 @@ function ClassicSessionRow({ session, t }: {
             ? t('session.workflow', { workflow: session.workflow })
             : t('session.noWorkflow')}
         </span>
-        {session.lifecycle !== 'stalled' && session.lifecycle !== 'cancelled'
-          && session.fit_confidence !== null && session.fit_confidence !== undefined
-          ? <span className={css.fitBadge} data-fit-confidence={session.fit_confidence}>{t('session.fit', { confidence: session.fit_confidence })}</span>
+        {fitConfidence !== undefined
+          ? <span className={css.fitBadge} data-fit-confidence={fitConfidence}>{t('session.fit', { confidence: fitConfidence })}</span>
           : null}
-        {session.warnings.length > 0
-          ? <span className={css.warningCount} title={session.warnings.join('\n')}>{t('session.warnings', { count: session.warnings.length })}</span>
+        {session.warningCount > 0
+          ? <span className={css.warningCount}>{t('session.warnings', { count: session.warningCount })}</span>
           : null}
       </div>
       {session.decision !== null && session.decision !== undefined
@@ -240,7 +248,7 @@ function LauncherControls({ launcher, busy, start, stop, t }: {
           : null}
       </div>
       <div className={css.taskList}>
-        {launcher.tasks.map(task => {
+        {launcher.tasks.map((task) => {
           const key = `start:${task.id}`
           return (
             <div key={task.id} className={css.taskRow}>
@@ -289,11 +297,48 @@ function LauncherControls({ launcher, busy, start, stop, t }: {
   )
 }
 
+interface ViewerHealth {
+  readonly state: 'healthy' | 'degraded' | 'failed'
+  readonly roots: number
+  readonly readers: number
+  readonly sources: number
+  readonly issue?: KersorDiagnosticIssue
+}
+
+function viewerHealth(snapshot: KersorViewerSnapshot): ViewerHealth {
+  const roots = snapshot.diagnostics.scan.roots
+  const readers = snapshot.diagnostics.runs
+  const rootIssues = roots.flatMap(root => root.lastIssue === undefined ? [] : [root.lastIssue])
+  const runIssues = readers.flatMap(run => run.lastIssue === undefined ? [] : [run.lastIssue])
+  const classicIssue = snapshot.classic.source.lastIssue
+  const issues = [...rootIssues, ...runIssues, ...(classicIssue === undefined ? [] : [classicIssue])]
+  const classicFailed = snapshot.classic.source.state === 'failed'
+  const degraded = snapshot.diagnostics.scan.state === 'degraded'
+    || snapshot.diagnostics.scan.state === 'failed'
+    || classicFailed
+    || snapshot.classic.source.state === 'degraded'
+    || readers.some(run => run.state === 'degraded' || run.state === 'failed')
+  const noReadableSource = snapshot.diagnostics.scan.state === 'failed'
+    && snapshot.classic.source.state !== 'healthy'
+    && snapshot.classic.source.state !== 'degraded'
+  const issue = snapshot.diagnostics.scan.lastIssue ?? classicIssue ?? runIssues.at(-1)
+  return {
+    state: noReadableSource ? 'failed' : degraded ? 'degraded' : 'healthy',
+    roots: roots.length,
+    readers: readers.length,
+    sources: issues.length,
+    ...(issue === undefined ? {} : { issue }),
+  }
+}
+
 /** Sidebar footer panel: trigger row plus the fixed inventory popup. */
 export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string>()
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
+  const rows = store.rows
+  const classicSessions = state.snapshot?.classic.sessions ?? []
+  const health = state.snapshot === undefined ? undefined : viewerHealth(state.snapshot)
   const view = store.activeView
 
   const runStart = async (taskId: KersorTaskId): Promise<void> => {
@@ -328,8 +373,8 @@ export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps
       >
         <span className={css.triggerIcon}><IconChevronRightOutline14 /></span>
         <span className={css.triggerLabel}>{t('panel.trigger')}</span>
-        {state.rows.some(row => row.discovery === 'active')
-          || state.classicSessions.some(session => session.health === 'active')
+        {rows.some(row => row.discovery === 'active')
+          || classicSessions.some(session => session.health === 'active')
           ? <span className={css.triggerBadge}><StateDot state="ongoing" /></span>
           : null}
       </button>
@@ -344,37 +389,56 @@ export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps
               {state.launcher !== undefined
                 ? <LauncherControls launcher={state.launcher} busy={busy} start={runStart} stop={runStop} t={t} />
                 : null}
-              {state.error !== undefined ? <div className={css.readError}>{t('panel.readFailed', { message: state.error })}</div> : null}
-              {state.classicWarning !== undefined ? <div className={css.readError}>{state.classicWarning}</div> : null}
-              {state.loading ? <div className={css.note}>{t('panel.loading')}</div> : null}
-              {!state.loading && state.rows.length === 0 && state.classicSessions.length === 0
-                ? <div className={css.note}>{t('panel.empty')}</div>
+              {state.transportError !== undefined
+                ? <div className={css.readError}>{t('panel.readFailed', { message: state.transportError })}</div>
                 : null}
-              {state.classicSessions.length > 0
+              {health !== undefined && health.state !== 'healthy'
+                ? (
+                  <div className={css.readError} data-source-health={health.state}>
+                    {t(health.state === 'failed' ? 'panel.sourcesFailed' : 'panel.sourcesDegraded', {
+                      roots: health.roots,
+                      readers: health.readers,
+                      sources: health.sources,
+                      stage: health.issue?.stage ?? 'source',
+                      code: health.issue?.code ?? 'unavailable',
+                      occurrences: health.issue?.occurrences ?? 1,
+                    })}
+                  </div>
+                )
+                : null}
+              {state.loading ? <div className={css.note}>{t('panel.loading')}</div> : null}
+              {!state.loading
+                && state.transportError === undefined
+                && health?.state === 'healthy'
+                && rows.length === 0
+                && classicSessions.length === 0
+                ? <div className={css.note}>{t('panel.empty', { roots: health.roots })}</div>
+                : null}
+              {classicSessions.length > 0
                 ? (
                   <section className={css.activitySection} aria-label={t('session.title')}>
                     <div className={css.sectionHead}>
                       <span className={css.sectionTitle}>{t('session.title')}</span>
                       <span className={css.sectionSummary}>{t('session.summary', {
-                        count: state.classicSessions.length,
-                        active: state.classicSessions.filter(session => session.health === 'active').length,
+                        count: classicSessions.length,
+                        active: classicSessions.filter(session => session.health === 'active').length,
                       })}</span>
                     </div>
                     <ul className={css.classicRows}>
-                      {state.classicSessions.map(session => <ClassicSessionRow key={session.session_dir} session={session} t={t} />)}
+                      {classicSessions.map(session => <ClassicSessionRow key={session.session_dir} session={session} t={t} />)}
                     </ul>
                   </section>
                 )
                 : null}
-              {state.rows.length > 0
+              {rows.length > 0
                 ? (
                   <section className={css.activitySection} aria-label={t('run.sectionTitle')}>
                     <div className={css.sectionHead}>
                       <span className={css.sectionTitle}>{t('run.sectionTitle')}</span>
-                      <span className={css.sectionSummary}>{state.rows.length}</span>
+                      <span className={css.sectionSummary}>{rows.length}</span>
                     </div>
                     <ul className={css.rows}>
-                      {state.rows.map(row => (
+                      {rows.map(row => (
                         <li key={row.runDir} className={css.row} data-run-status={row.discovery}>
                           <button
                             type="button"
@@ -395,7 +459,7 @@ export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps
                   </section>
                 )
                 : null}
-              {state.rows.length > 0 && view !== undefined && !state.rows.some(row => row.runDir === store.selectedRunDir)
+              {rows.length > 0 && view !== undefined && !rows.some(row => row.runDir === store.selectedRunDir)
                 ? <RunDetail view={view} t={t} />
                 : null}
             </div>

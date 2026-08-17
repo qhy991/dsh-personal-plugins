@@ -8,6 +8,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from sync_plugins import manifest_violations
+
 
 ROOT = Path(__file__).resolve().parents[1]
 TEXT_SUFFIXES = {
@@ -91,20 +93,25 @@ def main() -> int:
         print("check: Node.js is required to validate DSH plugins", file=sys.stderr)
         return 1
 
-    violations = metadata_violations()
+    violations = [*metadata_violations(), *manifest_violations()]
     if violations:
         print("check: violations found", file=sys.stderr)
         for violation in violations:
             print(f"  - {violation}", file=sys.stderr)
         return 1
 
-    syntax = subprocess.run(
-        [node, "--check", str(ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs")],
-        cwd=ROOT,
-        check=False,
+    syntax_targets = (
+        ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs",
+        ROOT / "tools" / "codex-infini-bridge" / "server.mjs",
     )
-    if syntax.returncode != 0:
-        return syntax.returncode
+    for target in syntax_targets:
+        syntax = subprocess.run(
+            [node, "--check", str(target)],
+            cwd=ROOT,
+            check=False,
+        )
+        if syntax.returncode != 0:
+            return syntax.returncode
 
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
@@ -113,7 +120,10 @@ def main() -> int:
     )
     if completed.returncode != 0:
         return completed.returncode
-    print("check: metadata, portability, and installer contracts passed")
+    print(
+        "check: metadata, mirror integrity, portability, bridge, and "
+        "installer contracts passed"
+    )
     return 0
 
 

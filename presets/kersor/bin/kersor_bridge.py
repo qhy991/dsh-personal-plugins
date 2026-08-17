@@ -17,6 +17,36 @@ from typing import Any
 
 PRESET_ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILE = PRESET_ROOT / ".local" / "kersor-root"
+MINIMUM_PYTHON = (3, 10)
+
+
+def require_supported_python(
+    version_info: tuple[int, ...] | None = None,
+    executable: str | None = None,
+) -> None:
+    """Fail with an actionable diagnostic when the bridge Python is too old."""
+    version = tuple(sys.version_info[:3]) if version_info is None else version_info
+    if version >= MINIMUM_PYTHON:
+        return
+    rendered = ".".join(str(part) for part in version[:3])
+    running = executable or sys.executable or "python3"
+    configured = os.environ.get("KERSOR_PYTHON", "").strip()
+    configured_note = (
+        f" KERSOR_PYTHON is set to {configured!r}, but this bridge is running "
+        f"under {running!r}."
+        if configured
+        else ""
+    )
+    raise RuntimeError(
+        f"KerSor bridge requires Python {MINIMUM_PYTHON[0]}.{MINIMUM_PYTHON[1]}+; "
+        f"{running!r} reports {rendered}.{configured_note} Set KERSOR_PYTHON to "
+        "a Python 3.10+ executable and restart the DSH Host."
+    )
+
+
+def pin_selected_python() -> None:
+    """Make the interpreter actually running the bridge authoritative downstream."""
+    os.environ["KERSOR_PYTHON"] = sys.executable
 
 
 def resolve_root() -> Path:
@@ -538,8 +568,10 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     """Resolve the checkout and dispatch a supported bridge action."""
-    options = parser().parse_args(argv)
     try:
+        require_supported_python()
+        pin_selected_python()
+        options = parser().parse_args(argv)
         root = resolve_root()
         if options.action == "root":
             if options.args:

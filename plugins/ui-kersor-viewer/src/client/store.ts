@@ -1,26 +1,30 @@
 /**
- * Browser-side viewer store: run inventory plus folded run views, fed by the
- * forwarded `kersor/event` Host frames and the `listRuns`/`runBacklog`
- * remotes. A useSyncExternalStore-compatible snapshot observable.
+ * Browser-side KerSor viewer store. One Host snapshot owns inventory,
+ * classic Sessions, and source health; folded run views and launcher process
+ * ownership remain orthogonal client-side accounts.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
 
-import type { KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
-import type { KersorRunRef } from '@deepseek-ai/dsh-kersor-viewer/types'
-import type { KersorViewerFrame } from '@deepseek-ai/dsh-kersor-viewer/types'
-import type { KersorClassicSession, KersorClassicSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type {
+  KersorRunRef,
+  KersorRunView,
+  KersorViewerFrame,
+  KersorViewerSnapshot,
+} from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorActiveFrame, KersorActiveLaunch, KersorTaskRef } from '@deepseek-ai/dsh-kersor/types'
 
 export interface KersorRunRow extends KersorRunRef {
-  view?: KersorRunView | undefined
+  readonly view?: KersorRunView | undefined
 }
 
 export interface KersorViewerState {
-  readonly rows: readonly KersorRunRow[]
-  readonly classicSessions: readonly KersorClassicSession[]
-  readonly classicWarning?: string
+  /** Latest atomic Host projection; absent until the first successful read. */
+  readonly snapshot?: KersorViewerSnapshot
+  /** Folded event backlogs keyed independently from the inventory snapshot. */
+  readonly views: ReadonlyMap<string, KersorRunView>
   readonly loading: boolean
-  readonly error?: string
+  /** Transport failure only; Host source failures live in snapshot diagnostics. */
+  readonly transportError?: string
   /** Present only while the optional Host launcher namespace is available. */
   readonly launcher?: {
     readonly tasks: readonly KersorTaskRef[]
@@ -31,9 +35,9 @@ export interface KersorViewerState {
 
 type Listener = () => void
 
-/** Snapshot store over the run inventory and per-run folded views. */
+/** Snapshot store over the Host projection and per-run folded views. */
 export class KersorViewerStore {
-  private state: KersorViewerState = { rows: [], classicSessions: [], loading: true }
+  private state: KersorViewerState = { views: new Map(), loading: true }
   private readonly listeners = new Set<Listener>()
   private selected: string | undefined
 
@@ -46,55 +50,53 @@ export class KersorViewerStore {
     return () => { this.listeners.delete(listener) }
   }
 
+  /** Latest run inventory joined with independently folded views. */
+  get rows(): readonly KersorRunRow[] {
+    return (this.state.snapshot?.runs ?? []).map(ref => ({
+      ...ref,
+      view: this.state.views.get(ref.runDir),
+    }))
+  }
+
   /** Currently selected run directory (panel-local choice). */
   get selectedRunDir(): string | undefined {
     return this.selected
   }
 
-  /** Select a run for the detail view; persists across inventory frames. */
+  /** Select a run for the detail view; persists across Host snapshots. */
   select(runDir: string | undefined): void {
     this.selected = runDir
     this.emit()
   }
 
-  /** The selected run's folded view, falling back to the best active run. */
+  /** Selected folded view, falling back to a real available run view. */
   get activeView(): KersorRunView | undefined {
-    const byDir = this.selected !== undefined
-      ? this.state.rows.find(row => row.runDir === this.selected)
-      : undefined
-    const row = byDir ?? this.state.rows.find(candidate => candidate.discovery === 'active') ?? this.state.rows[0]
-    return row?.view ?? (row !== undefined ? emptyViewOf(row) : undefined)
-  }
-
-  /** Replace the inventory half from a `listRuns` remote answer. */
-  setInventory(refs: readonly KersorRunRef[]): void {
-    const byDir = new Map(this.state.rows.map(row => [row.runDir, row]))
-    const rows = refs.map(ref => ({ ...ref, view: byDir.get(ref.runDir)?.view }) satisfies KersorRunRow)
-    this.state = { ...this.state, rows, loading: false }
-    this.emit()
-  }
-
-  /** Replace the classic optimization Session inventory independently. */
-  setClassic(snapshot: KersorClassicSnapshot): void {
-    const next = { ...this.state, classicSessions: snapshot.sessions }
-    if (snapshot.warning === undefined) {
-      const { classicWarning: _, ...state } = next
-      this.state = state
-    } else {
-      this.state = { ...next, classicWarning: snapshot.warning }
+    if (this.selected !== undefined) return this.state.views.get(this.selected)
+    const active = this.state.snapshot?.runs.find(ref => ref.discovery === 'active')
+    if (active !== undefined) return this.state.views.get(active.runDir)
+    for (const ref of this.state.snapshot?.runs ?? []) {
+      const view = this.state.views.get(ref.runDir)
+      if (view !== undefined) return view
     }
+    return undefined
+  }
+
+  /** Atomically replace inventory, classic Sessions, and diagnostics. */
+  setSnapshot(snapshot: KersorViewerSnapshot): void {
+    const live = new Set(snapshot.runs.map(ref => ref.runDir))
+    const views = new Map(
+      [...this.state.views].filter(([runDir]) => live.has(runDir)),
+    )
+    const { transportError: _, ...state } = this.state
+    const loading = snapshot.diagnostics.scan.state === 'never'
+      || snapshot.diagnostics.scan.state === 'running'
+    this.state = { ...state, snapshot, views, loading }
     this.emit()
   }
 
-  /** Keep a classic-adapter failure separate from autonomous-run reads. */
-  setClassicWarning(message: string): void {
-    this.state = { ...this.state, classicWarning: message }
-    this.emit()
-  }
-
-  /** Mark a failed inventory read. */
-  setError(message: string): void {
-    this.state = { ...this.state, loading: false, error: message }
+  /** Record a Remote/connection failure without overwriting Host diagnostics. */
+  setTransportError(message: string): void {
+    this.state = { ...this.state, loading: false, transportError: message }
     this.emit()
   }
 
@@ -128,56 +130,33 @@ export class KersorViewerStore {
 
   /** Apply one forwarded Host frame. */
   applyFrame(frame: KersorViewerFrame): void {
-    if (frame.kind === 'runs') {
-      this.setInventory(frame.runs)
+    if (frame.kind === 'snapshot') {
+      this.setSnapshot(frame.snapshot)
       return
     }
-    const rows = this.state.rows.some(row => row.runDir === frame.run.runDir)
-      ? this.state.rows.map(row => row.runDir === frame.run.runDir ? { ...row, view: frame.run } : row)
-      : [...this.state.rows, { ...refOf(frame.run), view: frame.run }]
-    this.state = { ...this.state, rows, loading: false }
+    const views = new Map(this.state.views)
+    views.set(frame.run.runDir, frame.run)
+    this.state = { ...this.state, views, loading: false }
     this.emit()
   }
 
-  /** Store the backlog answer of `runBacklog` (panel open / reconnect). */
+  /** Store a successful `runBacklog` answer. Undefined never fabricates zeros. */
   setBacklog(runDir: string, view: KersorRunView | undefined): void {
     if (view === undefined) return
-    const rows = this.state.rows.some(row => row.runDir === runDir)
-      ? this.state.rows.map(row => row.runDir === runDir ? { ...row, view } : row)
-      : [...this.state.rows, { ...refOf(view), view }]
-    this.state = { ...this.state, rows, loading: false }
+    const views = new Map(this.state.views)
+    views.set(runDir, view)
+    this.state = { ...this.state, views, loading: false }
     this.emit()
   }
 
-  /** Drop everything (connection reset). */
+  /** Drop connection-scoped state. */
   reset(): void {
-    this.state = { rows: [], classicSessions: [], loading: true }
+    this.state = { views: new Map(), loading: true }
     this.selected = undefined
     this.emit()
   }
 
   private emit(): void {
     for (const listener of this.listeners) listener()
-  }
-}
-
-function refOf(view: KersorRunView): KersorRunRow {
-  return {
-    runId: view.runId,
-    runDir: view.runDir,
-    sessionDir: view.sessionDir,
-    root: '',
-    discovery: view.status === 'running' ? 'active' : view.status === 'failed' ? 'failed' : 'completed',
-    view,
-  }
-}
-
-function emptyViewOf(row: KersorRunRow): KersorRunView {
-  return {
-    runId: row.runId, runDir: row.runDir, sessionDir: row.sessionDir,
-    status: row.discovery === 'active' ? 'running' : row.discovery,
-    currentPhase: '',
-    phases: [],
-    totals: { calls: 0, completed: 0, failed: 0, tokens: 0 },
   }
 }
