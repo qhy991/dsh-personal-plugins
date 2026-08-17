@@ -83,8 +83,10 @@ README 与 VLIW 教程同步给出同一条命令，bundle 版本提升到 `0.1.
   browser bundle 均生成成功。
 - 安装 smoke：安装后的 skill 同时包含唯一 `scripts/setup-session.sh` 命令和
   `Never call it from commands/` 约束。
-- commit / push：待填写。
-- GitHub Actions：待填写。
+- commit / push：`e05928d fix: pin KerSor session bootstrap entrypoint` 已推送
+  `origin/main`。
+- GitHub Actions：Validate [run 32028945165](https://github.com/qhy991/dsh-personal-plugins/actions/runs/32028945165)
+  成功。
 
 ## 决策与下一轮
 
