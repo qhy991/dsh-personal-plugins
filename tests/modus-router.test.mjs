@@ -911,6 +911,58 @@ test('finalized usage is fail-closed when only a streaming sample exists', () =>
   assert.equal(folded.complete, false)
 })
 
+test('a started provider step without a finalized assistant message fails closed', () => {
+  const events = [
+    { seq: 0, type: 'step/start', data: { turn: 1, step: 1 } },
+    {
+      seq: 1,
+      type: 'assistant/chunk',
+      data: {
+        turn: 1,
+        step: 1,
+        chunk: { type: 'usage', usage: { inputTokens: 100, outputTokens: 10 } },
+      },
+    },
+  ]
+  const folded = foldTokenUsage(events)
+  assert.equal(folded.proposed_steps, 1)
+  assert.equal(folded.assistant_steps, 0)
+  assert.equal(folded.metered_steps, 0)
+  assert.equal(folded.total_tokens, 0)
+  assert.equal(folded.complete, false)
+  const atAdmissionBoundary = foldTokenUsage(events, {
+    openStep: { turn: 1, step: 1 },
+  })
+  assert.equal(atAdmissionBoundary.complete, true)
+  assert.throws(
+    () => foldTokenUsage(events, { openStep: { turn: 0, step: 1 } }),
+    /openStep/,
+  )
+})
+
+test('a Modus budget-blocked step is model-free and does not poison final usage', () => {
+  const folded = foldTokenUsage([
+    { seq: 0, type: 'turn/start', data: { turn: 1 } },
+    { seq: 1, type: 'step/start', data: { turn: 1, step: 1 } },
+    { seq: 2, type: 'step/end', data: { turn: 1, step: 1 } },
+    {
+      seq: 3,
+      type: 'turn/end',
+      data: {
+        turn: 1,
+        reason: {
+          kind: 'error',
+          error: { message: 'MODUS_TOKEN_BUDGET_EXHAUSTED: stopped before request' },
+        },
+      },
+    },
+  ])
+  assert.equal(folded.proposed_steps, 1)
+  assert.equal(folded.assistant_steps, 0)
+  assert.equal(folded.total_tokens, 0)
+  assert.equal(folded.complete, true)
+})
+
 test('duplicate finalized usage for one step fails closed instead of choosing a sample', () => {
   const folded = foldTokenUsage([
     {

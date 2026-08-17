@@ -111,6 +111,13 @@ export function foldTokenUsage(events, options = {}) {
   if (turn !== undefined && (!Number.isSafeInteger(turn) || turn < 1)) {
     throw new Error('turn must be a positive safe integer when provided')
   }
+  const openStep = options.openStep
+  if (openStep !== undefined && (
+    !Number.isSafeInteger(openStep?.turn) || openStep.turn < 1
+    || !Number.isSafeInteger(openStep?.step) || openStep.step < 1
+  )) {
+    throw new Error('openStep must contain positive safe turn and step integers')
+  }
 
   const requestSteps = new Set()
   const assistantSteps = new Set()
@@ -119,6 +126,8 @@ export function foldTokenUsage(events, options = {}) {
   const compactionSummaries = new Set()
   const compactionSamples = new Map()
   const compactionStarts = new Map()
+  const lastStepByTurn = new Map()
+  const budgetBlockedSteps = new Set()
   let duplicateAssistantStep = false
   let duplicateCompactionStep = false
   let unattributedCompaction = false
@@ -170,7 +179,17 @@ export function foldTokenUsage(events, options = {}) {
     }
     if (turn !== undefined && event?.data?.turn !== turn) continue
     if (event?.type === 'step/start') {
-      requestSteps.add(`${String(event.data.turn)}:${String(event.data.step)}`)
+      const key = `${String(event.data.turn)}:${String(event.data.step)}`
+      requestSteps.add(key)
+      lastStepByTurn.set(event.data.turn, key)
+    }
+    if (event?.type === 'turn/end'
+      && event.data?.reason?.kind === 'error'
+      && typeof event.data.reason.error?.message === 'string'
+      && /MODUS_TOKEN_(?:BUDGET_EXHAUSTED|USAGE_INCOMPLETE)/
+        .test(event.data.reason.error.message)) {
+      const key = lastStepByTurn.get(event.data.turn)
+      if (key !== undefined) budgetBlockedSteps.add(key)
     }
     if (event?.type === 'assistant/message') {
       const key = `${String(event.data.turn)}:${String(event.data.step)}`
@@ -213,7 +232,16 @@ export function foldTokenUsage(events, options = {}) {
   result.compaction_steps = compactionSteps.size
   result.metered_compaction_steps = [...compactionSteps]
     .filter(key => compactionSamples.has(key)).length
-  result.complete = result.assistant_steps === result.metered_steps
+  const unmatchedRequestSteps = [...requestSteps]
+    .filter(key => !assistantSteps.has(key))
+  const openStepKey = openStep === undefined
+    ? undefined
+    : `${String(openStep.turn)}:${String(openStep.step)}`
+  const requestStepsComplete = unmatchedRequestSteps.every(
+    key => key === openStepKey || budgetBlockedSteps.has(key),
+  )
+  result.complete = requestStepsComplete
+    && result.assistant_steps === result.metered_steps
     && result.compaction_steps === result.metered_compaction_steps
     && arithmeticComplete
     && !duplicateAssistantStep
@@ -262,10 +290,10 @@ export function sumTokenUsage(...items) {
 }
 
 /** Fold only events created by a fork Worker, excluding its inherited parent seed. */
-export function foldWorkerTokenUsage(agent) {
+export function foldWorkerTokenUsage(agent, options = {}) {
   if (!agent?.session || !Array.isArray(agent.session.events)) return null
   const minSeq = agent.session.header?.seedLength ?? 0
-  return foldTokenUsage(agent.session.events, { minSeq })
+  return foldTokenUsage(agent.session.events, { ...options, minSeq })
 }
 
 function plainObject(value) {

@@ -620,11 +620,11 @@ function resultContent(value) {
   ]
 }
 
-function enforceWorkerBudget(agent, governed, config) {
+function enforceWorkerBudget(agent, governed, config, openStep = undefined) {
   if (governed === undefined) return
   const decision = evaluateRouteTokenBudget(
     governed.routerUsage,
-    foldWorkerTokenUsage(agent),
+    foldWorkerTokenUsage(agent, { openStep }),
     config.routeTokenBudget,
     { locallyEnforced: true },
   )
@@ -937,8 +937,12 @@ export function apply(ctx, inputConfig) {
     return next()
   }, { prepend: true })
 
-  ctx.on('agent/request', async ({ agent }, next) => {
-    enforceWorkerBudget(agent, workerBudgets.get(agent), config)
+  ctx.on('agent/request', async ({ agent, turn, step }, next) => {
+    const openStep = Number.isSafeInteger(turn) && turn > 0
+      && Number.isSafeInteger(step) && step > 0
+      ? { turn, step }
+      : undefined
+    enforceWorkerBudget(agent, workerBudgets.get(agent), config, openStep)
     const request = await next()
     return routerStates.has(agent)
       ? { ...request, maxTokens: config.routerMaxOutputTokens }
