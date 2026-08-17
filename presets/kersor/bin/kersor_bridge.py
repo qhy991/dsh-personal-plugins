@@ -174,6 +174,9 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "mode": None,
             "backend": None,
             "kernel_language": None,
+            "integration_pattern": None,
+            "allow_workflow_authoring": None,
+            "workflow_authoring_budget": None,
             "kernel_path": None,
             "started_at": None,
             "workflow": None,
@@ -240,6 +243,8 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             warnings.append(f"kernel path no longer exists: {kernel_path}")
 
     max_workflows = snapshot.get("max_workflows")
+    allow_workflow_authoring = snapshot.get("allow_workflow_authoring")
+    workflow_authoring_budget = snapshot.get("workflow_authoring_budget")
     return {
         "found": True,
         "project_path": str(project_path),
@@ -253,6 +258,18 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "mode": optional_string("mode"),
         "backend": optional_string("backend"),
         "kernel_language": optional_string("kernel_language"),
+        "integration_pattern": optional_string("integration_pattern"),
+        "allow_workflow_authoring": (
+            allow_workflow_authoring
+            if isinstance(allow_workflow_authoring, bool)
+            else None
+        ),
+        "workflow_authoring_budget": (
+            workflow_authoring_budget
+            if isinstance(workflow_authoring_budget, int)
+            and not isinstance(workflow_authoring_budget, bool)
+            else None
+        ),
         "kernel_path": kernel_path,
         "started_at": optional_string("started_at"),
         "workflow": selected_workflow(session_dir, round_number),
@@ -377,6 +394,9 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "mode": value.get("mode"),
         "backend": value.get("backend"),
         "kernel_language": value.get("kernel_language"),
+        "integration_pattern": value.get("integration_pattern"),
+        "allow_workflow_authoring": value.get("allow_workflow_authoring"),
+        "workflow_authoring_budget": value.get("workflow_authoring_budget"),
         "kernel_name": (
             Path(kernel_path).name
             if isinstance(kernel_path, str) and kernel_path

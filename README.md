@@ -77,7 +77,19 @@ python3 scripts/install.py \
 | 自主 Workflow / Mission | `kersor-mission-v1` → `commands/evolve.md` | `result.json`、artifact receipts、独立 verifier |
 | 状态、恢复、诊断 | 先调用 `kersor_status`，再读取相应 command protocol | 当前磁盘 Session，不依赖聊天记忆 |
 
-不要把 CUDA Workflow 硬套到 Python、VLIW、Verilog 或普通工程任务。任务类型不匹配时，应让 KerSor 选择、演化或创作 task-native Workflow，并保持任务自己的测试命令为唯一验收门。
+不要把 CUDA Workflow 硬套到 Python、VLIW、Verilog 或普通工程任务。任务类型不匹配时，稳定 `optimize` 路径应先确定性拒绝不兼容的已发布 Workflow，再通过有界 workflow authoring 创作 task-native Proposal；workflow evolution 只属于显式 research runner。任务自己的测试命令始终是唯一验收门。
+
+自定义模拟器任务的推荐入口：
+
+```text
+compose optimize --path <task-dir> \
+  --integration-pattern custom_simulator \
+  --allow-workflow-authoring --workflow-authoring-budget 1
+```
+
+`custom_simulator` 必须来自任务事实或用户明确合同，不能按 `.py` 后缀猜测。进入文件修改前，Session 应显示真实的 `language/backend/integration pattern`；无兼容 Workflow 时先显示 `STALLED`，直到 Phase 3.6 验证并重新 catalog 一个 Proposal。
+
+在 DSH Workspace Write 中，Phase 3.6 的 Proposal 必须保存在 Session 内的 `workflow-authoring/proposals/`，Catalog 也从同一 store 生成；不要要求写 KerSor checkout。结构校验通过后仍要做语义安全审查：Workflow 只能返回候选或评测 Session-local 副本，不能在证明正确且更快之前覆盖规范 checkpoint。KILL／needs-revision 时还必须用 KerSor state 工具转成 `stalled`，否则 UI 会继续显示“活跃”。
 
 ## 在 DSH 中使用
 
@@ -94,9 +106,9 @@ python3 scripts/install.py \
 停止条件：<成功门槛、预算、可复现 NO-GO>
 ```
 
-`kersor_status` 工具默认读取当前 DSH task 的工作区，展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence 和最近决策。结果使用 DSH 原生可回放卡片；传入子路径时只允许当前工作区内部，避免 host-side bridge 越过 DSH 会话边界。
+`kersor_status` 工具默认读取当前 DSH task 的工作区，展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence、`language/backend`、integration pattern、authoring gate／预算和最近决策。结果使用 DSH 原生可回放卡片；传入子路径时只允许当前工作区内部，避免 host-side bridge 越过 DSH 会话边界。
 
-Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以及 autonomous run 的实时进度。它自动读取 DSH 已登记工作区，并扫描各工作区的 `.kersor/`，无需为当前项目重复配置路径；额外的集中式 Session 根仍可通过 viewer `roots` 配置。经典状态由 KerSor 自己的 `SessionStore`／`AttemptResultStore` 解析；侧栏不复制 legacy frontmatter 规则，并把规范 phase 与建议性 health 分开：只有阈值内有稳定 artifact 活动的 Session 才算 active，旧的 `optimizing` 会显示为“已陈旧”而不再点亮全局蓝点。run 视图每两秒读取 `summary.json`／`events.jsonl` 折叠快照，显示 phase、agent/evaluation call、耗时、token、回滚和终态。`waiting` 按本次 invocation 的终态处理；短暂断连或漏帧会由下一次快照自动恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`，路径只有一个机器侧权威来源。
+Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以及 autonomous run 的实时进度。它自动读取 DSH 已登记工作区，并扫描各工作区的 `.kersor/`，无需为当前项目重复配置路径；额外的集中式 Session 根仍可通过 viewer `roots` 配置。Session 卡会直接显示 `language/backend`、integration pattern 与 workflow authoring 预算，让 Python/VLIW 被误路由成 Triton、或缺少 task-native 逃生路径的问题无需打开状态文件即可发现。经典状态由 KerSor 自己的 `SessionStore`／`AttemptResultStore` 解析；侧栏不复制 legacy frontmatter 规则，并把规范 phase 与建议性 health 分开：只有阈值内有稳定 artifact 活动的 Session 才算 active，旧的 `optimizing` 会显示为“已陈旧”而不再点亮全局蓝点。run 视图每两秒读取 `summary.json`／`events.jsonl` 折叠快照，显示 phase、agent/evaluation call、耗时、token、回滚和终态。`waiting` 按本次 invocation 的终态处理；短暂断连或漏帧会由下一次快照自动恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`，路径只有一个机器侧权威来源。
 
 环境变量 `KERSOR_ROOT` 可以临时覆盖安装时记录的 checkout：
 
@@ -114,13 +126,13 @@ KERSOR_ROOT=/another/KerSor dsh
 
 ### `skill "kersor" is unknown or no longer available`
 
-旧安装会把 skill 复制到 preset 内，却没有把 preset-local `skills/` 加入 `skill-filesystem.customSkillDirs`。更新仓库后重新运行安装器并重启 DSH Web：
+先确认新会话顶部显示的是 **KerSor**，而不是“标准模式”：preset-local skill 只注入选择了 KerSor preset 的新会话；在标准模式中直接要求加载 `kersor` 会得到该错误。若已经选对模式，旧安装可能把 skill 复制到 preset 内却没有把 preset-local `skills/` 加入 `skill-filesystem.customSkillDirs`。更新仓库后重新运行安装器并重启 DSH Web：
 
 ```bash
 python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
 ```
 
-新会话的初始 skill catalog 应包含 `kersor`。若仍失败，检查生成的 `${DSH_HOME:-$HOME/.dsh}/.agent-presets/kersor/agent.cordis.yml` 是否把同目录下的 `skills` 写入 `customSkillDirs`。
+重新新建会话并先切到 KerSor preset；初始 skill catalog 应包含 `kersor`。若仍失败，检查生成的 `${DSH_HOME:-$HOME/.dsh}/.agent-presets/kersor/agent.cordis.yml` 是否把同目录下的 `skills` 写入 `customSkillDirs`。
 
 ### Web 侧栏仍是旧版本
 

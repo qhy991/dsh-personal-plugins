@@ -30,6 +30,39 @@ Before changing a KerSor checkout, read `$kersor_root/AGENTS.md`. Before running
 
 The composer emits a `/kersor:<command>` string as validated parameter binding. It is not a shell command. Execute the matching command protocol with the tools available in DSH, preserving its gates, evidence files, confirmation points, budgets, and stop semantics.
 
+### Task-native authoring
+
+When the task uses a custom simulator/build system and the user asks KerSor to
+create a task-native workflow, preserve that grounded topology in the direct
+preflight instead of routing by filename alone:
+
+```bash
+python3 "$bridge" compose optimize --path <task-dir> \
+  --integration-pattern custom_simulator \
+  --allow-workflow-authoring --workflow-authoring-budget 1 --json
+```
+
+Use the exact integration pattern evidenced by the task or explicitly supplied
+by the user; do not invent `custom_simulator` for an ordinary standalone task.
+After setup and before mutation, verify the frozen Session language/backend and
+integration pattern. If every released workflow is incompatible, selection must
+remain `STALLED` until Phase 3.6 validates and re-catalogs a Proposal. Do not
+bypass KerSor by editing the candidate first, and do not request research-only
+workflow evolution through the stable `/kersor:optimize` path.
+
+In DSH Workspace Write, Phase 3.6 must keep the Proposal Registry below the
+Session: save with `--store "$SESSION_DIR/workflow-authoring/proposals"` and
+regenerate the Catalog with the same path in `KERSOR_PROPOSALS_DIR`. Do not fall
+back to the checkout-level Proposal store, which is outside the task boundary.
+
+Before dispatch, perform the semantic output-ownership review required by the
+current optimize protocol. Structural Proposal gates do not make an in-place
+checkpoint write safe: the authored workflow must return candidate code or
+evaluate a Session-local copy, while outer optimize alone installs a winner
+after correctness and objective proof. On a KILL/needs-revision stop, use
+KerSor's state tool to transition the Session to `stalled`, then confirm the
+terminal state with `kersor_status`; a Markdown summary is not a state change.
+
 ## Operating rules
 
 1. Inspect the target repository and its local instructions before mutation. Preserve unrelated worktree changes.

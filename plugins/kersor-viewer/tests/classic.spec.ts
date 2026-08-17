@@ -43,6 +43,9 @@ print(json.dumps({"sessions": [{
   "session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "legacy",
   "phase": "optimizing", "lifecycle": "active", "status": "pre-round-1",
   "health": "active", "current_round": 1,
+  "kernel_language": "python_reference", "backend": "python",
+  "integration_pattern": "custom_simulator",
+  "allow_workflow_authoring": True, "workflow_authoring_budget": 1,
   "warnings": []
 }]}))
 `)
@@ -55,6 +58,9 @@ print(json.dumps({"sessions": [{
     expect(snapshot.sessions).toHaveLength(1)
     expect(snapshot.sessions[0]).toMatchObject({
       session_id: 's1', lifecycle: 'active', status: 'pre-round-1', health: 'active',
+      kernel_language: 'python_reference', backend: 'python',
+      integration_pattern: 'custom_simulator', allow_workflow_authoring: true,
+      workflow_authoring_budget: 1,
     })
     expect(JSON.parse(await readFile(capture, 'utf8'))).toEqual([
       'sessions', '--limit', '1', '--stale-after', '45',

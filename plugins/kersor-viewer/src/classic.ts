@@ -42,6 +42,9 @@ export interface KersorClassicSession {
   readonly mode?: string | null
   readonly backend?: string | null
   readonly kernel_language?: string | null
+  readonly integration_pattern?: string | null
+  readonly allow_workflow_authoring?: boolean | null
+  readonly workflow_authoring_budget?: number | null
   readonly kernel_name?: string | null
   readonly workflow?: string | null
   readonly fit_confidence?: string | null

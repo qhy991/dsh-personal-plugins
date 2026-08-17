@@ -19,6 +19,9 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_listClassicSessions_result$sch
   'mode': z.union([z.literal(null), z.string()]).readonly().optional(),
   'backend': z.union([z.literal(null), z.string()]).readonly().optional(),
   'kernel_language': z.union([z.literal(null), z.string()]).readonly().optional(),
+  'integration_pattern': z.union([z.literal(null), z.string()]).readonly().optional(),
+  'allow_workflow_authoring': z.union([z.literal(null), z.literal(false), z.literal(true)]).readonly().optional(),
+  'workflow_authoring_budget': z.union([z.literal(null), z.number()]).readonly().optional(),
   'kernel_name': z.union([z.literal(null), z.string()]).readonly().optional(),
   'workflow': z.union([z.literal(null), z.string()]).readonly().optional(),
   'fit_confidence': z.union([z.literal(null), z.string()]).readonly().optional(),
@@ -88,7 +91,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer/types#KersorClassicSnapshot',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_listClassicSessions_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":126,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":129,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/listRuns',
@@ -103,7 +106,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/listRuns:result',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_listRuns_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":119,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":122,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runBacklog',
@@ -128,7 +131,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runBacklog:result',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":132,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":135,"column":3},
     },
   ],
   model: {

@@ -76,7 +76,12 @@ function ClassicSessionRow({ session, t }) {
             ? t('session.round', { current: session.current_round, maximum: session.max_workflows })
             : t('session.roundOpen', { current: session.current_round })
         : undefined;
-    const details = [session.backend, session.mode, session.storage_kind].filter(Boolean).join(' · ');
+    const languageBackend = session.kernel_language !== null && session.kernel_language !== undefined
+        ? session.backend !== null && session.backend !== undefined
+            ? `${session.kernel_language}/${session.backend}`
+            : session.kernel_language
+        : session.backend ?? undefined;
+    const details = [languageBackend, session.mode, session.storage_kind].filter(Boolean).join(' · ');
     const activity = session.last_activity_at !== null && session.last_activity_at !== undefined
         ? displayTime(session.last_activity_at)
         : undefined;
@@ -84,7 +89,13 @@ function ClassicSessionRow({ session, t }) {
                         ? _jsx("span", { "data-target-met": session.target_met ?? undefined, children: t('session.best', { speedup: speedup(session.best_speedup) }) })
                         : null, session.target_speedup !== null && session.target_speedup !== undefined
                         ? _jsx("span", { children: t('session.target', { speedup: speedup(session.target_speedup) }) })
-                        : null, _jsx("span", { children: session.phase ?? t('session.unknownPhase') }), details.length > 0 ? _jsx("span", { children: details }) : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
+                        : null, _jsx("span", { children: session.phase ?? t('session.unknownPhase') }), details.length > 0 ? _jsx("span", { children: details }) : null, session.integration_pattern !== null && session.integration_pattern !== undefined
+                        ? _jsx("span", { className: css.routeBadge, children: session.integration_pattern })
+                        : null, session.allow_workflow_authoring === true
+                        ? _jsx("span", { className: css.authoringBadge, children: t('session.authoring', {
+                                budget: session.workflow_authoring_budget ?? '—',
+                            }) })
+                        : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
                             ? t('session.workflow', { workflow: session.workflow })
                             : t('session.noWorkflow') }), session.warnings.length > 0
                         ? _jsx("span", { className: css.warningCount, title: session.warnings.join('\n'), children: t('session.warnings', { count: session.warnings.length }) })

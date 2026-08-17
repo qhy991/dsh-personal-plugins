@@ -73,6 +73,23 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn("kersor-viewer: remote snapshot polling", client)
         self.assertIn("listClassicSessions", client)
         self.assertIn("classicSessions", client)
+        self.assertIn("integration_pattern", client)
+        self.assertIn("allow_workflow_authoring", client)
+        self.assertIn("workflow_authoring_budget", client)
+        self.assertIn("routeBadge", client)
+        self.assertIn("Authoring · budget {budget}", client)
+
+    def test_built_viewer_projects_task_native_routing(self) -> None:
+        viewer = ROOT / "plugins" / "kersor-viewer" / "lib"
+        schema = (viewer / "typert.host.js").read_text(encoding="utf-8")
+        classic = (viewer / "types" / "classic.d.ts").read_text(encoding="utf-8")
+        for field in (
+            "integration_pattern",
+            "allow_workflow_authoring",
+            "workflow_authoring_budget",
+        ):
+            self.assertIn(field, schema)
+            self.assertIn(field, classic)
 
     def test_pure_viewer_fold_and_browser_store_compose(self) -> None:
         script = r'''

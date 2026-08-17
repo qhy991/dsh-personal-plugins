@@ -333,6 +333,22 @@
   color: var(--dsw-alias-state-success-primary);
 }
 
+.routeBadge,
+.authoringBadge {
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.routeBadge {
+  color: var(--dsw-alias-label-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.authoringBadge {
+  color: var(--dsw-alias-state-business-primary);
+}
+
 .classicFoot {
   justify-content: space-between;
   min-width: 0;

@@ -171,6 +171,20 @@ class InstallTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "skill-filesystem anchor changed"):
             INSTALLER.render_composition(source, skill_dir=self.root / "skills")
 
+    def test_skill_keeps_custom_tasks_on_bounded_authoring_route(self) -> None:
+        skill = (
+            ROOT / "presets" / "kersor" / "skills" / "kersor" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--integration-pattern custom_simulator", skill)
+        self.assertIn("--allow-workflow-authoring", skill)
+        self.assertIn("--workflow-authoring-budget 1", skill)
+        self.assertIn("selection must\nremain `STALLED`", skill)
+        self.assertIn("research-only\nworkflow evolution", skill)
+        self.assertIn('--store "$SESSION_DIR/workflow-authoring/proposals"', skill)
+        self.assertIn("Structural Proposal gates do not make", skill)
+        self.assertIn("outer optimize alone installs a winner", skill)
+        self.assertIn("transition the Session to `stalled`", skill)
+
     def make_status_project(self) -> Path:
         """Create a small v2 project whose stores exercise the bridge contract."""
         project = self.root / "project"
@@ -184,6 +198,8 @@ class InstallTests(unittest.TestCase):
                     "mode": "auto",
                     "kernel_path": "kernel.cu",
                     "started_at": "2026-08-17T12:00:00+08:00",
+                    "allow_workflow_authoring": True,
+                    "workflow_authoring_budget": 1,
                 }
             ),
             encoding="utf-8",
@@ -194,8 +210,9 @@ class InstallTests(unittest.TestCase):
                     "phase": "optimizing",
                     "current_round": 2,
                     "target_speedup": 1.5,
-                    "backend": "cuda",
-                    "kernel_language": "cuda",
+                    "backend": "python",
+                    "kernel_language": "python_reference",
+                    "integration_pattern": "custom_simulator",
                 }
             ),
             encoding="utf-8",
@@ -242,6 +259,9 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(value["workflow"], "adaexplore")
         self.assertEqual(value["best_speedup"], 1.25)
         self.assertEqual(value["target_met"], False)
+        self.assertEqual(value["integration_pattern"], "custom_simulator")
+        self.assertIs(value["allow_workflow_authoring"], True)
+        self.assertEqual(value["workflow_authoring_budget"], 1)
         self.assertEqual(value["rounds"][0]["decision"].split(":", 1)[0], "CONTINUE")
 
     def test_sessions_bridge_lists_bounded_recent_store_snapshots(self) -> None:
@@ -278,6 +298,11 @@ class InstallTests(unittest.TestCase):
         self.assertIsNotNone(row["last_activity_at"])
         self.assertEqual(row["best_speedup"], 1.25)
         self.assertEqual(row["kernel_name"], "kernel.cu")
+        self.assertEqual(row["kernel_language"], "python_reference")
+        self.assertEqual(row["backend"], "python")
+        self.assertEqual(row["integration_pattern"], "custom_simulator")
+        self.assertIs(row["allow_workflow_authoring"], True)
+        self.assertEqual(row["workflow_authoring_budget"], 1)
         self.assertNotIn("kernel_path", row)
 
     def test_sessions_bridge_includes_registered_dsh_workspace(self) -> None:
@@ -388,6 +413,10 @@ console.log(JSON.stringify({ name: tool.name, value, content, meta, card, escape
         self.assertEqual(result["name"], "kersor_status")
         self.assertEqual(result["value"]["started_at"], "2026-08-17T12:00:00+08:00")
         self.assertEqual(result["meta"]["started_at"], "2026-08-17T12:00:00+08:00")
+        self.assertEqual(result["meta"]["integration_pattern"], "custom_simulator")
+        self.assertIs(result["meta"]["allow_workflow_authoring"], True)
+        self.assertIn("custom_simulator", result["content"][0]["text"])
+        self.assertIn("enabled · budget 1", result["content"][0]["text"])
         self.assertIn("1.25x", result["content"][0]["text"])
         self.assertEqual(result["card"]["title"], "KerSor · optimizing · r2/4 · 1.25x")
         self.assertTrue(result["escaped"])

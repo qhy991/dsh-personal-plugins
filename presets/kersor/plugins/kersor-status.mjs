@@ -31,6 +31,9 @@ const STATUS_SCHEMA = {
     mode: nullable({ type: 'string' }),
     backend: nullable({ type: 'string' }),
     kernel_language: nullable({ type: 'string' }),
+    integration_pattern: nullable({ type: 'string' }),
+    allow_workflow_authoring: nullable({ type: 'boolean' }),
+    workflow_authoring_budget: nullable({ type: 'integer' }),
     kernel_path: nullable({ type: 'string' }),
     started_at: nullable({ type: 'string' }),
     workflow: nullable({ type: 'string' }),
@@ -55,7 +58,9 @@ const STATUS_SCHEMA = {
   required: [
     'found', 'project_path', 'session_dir', 'storage_kind', 'phase',
     'current_round', 'max_workflows', 'target_speedup', 'target_met', 'mode',
-    'backend', 'kernel_language', 'kernel_path', 'started_at', 'workflow',
+    'backend', 'kernel_language', 'integration_pattern',
+    'allow_workflow_authoring', 'workflow_authoring_budget',
+    'kernel_path', 'started_at', 'workflow',
     'fit_confidence', 'best_speedup', 'rounds', 'warnings',
   ],
 }
@@ -80,6 +85,13 @@ function decisionKind(decision) {
   return decision.split(':', 1)[0]
 }
 
+function authoring(value) {
+  if (value.allow_workflow_authoring !== true) return 'disabled'
+  return Number.isInteger(value.workflow_authoring_budget)
+    ? `enabled · budget ${value.workflow_authoring_budget}`
+    : 'enabled'
+}
+
 export function renderStatus(value) {
   if (!value.found) {
     const warnings = value.warnings.length > 0
@@ -96,6 +108,10 @@ export function renderStatus(value) {
     '| Current workflow | Best | Target | Fit | Mode / Backend |',
     '| --- | ---: | ---: | --- | --- |',
     `| ${display(value.workflow)} | ${display(value.best_speedup, 'x')} | ${display(value.target_speedup, 'x')} | ${display(value.fit_confidence)} | ${display(value.mode)} / ${display(value.backend)} |`,
+    '',
+    '| Language / Backend | Integration pattern | Workflow authoring |',
+    '| --- | --- | --- |',
+    `| ${display(value.kernel_language)} / ${display(value.backend)} | ${display(value.integration_pattern)} | ${authoring(value)} |`,
   )
 
   const recent = value.rounds.slice(-5)
@@ -146,7 +162,7 @@ async function workspaceTarget(args, exec) {
 export function createTool() {
   return {
     name: 'kersor_status',
-    description: 'Read the current KerSor session phase, workflow, progress, measured speedups, target, fit, and recent round decisions in this DSH workspace.',
+    description: 'Read the current KerSor session phase, routing contract, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions in this DSH workspace.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -169,6 +185,9 @@ export function createTool() {
         target_speedup: value.target_speedup,
         target_met: value.target_met,
         workflow: value.workflow,
+        integration_pattern: value.integration_pattern,
+        allow_workflow_authoring: value.allow_workflow_authoring,
+        workflow_authoring_budget: value.workflow_authoring_budget,
         session_dir: value.session_dir,
         started_at: value.started_at,
       }),

@@ -97,7 +97,12 @@ function ClassicSessionRow({ session, t }: {
       ? t('session.round', { current: session.current_round, maximum: session.max_workflows })
       : t('session.roundOpen', { current: session.current_round })
     : undefined
-  const details = [session.backend, session.mode, session.storage_kind].filter(Boolean).join(' · ')
+  const languageBackend = session.kernel_language !== null && session.kernel_language !== undefined
+    ? session.backend !== null && session.backend !== undefined
+      ? `${session.kernel_language}/${session.backend}`
+      : session.kernel_language
+    : session.backend ?? undefined
+  const details = [languageBackend, session.mode, session.storage_kind].filter(Boolean).join(' · ')
   const activity = session.last_activity_at !== null && session.last_activity_at !== undefined
     ? displayTime(session.last_activity_at)
     : undefined
@@ -118,6 +123,14 @@ function ClassicSessionRow({ session, t }: {
           : null}
         <span>{session.phase ?? t('session.unknownPhase')}</span>
         {details.length > 0 ? <span>{details}</span> : null}
+        {session.integration_pattern !== null && session.integration_pattern !== undefined
+          ? <span className={css.routeBadge}>{session.integration_pattern}</span>
+          : null}
+        {session.allow_workflow_authoring === true
+          ? <span className={css.authoringBadge}>{t('session.authoring', {
+              budget: session.workflow_authoring_budget ?? '—',
+            })}</span>
+          : null}
         {activity !== undefined ? <span>{t('session.lastActivity', { time: activity })}</span> : null}
       </div>
       <div className={css.classicFoot}>
