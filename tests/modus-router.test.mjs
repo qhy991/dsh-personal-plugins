@@ -114,7 +114,23 @@ test('profile catalog verifies the exact pinned snapshot', () => {
     'utf8',
   ))
   assert.equal(PROFILE_CATALOG.upstream.repository, 'qhy991/Modus')
-  assert.equal(PROFILE_CATALOG.upstream.commit, '07017924a08567de8593fc02de249d85475ca8c8')
+  assert.equal(PROFILE_CATALOG.upstream.commit, '7661a5da146d6957de18f14a0e226684486d6bf6')
+  assert.equal(
+    PROFILE_CATALOG.upstream.component_source,
+    'config/modus-edit-topology-component-source-v1.json',
+  )
+  assert.equal(
+    PROFILE_CATALOG.upstream.component_source_sha256,
+    '2169dac3bdedf2d1155c159e3215ada09f18282f6ba4aaa9e735c64d11417052',
+  )
+  assert.equal(
+    PROFILE_CATALOG.profiles.p000.sha256,
+    '4430eff8d5b732333319f93bf0a699c3593f6e6d708296d304c76c7161f67282',
+  )
+  assert.equal(
+    PROFILE_CATALOG.profiles.p100.sha256,
+    'ec850834450c09a0e6d736c606a8d2295b955206e00c0e7778f982809ca98bfe',
+  )
   assert.equal(PROFILE_CATALOG.profiles.p000.sha256, manifest.profiles.p000.sha256)
   assert.equal(PROFILE_CATALOG.profiles.p100.sha256, manifest.profiles.p100.sha256)
   assert.equal(PROFILE_CATALOG.profiles.neutral.sha256, digest(''))

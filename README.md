@@ -18,7 +18,7 @@ python3 scripts/install_modus.py \
   --force
 ```
 
-重启 DSH Web 后，新建 task 并选择 **Modus Router** preset。默认配置不给 Router 任何主动工作区工具，只允许一次 `modus_delegate`；`neutral` 是普通 coding persona，`p000` 和 `p100` 是从 Modus commit `0701792` 固定快照并校验 SHA-256 的两种执行策略。结果同时包含 Router+Worker token 与可解释行为轨迹。预算 governor 没有臆测默认值；确认性 run 可在安装时同时传入 `--max-new-tokens` 和 `--max-cache-read-tokens`，对内置 fork Worker 的下一次请求执行 fail-closed gate。详细合同、证据边界与迭代路线见 [`docs/modus-router.md`](docs/modus-router.md)。
+重启 DSH Web 后，新建 task 并选择 **Modus Router** preset。默认配置不给 Router 任何主动工作区工具，只允许一次 `modus_delegate`；`neutral` 是普通 coding persona，`p000` 和 `p100` 是从 Modus commit `7661a5d` 的 edit-topology M1 action set 固定导出并校验 SHA-256 的两种执行策略。结果同时包含 Router+Worker token 与可解释行为轨迹。预算 governor 没有臆测默认值；确认性 run 可在安装时同时传入 `--max-new-tokens` 和 `--max-cache-read-tokens`，对内置 fork Worker 的下一次请求执行 fail-closed gate。详细合同、证据边界与迭代路线见 [`docs/modus-router.md`](docs/modus-router.md)。
 
 这是一条已经过契约测试的 DSH 原生执行链，不是新的实验证据。Pi 上观察到的 profile 效应不能因迁移而自动成立；正式结论需要在 DSH 上重新进行 manipulation check、固定任务配对和 Router + Worker 总 token 比较。
 

@@ -52,7 +52,7 @@ Modus 可以迁移到 DSH，而且不需要包装原来的 Pi、tmux、`bin/lab`
 | 行为与 token | DSH parent/child session events；`lib/trajectory.mjs` 只是纯投影 |
 | 任务、gate、统计与正式结论 | Modus owning repository |
 
-Profile snapshot 当前固定到 Modus `07017924a08567de8593fc02de249d85475ca8c8`；插件加载时会重新计算文本 hash，篡改时直接拒绝加载。
+Profile snapshot 当前固定到 Modus `7661a5da146d6957de18f14a0e226684486d6bf6` 的 edit-topology M1 action set；该版本的 E0/E1 已通过 24-cell manipulation gate。早期 component-v1 的同名 `p000/p100`（`a170…/b552…`）在 M0 中没有产生 E 差异，不再作为 DSH Router 的动作文本。插件加载时会重新计算当前快照 hash，篡改时直接拒绝加载；Profile 定义、编译和选择证据仍由 Modus owning repository 管理。
 
 ## 三个动作的语义
 
