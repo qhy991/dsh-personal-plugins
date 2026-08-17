@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -425,6 +426,10 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
             projected = "session status could not be read completely"
         if projected not in warnings:
             warnings.append(projected)
+    workflow = value.get("workflow")
+    selection_status = (
+        "pending" if workflow is None else "stalled" if workflow == "STALLED" else "selected"
+    )
     return {
         "session_id": session_dir.name,
         "session_dir": str(session_dir),
@@ -450,7 +455,8 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
             if isinstance(kernel_path, str) and kernel_path
             else None
         ),
-        "workflow": value.get("workflow"),
+        "workflow": workflow if selection_status == "selected" else None,
+        "selection_status": selection_status,
         "decision": latest_decision,
         "fit_confidence": value.get("fit_confidence"),
         "best_speedup": value.get("best_speedup"),
@@ -520,6 +526,271 @@ def sessions(
     return {"sessions": result, "warnings": warnings}
 
 
+DETAIL_FILES = ("workflow.js", "metadata.json", "rationale.md")
+MAX_WORKFLOW_BYTES = 512 * 1024
+MAX_RATIONALE_BYTES = 128 * 1024
+
+
+def file_sha256(path: Path) -> str:
+    """Return the Proposal-compatible digest of one artifact."""
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def string_list(value: object) -> list[str]:
+    """Keep only a JSON array whose entries are strings."""
+    return [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
+
+
+def bounded_text(path: Path, maximum: int) -> str | None:
+    """Read one UTF-8 artifact only when its complete byte content is bounded."""
+    try:
+        payload = path.read_bytes()
+        return payload.decode("utf-8") if len(payload) <= maximum else None
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def sealed_staging(session_dir: Path) -> tuple[Path | None, str | None]:
+    """Return verified author bytes, withholding content before or after a bad seal."""
+    authoring = session_dir / "workflow-authoring"
+    staging = authoring / "staging"
+    handoff = read_json_object(authoring / "author-handoff.json")
+    if not handoff:
+        return None, None
+    if handoff.get("schema_version") != 1:
+        return None, "invalid"
+    try:
+        sealed_path = Path(str(handoff.get("staging", ""))).expanduser().resolve()
+    except OSError:
+        return None, "invalid"
+    if sealed_path != staging.resolve():
+        return None, "invalid"
+    files = handoff.get("files")
+    if not isinstance(files, dict) or set(files) != set(DETAIL_FILES):
+        return None, "invalid"
+    try:
+        entries = {path.name for path in staging.iterdir() if path.is_file()}
+    except OSError:
+        return None, "invalid"
+    if entries != set(DETAIL_FILES):
+        return None, "invalid"
+    for name in DETAIL_FILES:
+        expected = files.get(name)
+        try:
+            actual = file_sha256(staging / name)
+        except OSError:
+            return None, "invalid"
+        if expected != actual:
+            return None, "hash_mismatch"
+    return staging, None
+
+
+def saved_proposal(session_dir: Path, workflow: str | None) -> Path | None:
+    """Find the current Session-local Proposal without consulting checkout state."""
+    store = session_dir / "workflow-authoring" / "proposals"
+    if workflow and workflow != "STALLED":
+        candidate = store / workflow
+        if all((candidate / name).is_file() for name in DETAIL_FILES):
+            return candidate
+    try:
+        candidates = [
+            path for path in store.iterdir()
+            if path.is_dir() and all((path / name).is_file() for name in DETAIL_FILES)
+        ]
+    except OSError:
+        return None
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def artifact_rows(directory: Path) -> list[dict[str, Any]]:
+    """Project hashes and sizes for the exact Workflow design files."""
+    rows: list[dict[str, Any]] = []
+    for name in DETAIL_FILES:
+        path = directory / name
+        rows.append({"name": name, "sha256": file_sha256(path), "bytes": path.stat().st_size})
+    return rows
+
+
+def workflow_design(directory: Path) -> tuple[dict[str, Any] | None, str | None]:
+    """Project bounded sealed source, rationale, and routing metadata."""
+    source = bounded_text(directory / "workflow.js", MAX_WORKFLOW_BYTES)
+    rationale = bounded_text(directory / "rationale.md", MAX_RATIONALE_BYTES)
+    if source is None or rationale is None:
+        return None, "too_large"
+    metadata = read_json_object(directory / "metadata.json")
+    if not metadata:
+        return None, "invalid"
+    return {
+        "name": metadata.get("name") if isinstance(metadata.get("name"), str) else None,
+        "technique": metadata.get("technique") if isinstance(metadata.get("technique"), str) else None,
+        "methodCategory": metadata.get("method_category") if isinstance(metadata.get("method_category"), str) else None,
+        "topology": metadata.get("topology") if isinstance(metadata.get("topology"), str) else None,
+        "requiredArgs": string_list(metadata.get("required_args")),
+        "languages": string_list(metadata.get("languages")),
+        "backends": string_list(metadata.get("backends")),
+        "integrationPatterns": string_list(metadata.get("integration_patterns")),
+        "rationale": rationale,
+        "source": source,
+    }, None
+
+
+def validation_detail(proposal: Path | None, rejected: bool) -> dict[str, Any]:
+    """Project the deterministic save report without forwarding arbitrary values."""
+    if proposal is None:
+        return {"status": "failed" if rejected else "pending", "checks": []}
+    validation = read_json_object(proposal / "validation.json")
+    checks = validation.get("checks")
+    projected = []
+    if isinstance(checks, dict):
+        for name, value in sorted(checks.items()):
+            if isinstance(name, str):
+                projected.append({"name": name, "passed": value is True or value == "passed"})
+    passed = validation.get("passed") is True and all(row["passed"] for row in projected)
+    return {"status": "passed" if passed else "failed", "checks": projected}
+
+
+def dispatch_detail(session_dir: Path, round_number: int) -> dict[str, Any]:
+    """Project dispatch preparation and Workflow Host terminal state."""
+    run_dir = session_dir / f"run-{round_number}"
+    runtime = read_json_object(run_dir / ".runtime" / "summary.json")
+    runtime_status = runtime.get("status") or runtime.get("workflow_status")
+    runtime_status = runtime_status if isinstance(runtime_status, str) else None
+    if runtime_status in {"error", "failed"}:
+        status = "failed"
+    elif runtime_status in {"completed", "complete"}:
+        status = "completed"
+    elif (run_dir / ".dispatch-in-progress").exists() or (run_dir / ".runtime" / "events.jsonl").exists():
+        status = "running"
+    elif (run_dir / "dispatch-args.json").exists():
+        status = "preparing"
+    else:
+        status = "pending"
+    result: dict[str, Any] = {"status": status}
+    if run_dir.is_dir():
+        result["runDir"] = str(run_dir.resolve())
+    if runtime_status is not None:
+        result["runtimeStatus"] = runtime_status
+    return result
+
+
+def step_statuses(
+    session_dir: Path,
+    round_number: int,
+    selection_status: str,
+    authoring_status: str,
+    validation_status: str,
+    dispatch: dict[str, Any],
+) -> list[dict[str, str]]:
+    """Derive the inspector timeline from committed Session artifacts."""
+    def present(name: str) -> str:
+        return "completed" if (session_dir / name).exists() else "pending"
+
+    author_step = {
+        "not_started": "pending", "in_progress": "active", "sealed": "completed",
+        "saved": "completed", "rejected": "failed",
+    }[authoring_status]
+    validation_step = {
+        "pending": "pending", "passed": "completed", "failed": "failed",
+    }[validation_status]
+    dispatch_step = {
+        "pending": "pending", "preparing": "active", "running": "active",
+        "completed": "completed", "failed": "failed",
+    }[str(dispatch["status"])]
+    measurement = "completed" if (session_dir / f"run-{round_number}" / "attempt-result.json").exists() else (
+        "failed" if dispatch["status"] == "failed" else "pending"
+    )
+    return [
+        {"id": "setup", "status": present("session-config.json")},
+        {"id": "baseline", "status": present("test-method.md")},
+        {"id": "profile", "status": present("kernel-profile.md")},
+        {"id": "selection", "status": "pending" if selection_status == "pending" else "completed"},
+        {"id": "authoring", "status": author_step},
+        {"id": "validation", "status": validation_step},
+        {"id": "dispatch", "status": dispatch_step},
+        {"id": "measurement", "status": measurement},
+        {"id": "decision", "status": "completed" if round_decision(session_dir, round_number) else "pending"},
+    ]
+
+
+def session_detail(session: Path) -> dict[str, Any]:
+    """Return on-demand, seal-aware Workflow design and execution progress."""
+    session_dir = session.expanduser().resolve()
+    if not session_dir.is_dir() or not (
+        (session_dir / "session-config.json").is_file() or (session_dir / "state.md").is_file()
+    ):
+        raise RuntimeError("requested Session is not a readable KerSor Session")
+    state = read_json_object(session_dir / "state.json")
+    round_value = state.get("current_round")
+    round_number = round_value if isinstance(round_value, int) and round_value > 0 else 1
+    selection = read_json_object(session_dir / f"round-{round_number}-selection.json")
+    selected = selected_workflow(session_dir, round_number)
+    selection_status = "pending" if selected is None else "stalled" if selected == "STALLED" else "selected"
+    selected_row = selection.get("selected_workflow")
+    reason: str | None = None
+    if isinstance(selected_row, dict):
+        features = selected_row.get("features")
+        if isinstance(features, list):
+            reason = next((item for item in features if isinstance(item, str) and item), None)
+    rejected_rows = selection.get("rejected")
+    rejected_count = len(rejected_rows) if isinstance(rejected_rows, list) else 0
+
+    proposal = saved_proposal(session_dir, selected)
+    sealed, seal_error = sealed_staging(session_dir)
+    phase = state.get("phase")
+    author_context = (session_dir / "workflow-authoring" / "author-context.json").is_file()
+    if proposal is not None:
+        authoring_status = "saved"
+        design_root = proposal
+    elif seal_error is not None:
+        authoring_status = "rejected"
+        design_root = None
+    elif sealed is not None:
+        authoring_status = "rejected" if phase == "stalled" else "sealed"
+        design_root = sealed
+    elif author_context:
+        authoring_status = "in_progress"
+        design_root = None
+    else:
+        authoring_status = "not_started"
+        design_root = None
+
+    files: list[dict[str, Any]] = []
+    design: dict[str, Any] | None = None
+    omitted = seal_error
+    if design_root is not None:
+        try:
+            files = artifact_rows(design_root)
+            design, design_error = workflow_design(design_root)
+            omitted = omitted or design_error
+        except OSError:
+            omitted = "invalid"
+    authoring: dict[str, Any] = {"status": authoring_status, "files": files}
+    if design is not None:
+        authoring["design"] = design
+    if omitted is not None:
+        authoring["omittedReason"] = omitted
+    validation = validation_detail(proposal, authoring_status == "rejected")
+    dispatch = dispatch_detail(session_dir, round_number)
+    return {
+        "session_id": session_dir.name,
+        "session_dir": str(session_dir),
+        "current_round": round_number,
+        "steps": step_statuses(
+            session_dir, round_number, selection_status, authoring_status,
+            str(validation["status"]), dispatch,
+        ),
+        "selection": {
+            "status": selection_status,
+            **({"workflow": selected} if selection_status == "selected" and selected else {}),
+            **({"reason": reason} if reason else {}),
+            "rejectedCount": rejected_count,
+        },
+        "authoring": authoring,
+        "validation": validation,
+        "dispatch": dispatch,
+    }
+
+
 def status_parser() -> argparse.ArgumentParser:
     """Build the parser for the structured status action."""
     result = argparse.ArgumentParser(prog="kersor_bridge.py status")
@@ -556,11 +827,18 @@ def sessions_parser() -> argparse.ArgumentParser:
     return result
 
 
+def session_detail_parser() -> argparse.ArgumentParser:
+    """Build the parser for one sealed Session inspector projection."""
+    result = argparse.ArgumentParser(prog="kersor_bridge.py session-detail")
+    result.add_argument("--session", type=Path, required=True)
+    return result
+
+
 def parser() -> argparse.ArgumentParser:
     """Build the bridge command parser."""
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument(
-        "action", choices=("root", "doctor", "compose", "status", "sessions")
+        "action", choices=("root", "doctor", "compose", "status", "sessions", "session-detail")
     )
     result.add_argument("args", nargs=argparse.REMAINDER)
     return result
@@ -599,6 +877,10 @@ def main(argv: list[str] | None = None) -> int:
                     ensure_ascii=False,
                 )
             )
+            return 0
+        if options.action == "session-detail":
+            detail_options = session_detail_parser().parse_args(options.args)
+            print(json.dumps(session_detail(detail_options.session), ensure_ascii=False))
             return 0
         exec_compose(root, options.args)
     except RuntimeError as error:
