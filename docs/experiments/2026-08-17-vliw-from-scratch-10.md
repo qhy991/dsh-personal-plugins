@@ -104,7 +104,13 @@ DSH 工作树。随机临时路径、CSS module hash 与 source-region 路径会
 ## 验证
 
 - KerSor 定向：51 passed、1 skipped。
-- KerSor 全量：1501 passed、7 skipped（588.46 秒）。
+- KerSor macOS 本地全量：1501 passed、7 skipped（588.46 秒）。首次 GitHub CI
+  在 Linux 暴露 `/bin/zsh` 硬编码，5 个 baseline witness 测试失败；失败运行：
+  [KerSor CI 32010834640](https://github.com/qhy991/KerSor/actions/runs/32010834640)。
+  witness 随后改为从 `SHELL` 解析可执行 shell，并以 `bash`/`sh` 回退，同时把实际 shell
+  写入每条执行证据。Python 3.11 回归 7/7 通过，相关定向测试 51 passed、1 skipped；
+  修复后的 [KerSor CI 32011523115](https://github.com/qhy991/KerSor/actions/runs/32011523115)
+  全量通过。
 - 插件 build：Host TypeScript、Typert、Client TypeScript、tsdown browser bundle 全部通过。
 - `python3 scripts/check.py`：23 tests passed。
 - Iteration 10 sealed Proposal 的新 compatibility gate：确定性 fail；报告不可覆盖；无
