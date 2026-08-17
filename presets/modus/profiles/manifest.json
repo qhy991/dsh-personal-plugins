@@ -1,0 +1,19 @@
+{
+  "schema": "dsh-modus-profile-catalog-v1",
+  "upstream": {
+    "repository": "qhy991/Modus",
+    "commit": "7661a5da146d6957de18f14a0e226684486d6bf6",
+    "component_source": "config/modus-edit-topology-component-source-v1.json",
+    "component_source_sha256": "2169dac3bdedf2d1155c159e3215ada09f18282f6ba4aaa9e735c64d11417052"
+  },
+  "profiles": {
+    "p000": {
+      "path": "p000.md",
+      "sha256": "4430eff8d5b732333319f93bf0a699c3593f6e6d708296d304c76c7161f67282"
+    },
+    "p100": {
+      "path": "p100.md",
+      "sha256": "ec850834450c09a0e6d736c606a8d2295b955206e00c0e7778f982809ca98bfe"
+    }
+  }
+}

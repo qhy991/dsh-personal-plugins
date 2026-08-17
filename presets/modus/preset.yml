@@ -1,0 +1,2 @@
+name: Modus Router
+description: 由受限 Router agent 为每个任务选择 Neutral、p000 或 p100，并把任务交给固定 Profile 的 DSH Worker。

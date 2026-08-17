@@ -1,0 +1,25 @@
+{
+  "schema": "dsh-modus-compatibility-v1",
+  "dsh": {
+    "repository": "qhy991/deepseek-harness",
+    "tested_commit": "95b8e85b7fcce795f1a8b57a328675a546fc78d2"
+  },
+  "contracts": [
+    "loader-composition",
+    "scoped-router-restriction-lifecycle",
+    "preset-scope-worker-deny-snapshot",
+    "tool-output-schema",
+    "replay-safe-presentation",
+    "exact-subagent-start-request",
+    "subagent-provider-lifecycle",
+    "synthetic-native-event-hmr-reconstruction",
+    "real-code-mode-route-hmr-reconstruction",
+    "synthetic-native-code-behavior-equivalence",
+    "surface-replacement-deduplication",
+    "tool-attempt-outcome-separation",
+    "compaction-summary-token-accounting",
+    "fork-seed-token-deduplication",
+    "in-process-fork-first-request-governor",
+    "router-worker-shared-token-budget"
+  ]
+}

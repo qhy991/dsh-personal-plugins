@@ -1,6 +1,26 @@
 # dsh-personal-plugins
 
-统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、对话绑定的 DSH 原生 Experiment 控制器、只读 run viewer、与 Chat／Trajectory 并列的 KerSor view，以及可选的有限 Mission 启动器；不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
+统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、对话绑定的 DSH 原生 Experiment 控制器、只读 run viewer、与 Chat／Trajectory 并列的 KerSor view，以及可选的有限 Mission 启动器；Modus 提供 Router 与固定 Profile Worker preset。仓库不复制 DSH 上游源码，也不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
+
+## Modus Router 快速开始
+
+Modus preset 让一个受限 Router agent 在每个用户 turn 选择 `neutral`、`p000` 或 `p100`，随后把完整任务交给一个新建的 DSH Worker。Profile 在 Worker 第一次请求前固定，Router 不能自己完成任务；DSH 的父子 session 保留 Router 决策、Profile digest、Worker 输出及各自 token usage。
+
+```bash
+python3 scripts/install_modus.py --force
+```
+
+若 standard preset 不在默认 DSH 安装位置：
+
+```bash
+python3 scripts/install_modus.py \
+  --standard-preset /absolute/path/to/standard/agent.cordis.yml \
+  --force
+```
+
+重启 DSH Web 后，新建 task 并选择 **Modus Router** preset。默认配置不给 Router 任何主动工作区工具，只允许一次 `modus_delegate`；`neutral` 是普通 coding persona，`p000` 和 `p100` 是从 Modus commit `7661a5d` 的 edit-topology M1 action set 固定导出并校验 SHA-256 的两种执行策略。结果同时包含 Router+Worker token 与可解释行为轨迹。预算 governor 没有臆测默认值；确认性 run 可在安装时同时传入 `--max-new-tokens` 和 `--max-cache-read-tokens`，对内置 fork Worker 的下一次请求执行 fail-closed gate。详细合同、证据边界与迭代路线见 [`docs/modus-router.md`](docs/modus-router.md)。
+
+这是一条已经过契约测试的 DSH 原生执行链，不是新的实验证据。Pi 上观察到的 profile 效应不能因迁移而自动成立；正式结论需要在 DSH 上重新进行 manipulation check、固定任务配对和 Router + Worker 总 token 比较。
 
 ## 五分钟上手
 
@@ -281,9 +301,10 @@ python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
 ```bash
 python3 scripts/build.py --dsh-root /absolute/path/to/deepseek-harness
 python3 scripts/check.py
+python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness
 ```
 
-`build.py` 在临时目录中复原 DSH monorepo 布局，借用指定 checkout 的固定 TypeScript 依赖重建 host reflection 与 browser bundle，但不修改任一工作树。它会在构建前后核对 schema-v2 mirror、Authority commit、中央 build receipt 与 74 个派生产物；更新镜像必须显式运行 `scripts/sync_plugins.py sync --harness <checkout> --write`，临时构建本身不会回写 receipt-owned `lib`。`check.py` 覆盖 metadata、preset-local skill 发现配置、安装器渲染与幂等性、强制更新备份、built plugin 合同，以及仓库中意外出现的机器绝对路径。
+`build.py` 在临时目录中复原 DSH monorepo 布局，借用指定 checkout 的固定 TypeScript 依赖重建 host reflection 与 browser bundle，但不修改任一工作树。它会在构建前后核对 schema-v2 mirror、Authority commit、中央 build receipt 与 74 个派生产物；更新镜像必须显式运行 `scripts/sync_plugins.py sync --harness <checkout> --write`，临时构建本身不会回写 receipt-owned `lib`。`check.py` 覆盖 metadata、preset-local skill 发现配置、安装器、built plugin、Modus behavior/token folds 与 governor 合同，以及仓库中的机器绝对路径。`check_dsh_compat.py` 针对 `presets/modus/compatibility.json` 固定的干净 DSH commit，使用真实 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 与内置 fork provider 加载 Modus；升级 DSH 后必须更新兼容性记录并重跑。`--allow-dirty` / `--allow-unpinned` 只表示开发探测，不构成固定兼容性证据。
 
 ## 目录
 
@@ -297,9 +318,18 @@ presets/kersor/
   skills/kersor/SKILL.md     # 只负责路由到 KerSor 的轻量适配层
   bin/kersor_bridge.py       # checkout 定位、doctor、compose 入口
   plugins/kersor-status.mjs  # 工作区受限的结构化状态工具与原生卡片
+presets/modus/
+  preset.yml                 # DSH picker metadata
+  compatibility.json         # 已验证的 DSH commit 与接口合同
+  router-persona.md          # 只路由、不执行的 Router policy
+  profiles/                  # 固定 profile 快照、上游 commit 与 digest
+  plugins/modus-router.mjs   # 一次路由、固定 persona Worker、无重发
+  lib/trajectory.mjs         # token/budget fold、native+Code 行为轨迹与 seed 去重
 scripts/install.py           # 从当前 standard preset 生成并安装
 scripts/build.py             # 在临时 DSH 布局中可复现地重建插件产物
+scripts/install_modus.py     # 生成并安装 Modus Router preset
 scripts/check.py             # 零依赖本地/CI 验证
+scripts/check_dsh_compat.py  # 对固定 DSH checkout 做真实运行时兼容性加载
 tests/                       # 安装合同回归测试
 docs/experiments/            # 每轮真实任务实验的假设、证据、结论与下一步
 docs/vliw-takehome-from-scratch.md
