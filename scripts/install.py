@@ -4,14 +4,22 @@
 from __future__ import annotations
 
 import argparse
-import filecmp
 import json
-import os
 import shutil
 import sys
 import tempfile
-from datetime import datetime
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from install_common import (
+    default_dsh_home,
+    directory_equal,
+    locate_standard,
+    unique_backup,
+)
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -33,41 +41,6 @@ KERSOR_STATUS_ENTRY = (
     "- id: kersor-status\n"
     "  name: './plugins/kersor-status.mjs'"
 )
-
-
-def default_dsh_home() -> Path:
-    """Resolve the DSH home without embedding a machine path in repository assets."""
-    configured = os.environ.get("DSH_HOME", "").strip()
-    return Path(configured).expanduser() if configured else Path.home() / ".dsh"
-
-
-def locate_standard(dsh_home: Path, explicit: Path | None) -> Path:
-    """Locate the installed standard preset or fail with actionable guidance."""
-    candidates: list[Path] = []
-    if explicit is not None:
-        candidates.append(explicit.expanduser())
-    configured = os.environ.get("DSH_STANDARD_PRESET", "").strip()
-    if configured:
-        candidates.append(Path(configured).expanduser())
-    candidates.append(
-        dsh_home
-        / "profiles"
-        / "node_modules"
-        / "@deepseek-ai"
-        / "dsh"
-        / "config"
-        / "agent-presets"
-        / "standard"
-        / "agent.cordis.yml"
-    )
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate.resolve()
-    rendered = "\n  - ".join(str(candidate) for candidate in candidates)
-    raise RuntimeError(
-        "cannot locate DSH standard preset; checked:\n  - "
-        f"{rendered}\npass --standard-preset explicitly"
-    )
 
 
 def validate_kersor_root(path: Path) -> Path:
@@ -124,22 +97,6 @@ def render_composition(standard_source: str, *, skill_dir: Path) -> str:
     return rendered.rstrip("\n") + "\n"
 
 
-def directory_equal(left: Path, right: Path) -> bool:
-    """Compare two directory trees without introducing a persisted fingerprint."""
-    comparison = filecmp.dircmp(left, right)
-    if comparison.left_only or comparison.right_only or comparison.funny_files:
-        return False
-    if any(
-        not filecmp.cmp(left / name, right / name, shallow=False)
-        for name in comparison.common_files
-    ):
-        return False
-    return all(
-        directory_equal(left / name, right / name)
-        for name in comparison.common_dirs
-    )
-
-
 def stage_install(parent: Path, composition: str, kersor_root: Path) -> Path:
     """Create a complete preset tree on the destination filesystem."""
     stage = Path(tempfile.mkdtemp(prefix=".kersor-install-", dir=parent))
@@ -156,19 +113,6 @@ def stage_install(parent: Path, composition: str, kersor_root: Path) -> Path:
     local.mkdir()
     (local / "kersor-root").write_text(f"{kersor_root}\n", encoding="utf-8")
     return stage
-
-
-def unique_backup(destination: Path) -> Path:
-    """Choose a non-conflicting recoverable backup path beside the preset."""
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    candidate = destination.with_name(f"{destination.name}.backup-{stamp}")
-    suffix = 1
-    while candidate.exists():
-        candidate = destination.with_name(
-            f"{destination.name}.backup-{stamp}-{suffix}"
-        )
-        suffix += 1
-    return candidate
 
 
 def install(

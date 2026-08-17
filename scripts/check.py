@@ -48,11 +48,15 @@ def repository_text_files() -> list[Path]:
 
 
 def metadata_violations() -> list[str]:
-    """Return violations in the one maintained DSH preset and skill."""
+    """Return violations in the maintained DSH presets and KerSor skill."""
     violations: list[str] = []
-    preset = (ROOT / "presets" / "kersor" / "preset.yml").read_text(encoding="utf-8")
-    if "name: KerSor\n" not in preset or "description:" not in preset:
-        violations.append("presets/kersor/preset.yml: name or description missing")
+    for preset_id, expected_name in (("kersor", "KerSor"), ("modus", "Modus Router")):
+        preset_path = ROOT / "presets" / preset_id / "preset.yml"
+        preset = preset_path.read_text(encoding="utf-8")
+        if f"name: {expected_name}\n" not in preset or "description:" not in preset:
+            violations.append(
+                f"presets/{preset_id}/preset.yml: name or description missing"
+            )
 
     skill_path = ROOT / "presets" / "kersor" / "skills" / "kersor" / "SKILL.md"
     try:
@@ -98,13 +102,26 @@ def main() -> int:
             print(f"  - {violation}", file=sys.stderr)
         return 1
 
-    syntax = subprocess.run(
-        [node, "--check", str(ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs")],
+    plugin_paths = (
+        ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs",
+        ROOT / "presets" / "modus" / "plugins" / "modus-router.mjs",
+    )
+    for plugin_path in plugin_paths:
+        syntax = subprocess.run(
+            [node, "--check", str(plugin_path)],
+            cwd=ROOT,
+            check=False,
+        )
+        if syntax.returncode != 0:
+            return syntax.returncode
+
+    node_tests = subprocess.run(
+        [node, "--test", str(ROOT / "tests" / "modus-router.test.mjs")],
         cwd=ROOT,
         check=False,
     )
-    if syntax.returncode != 0:
-        return syntax.returncode
+    if node_tests.returncode != 0:
+        return node_tests.returncode
 
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
