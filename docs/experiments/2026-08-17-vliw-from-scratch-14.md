@@ -84,6 +84,9 @@ bridge 也修正 action 顺序：terminal Session 若 baseline 仍 pending，不
 - skill 安装合同包含稳定 state adapter 与全部必需字段。
 - bridge regression 覆盖 terminal + pending baseline → action `null`。
 - `python3 scripts/check.py`：26 tests passed。
+- 插件 commit `f7dbc47` 的
+  [GitHub Validate 32027830914](https://github.com/qhy991/dsh-personal-plugins/actions/runs/32027830914)
+  通过。
 - 安装 preset 后，真实 3197 UI 的首卡为 Session 14，显示 fresh pass、baseline pending、
   terminal decision，且 `data-baseline-action` 不存在；Session 13 的真实 baseline fail
   仍保留 `new_session`，证明 suppression 只作用于未完成的下游 gate。
