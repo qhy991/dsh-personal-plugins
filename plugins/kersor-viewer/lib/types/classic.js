@@ -29,6 +29,9 @@ function kersorPython() {
 function optionalString(value) {
     return value === undefined || value === null || typeof value === 'string';
 }
+function optionalDetailString(value) {
+    return value === undefined || typeof value === 'string';
+}
 function optionalBoolean(value) {
     return value === undefined || value === null || typeof value === 'boolean';
 }
@@ -72,8 +75,8 @@ function isClassicSessionDetail(value) {
     const selection = detail.selection;
     if (selection === undefined || !['pending', 'stalled', 'selected'].includes(selection.status)
         || typeof selection.rejectedCount !== 'number' || !Number.isInteger(selection.rejectedCount)
-        || selection.rejectedCount < 0 || !optionalString(selection.workflow)
-        || !optionalString(selection.reason))
+        || selection.rejectedCount < 0 || !optionalDetailString(selection.workflow)
+        || !optionalDetailString(selection.reason))
         return false;
     const authoring = detail.authoring;
     if (authoring === undefined
@@ -86,8 +89,8 @@ function isClassicSessionDetail(value) {
         return false;
     if (authoring.design !== undefined) {
         const design = authoring.design;
-        if (!optionalString(design.name) || !optionalString(design.technique)
-            || !optionalString(design.methodCategory) || !optionalString(design.topology)
+        if (!optionalDetailString(design.name) || !optionalDetailString(design.technique)
+            || !optionalDetailString(design.methodCategory) || !optionalDetailString(design.topology)
             || !stringArray(design.requiredArgs) || !stringArray(design.languages)
             || !stringArray(design.backends) || !stringArray(design.integrationPatterns)
             || typeof design.rationale !== 'string' || typeof design.source !== 'string')
@@ -101,8 +104,8 @@ function isClassicSessionDetail(value) {
     const dispatch = detail.dispatch;
     return dispatch !== undefined
         && ['pending', 'preparing', 'running', 'completed', 'failed'].includes(dispatch.status)
-        && optionalString(dispatch.runDir)
-        && optionalString(dispatch.runtimeStatus);
+        && optionalDetailString(dispatch.runDir)
+        && optionalDetailString(dispatch.runtimeStatus);
 }
 function isClassicSession(value) {
     if (value === null || typeof value !== 'object')

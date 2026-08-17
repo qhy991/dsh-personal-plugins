@@ -2,7 +2,7 @@
   "schema_version": 1,
   "authority": {
     "repository": "https://github.com/qhy991/deepseek-harness.git",
-    "revision": "adba958edf9a1325e82123e505595569ec797fd4",
+    "revision": "0be63b2340ca02873bd516b8d3b7fa997cf49100",
     "source_root": "packages/extensions",
     "reconciled": true
   },
@@ -29,7 +29,7 @@
     {
       "path": "plugins/kersor-viewer/lib/index.js",
       "source": "packages/extensions/kersor-viewer/lib/index.js",
-      "sha256": "49c2fd7dc619c661866f83bef84eaa663592fcc55d8a63cfea3194f5996a525e"
+      "sha256": "f783c4bd50e74ce7f221513e102a3ee8b5ff0284d437105c36881d60f1392128"
     },
     {
       "path": "plugins/kersor-viewer/lib/invariant.js",
@@ -64,7 +64,7 @@
     {
       "path": "plugins/kersor-viewer/lib/types/classic.js",
       "source": "packages/extensions/kersor-viewer/lib/types/classic.js",
-      "sha256": "f00eacc27b91bda364310f15b11417366dbaaaa659fba7ab3ba1b593659f4208"
+      "sha256": "8afdd1130da1c98e65622608dd8b784fc8b740d06f28693aa7fa5516235f8d1a"
     },
     {
       "path": "plugins/kersor-viewer/lib/types/diagnostics.d.ts",
@@ -149,7 +149,7 @@
     {
       "path": "plugins/kersor-viewer/src/classic.ts",
       "source": "packages/extensions/kersor-viewer/src/classic.ts",
-      "sha256": "a8eed3a47a810aceea7f3fbed1dee92638ac8247642948ec619bdbec640b1b53"
+      "sha256": "11a3af8c1b4d99295bed5426ad94b7471bd4d1ca18b0365b4637af7121428bcf"
     },
     {
       "path": "plugins/kersor-viewer/src/diagnostics.ts",

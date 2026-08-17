@@ -189,6 +189,10 @@ function optionalString(value: unknown): boolean {
   return value === undefined || value === null || typeof value === 'string'
 }
 
+function optionalDetailString(value: unknown): boolean {
+  return value === undefined || typeof value === 'string'
+}
+
 function optionalBoolean(value: unknown): boolean {
   return value === undefined || value === null || typeof value === 'boolean'
 }
@@ -232,8 +236,8 @@ function isClassicSessionDetail(value: unknown): value is KersorClassicSessionDe
   const selection = detail.selection
   if (selection === undefined || !['pending', 'stalled', 'selected'].includes(selection.status)
     || typeof selection.rejectedCount !== 'number' || !Number.isInteger(selection.rejectedCount)
-    || selection.rejectedCount < 0 || !optionalString(selection.workflow)
-    || !optionalString(selection.reason)) return false
+    || selection.rejectedCount < 0 || !optionalDetailString(selection.workflow)
+    || !optionalDetailString(selection.reason)) return false
   const authoring = detail.authoring
   if (authoring === undefined
     || !['not_started', 'in_progress', 'sealed', 'saved', 'rejected'].includes(authoring.status)
@@ -243,8 +247,8 @@ function isClassicSessionDetail(value: unknown): value is KersorClassicSessionDe
     && !['too_large', 'invalid', 'hash_mismatch'].includes(authoring.omittedReason)) return false
   if (authoring.design !== undefined) {
     const design = authoring.design
-    if (!optionalString(design.name) || !optionalString(design.technique)
-      || !optionalString(design.methodCategory) || !optionalString(design.topology)
+    if (!optionalDetailString(design.name) || !optionalDetailString(design.technique)
+      || !optionalDetailString(design.methodCategory) || !optionalDetailString(design.topology)
       || !stringArray(design.requiredArgs) || !stringArray(design.languages)
       || !stringArray(design.backends) || !stringArray(design.integrationPatterns)
       || typeof design.rationale !== 'string' || typeof design.source !== 'string') return false
@@ -256,8 +260,8 @@ function isClassicSessionDetail(value: unknown): value is KersorClassicSessionDe
   const dispatch = detail.dispatch
   return dispatch !== undefined
     && ['pending', 'preparing', 'running', 'completed', 'failed'].includes(dispatch.status)
-    && optionalString(dispatch.runDir)
-    && optionalString(dispatch.runtimeStatus)
+    && optionalDetailString(dispatch.runDir)
+    && optionalDetailString(dispatch.runtimeStatus)
 }
 
 function isClassicSession(value: unknown): value is RawClassicSession {

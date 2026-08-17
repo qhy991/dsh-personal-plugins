@@ -862,6 +862,9 @@ function kersorPython() {
 function optionalString(value) {
 	return value === void 0 || value === null || typeof value === "string";
 }
+function optionalDetailString(value) {
+	return value === void 0 || typeof value === "string";
+}
 function optionalBoolean(value) {
 	return value === void 0 || value === null || typeof value === "boolean";
 }
@@ -908,7 +911,7 @@ function isClassicSessionDetail(value) {
 		"pending",
 		"stalled",
 		"selected"
-	].includes(selection.status) || typeof selection.rejectedCount !== "number" || !Number.isInteger(selection.rejectedCount) || selection.rejectedCount < 0 || !optionalString(selection.workflow) || !optionalString(selection.reason)) return false;
+	].includes(selection.status) || typeof selection.rejectedCount !== "number" || !Number.isInteger(selection.rejectedCount) || selection.rejectedCount < 0 || !optionalDetailString(selection.workflow) || !optionalDetailString(selection.reason)) return false;
 	const authoring = detail.authoring;
 	if (authoring === void 0 || ![
 		"not_started",
@@ -924,7 +927,7 @@ function isClassicSessionDetail(value) {
 	].includes(authoring.omittedReason)) return false;
 	if (authoring.design !== void 0) {
 		const design = authoring.design;
-		if (!optionalString(design.name) || !optionalString(design.technique) || !optionalString(design.methodCategory) || !optionalString(design.topology) || !stringArray(design.requiredArgs) || !stringArray(design.languages) || !stringArray(design.backends) || !stringArray(design.integrationPatterns) || typeof design.rationale !== "string" || typeof design.source !== "string") return false;
+		if (!optionalDetailString(design.name) || !optionalDetailString(design.technique) || !optionalDetailString(design.methodCategory) || !optionalDetailString(design.topology) || !stringArray(design.requiredArgs) || !stringArray(design.languages) || !stringArray(design.backends) || !stringArray(design.integrationPatterns) || typeof design.rationale !== "string" || typeof design.source !== "string") return false;
 	}
 	const validation = detail.validation;
 	if (validation === void 0 || ![
@@ -939,7 +942,7 @@ function isClassicSessionDetail(value) {
 		"running",
 		"completed",
 		"failed"
-	].includes(dispatch.status) && optionalString(dispatch.runDir) && optionalString(dispatch.runtimeStatus);
+	].includes(dispatch.status) && optionalDetailString(dispatch.runDir) && optionalDetailString(dispatch.runtimeStatus);
 }
 function isClassicSession(value) {
 	if (value === null || typeof value !== "object") return false;
