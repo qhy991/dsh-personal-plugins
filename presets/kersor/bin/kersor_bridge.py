@@ -82,16 +82,22 @@ def selected_workflow(session_dir: Path, round_number: int) -> str | None:
 
 
 def round_decision(session_dir: Path, round_number: int) -> str | None:
-    """Return the protocol decision line from a completed round summary."""
+    """Return the complete protocol decision paragraph from a round summary."""
     path = session_dir / f"round-{round_number}-summary.md"
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
         return None
-    for line in lines:
+    for index, line in enumerate(lines):
         value = line.strip()
         if value.startswith(("COMPLETE:", "CONTINUE:", "STALLED:")):
-            return value
+            paragraph = [value]
+            for continuation in lines[index + 1 :]:
+                part = continuation.strip()
+                if not part or part.startswith("#"):
+                    break
+                paragraph.append(part)
+            return " ".join(paragraph)
     return None
 
 

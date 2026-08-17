@@ -187,14 +187,16 @@ class InstallTests(unittest.TestCase):
         self.assertIn("prove candidate binding", skill)
         self.assertIn("same Session-local candidate", skill)
         self.assertIn("workflow-author in the foreground", skill)
-        self.assertIn("`run_in_background: false`", skill)
-        self.assertIn("blocking tool result is the completion notification", skill)
-        self.assertIn("Never call\n`list_agents`", skill)
-        self.assertIn("only staging\nwriter", skill)
+        self.assertIn("`author-context.json.dispatch`", skill)
+        self.assertIn("`description`, `run_in_background`, and `prompt`", skill)
+        self.assertIn("blocking result is the completion\nnotification", skill)
+        self.assertIn("Never call `list_agents`", skill)
+        self.assertIn("`scripts/seal-author-handoff.py`", skill)
+        self.assertIn("`workflow-authoring/author-handoff.json`", skill)
+        self.assertIn("Save exactly once\nwith `--handoff`", skill)
         self.assertIn("must never repair them", skill)
         self.assertIn("extra staging file or directory is mixed provenance", skill)
-        self.assertIn("Run the save gate once", skill)
-        self.assertIn("not an orchestrator patch-and-retry", skill)
+        self.assertIn("canonical `stalled`, not a patch or\nretry", skill)
         self.assertIn("Do not accept a prose-only baseline", skill)
         self.assertIn("not execution evidence", skill)
         self.assertIn("`kersor_status` first with an empty argument object", skill)
@@ -237,7 +239,8 @@ class InstallTests(unittest.TestCase):
             encoding="utf-8",
         )
         (session / "round-1-summary.md").write_text(
-            "# Round 1\n\nCONTINUE: measure another workflow.\n", encoding="utf-8"
+            "# Round 1\n\nCONTINUE: measure another\nworkflow.\n\n## Evidence\n",
+            encoding="utf-8",
         )
         (run / "attempt-result.json").write_text(
             json.dumps({"metric_contract": {"speedup": 1.25}}),

@@ -65,15 +65,22 @@ terminal state with `kersor_status`; a Markdown summary is not a state change.
 The review must also prove candidate binding: importing a candidate is
 insufficient when the invoked harness still resolves the canonical
 implementation. Correctness and benchmark evidence must name and execute the
-same Session-local candidate. Keep authoring provenance equally strict: launch
-one workflow-author in the foreground and let that author be the only staging
-writer. On DSH's continuable `subagent` tool, set `run_in_background: false`;
-the blocking tool result is the completion notification. Never call
-`list_agents`, a job tool, or inspect staging progress while it runs. The
-orchestrator may read and reject the three files after the call returns, but
-must never repair them. Any extra staging file or directory is mixed provenance.
-Run the save gate once; any syntax, metadata, taxonomy, or semantic failure
-means `needs_revision` and `stalled`, not an orchestrator patch-and-retry.
+same Session-local candidate. Keep authoring provenance equally strict.
+`author-context.json.dispatch` is the only DSH subagent envelope: pass its
+`description`, `run_in_background`, and `prompt` fields unchanged instead of
+synthesizing a task summary or metadata template. The envelope launches one
+workflow-author in the foreground; its blocking result is the completion
+notification. Never call `list_agents`, a job tool, or inspect staging progress
+while it runs.
+
+The first parent action after that result must be
+`scripts/seal-author-handoff.py`, writing
+`workflow-authoring/author-handoff.json` outside staging. Do not read or edit
+staging first, and never replace an existing seal. The parent may read and
+reject the sealed three files, but must never repair them. Save exactly once
+with `--handoff` pointing to that seal; any hash, syntax, metadata, taxonomy, or
+semantic failure means `needs_revision` and canonical `stalled`, not a patch or
+retry. Any extra staging file or directory is mixed provenance.
 
 Do not accept a prose-only baseline. Before selection or authoring,
 `test-method.md` must record the exact correctness and benchmark commands that

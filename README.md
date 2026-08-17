@@ -89,7 +89,7 @@ compose optimize --path <task-dir> \
 
 `custom_simulator` 必须来自任务事实或用户明确合同，不能按 `.py` 后缀猜测。进入文件修改前，Session 应显示真实的 `language/backend/integration pattern`；无兼容 Workflow 时先显示 `STALLED`，直到 Phase 3.6 验证并重新 catalog 一个 Proposal。
 
-在 DSH Workspace Write 中，Phase 3.6 的 Proposal 必须保存在 Session 内的 `workflow-authoring/proposals/`，Catalog 也从同一 store 生成；不要要求写 KerSor checkout。workflow-author 是唯一 staging writer，调用 continuable `subagent` 时必须显式设置 `run_in_background:false`，让工具阻塞到作者完成；不要用 `list_agents` 轮询，也不要检查或写 staging 进度。结构校验通过后仍要做语义安全审查：Workflow 只能返回候选或评测 Session-local 副本，不能在证明正确且更快之前覆盖规范 checkpoint。KILL／needs-revision 时还必须用 KerSor state 工具转成 `stalled`，否则 UI 会继续显示“活跃”。
+在 DSH Workspace Write 中，Phase 3.6 的 Proposal 必须保存在 Session 内的 `workflow-authoring/proposals/`，Catalog 也从同一 store 生成；不要要求写 KerSor checkout。`author-context.json.dispatch` 是唯一 subagent envelope，必须原样传入而不是由 parent 重写 metadata 模板；其中 `run_in_background:false` 会让工具阻塞到作者完成。不要用 `list_agents` 轮询，也不要检查或写 staging 进度。author 返回后的第一步是把三个文件封存在 `author-handoff.json`；save 必须携带该 seal，任何 parent 修补都会因 hash 不匹配而被拒绝。结构校验通过后仍要做语义安全审查：Workflow 只能返回候选或评测 Session-local 副本，不能在证明正确且更快之前覆盖规范 checkpoint。KILL／needs-revision 时还必须用 KerSor state 工具转成 `stalled`，否则 UI 会继续显示“活跃”。
 
 ## 在 DSH 中使用
 

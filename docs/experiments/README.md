@@ -19,3 +19,4 @@
 | [06](2026-08-17-vliw-from-scratch-06.md) | VLIW Take-Home session-safe Proposal | 首次生成能否通过 output ownership，并消除 status 路径歧义 | ownership PASS；事后发现 false candidate binding；decision 理由可视化 |
 | [07](2026-08-17-vliw-from-scratch-07.md) | VLIW Take-Home candidate-bound Proposal | 证据是否真实执行候选，staging 是否保持单写入者 | candidate binding 修复；orchestrator 代修违规，Proposal KILL；fit 徽标上线 |
 | [08](2026-08-17-vliw-from-scratch-08.md) | VLIW Take-Home foreground authoring | “不要轮询”能否成为真实等待边界 | background polling 与二次唤醒复现；foreground barrier、mixed-provenance gate、终态 UI 优先级 LAND |
+| [09](2026-08-17-vliw-from-scratch-09.md) | VLIW Take-Home immutable author handoff | foreground 返回后 parent 会不会修补失败 Proposal | barrier 成立；影子 metadata 合同与 parent repair 复现；唯一 dispatch envelope + hash seal 实现 |
