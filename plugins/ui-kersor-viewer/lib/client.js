@@ -4,19 +4,18 @@ window.__ModuleLoader__.load({
 		var module = { exports: {} };
 		var exports = module.exports;
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
-		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
-		//#region lib/types/client/readiness.js
-		/** Terminal-aware presentation policy for a Session's historical fit verdict. */
+		let react_jsx_runtime = require("react/jsx-runtime");
+		//#region src/client/readiness.ts
 		/** A terminal veto outranks any fit result produced before the Session stopped. */
 		function visibleFitConfidence(session) {
 			if (session.lifecycle === "stalled" || session.lifecycle === "cancelled") return void 0;
 			return session.fit_confidence ?? void 0;
 		}
 		//#endregion
-		//#region \0dsh-css:d1fc3a39f20dee20.mjs
-		const css = ".krsr01_layer{flex:none;align-items:center;width:100%;height:49px;margin:8px 0 0;display:flex;position:relative}.krsr01_trigger{width:100%;height:49px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:12px;align-items:center;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:13px;display:flex}.krsr01_trigger:hover{background:var(--dsw-alias-bg-hover-secondary)}.krsr01_trigger[aria-expanded=true]{background:var(--dsw-alias-bg-active-secondary)}.krsr01_triggerIcon{width:16px;height:16px;color:var(--dsw-alias-label-tertiary);flex:none;justify-content:center;align-items:center;display:inline-flex}.krsr01_triggerLabel{text-align:left;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.krsr01_triggerBadge{flex:none;align-items:center;display:inline-flex}.krsr01_panel{z-index:30;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);width:460px;max-width:calc(100vw - 24px);max-height:60vh;box-shadow:var(--dsw-shadow-lv2);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px;flex-direction:column;display:flex;position:fixed;bottom:128px;left:12px;overflow:hidden}.krsr01_header{box-sizing:border-box;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);flex:none;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:10px 12px;display:flex}.krsr01_title{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:20px}.krsr01_note,.krsr01_readError{color:var(--dsw-alias-label-tertiary);margin:4px 0;font-size:12px;line-height:18px}.krsr01_note{text-align:right;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.krsr01_readError{color:var(--dsw-alias-state-error-primary)}.krsr01_body{flex:1;min-height:0;padding:4px 12px 12px;overflow-y:auto}.krsr01_launcher{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:8px;margin:4px 0 10px;padding:10px 12px;display:flex}.krsr01_launcherHead,.krsr01_taskRow,.krsr01_activeRow{align-items:center;gap:8px;display:flex}.krsr01_launcherHead{justify-content:space-between}.krsr01_launcherTitle,.krsr01_taskLabel{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.krsr01_launcherSummary,.krsr01_activeRunId{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.krsr01_taskList,.krsr01_activeList{flex-direction:column;gap:4px;display:flex}.krsr01_taskRow,.krsr01_activeRow{min-height:28px}.krsr01_taskLabel,.krsr01_activeLabel{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.krsr01_activeLabel{color:var(--dsw-alias-label-secondary);flex-direction:column;font-size:12px;line-height:16px;display:flex}.krsr01_activeRunId{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.krsr01_controlButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);min-width:52px;height:26px;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:7px;flex:none;padding:0 10px;font-family:inherit;font-size:11px}.krsr01_controlButton:hover:not(:disabled){background:var(--dsw-alias-bg-hover-secondary)}.krsr01_controlButton:disabled{cursor:default;opacity:.55}.krsr01_controlButton[data-busy=true]{color:var(--dsw-alias-state-business-primary)}.krsr01_activitySection{flex-direction:column;gap:6px;margin-top:8px;display:flex}.krsr01_sectionHead,.krsr01_classicHead,.krsr01_classicFoot{align-items:center;gap:8px;display:flex}.krsr01_sectionHead{justify-content:space-between;min-height:24px;padding:0 2px}.krsr01_sectionTitle{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.krsr01_sectionSummary{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.krsr01_classicRows{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none;display:grid}.krsr01_classicRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:10px;flex-direction:column;gap:6px;min-width:0;padding:10px;display:flex}.krsr01_classicRow[data-session-health=active]{border-color:var(--dsw-alias-state-business-primary)}.krsr01_classicRow[data-session-health=stale],.krsr01_classicRow[data-session-health=needs_resume],.krsr01_classicRow[data-session-health=unknown]{border-color:var(--dsw-alias-state-warn-secondary)}.krsr01_classicRow[data-expanded=true]{grid-column:1/-1}.krsr01_classicHead{min-width:0}.krsr01_classicExpand{width:20px;height:20px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:0;border-radius:5px;flex:none;justify-content:center;align-items:center;padding:0;transition:transform .12s,background .12s;display:inline-flex}.krsr01_classicExpand:hover{background:var(--dsw-alias-bg-base)}.krsr01_classicExpand[aria-expanded=true]{transform:rotate(90deg)}.krsr01_sessionId{min-width:0;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:510;line-height:16px;overflow:hidden}.krsr01_phaseBadge{background:var(--dsw-alias-bg-base);max-width:42%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;border-radius:5px;flex:none;padding:1px 5px;font-size:10px;line-height:15px;overflow:hidden}.krsr01_classicMetrics{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:2px 8px;font-size:10px;line-height:15px;display:flex}.krsr01_classicMetrics [data-target-met=true]{color:var(--dsw-alias-state-success-primary)}.krsr01_routeBadge,.krsr01_authoringBadge,.krsr01_gateBadge{background:var(--dsw-alias-bg-base);border-radius:5px;padding:0 5px}.krsr01_routeBadge{color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.krsr01_authoringBadge{color:var(--dsw-alias-state-business-primary)}.krsr01_gateBadge[data-gate=pass]{color:var(--dsw-alias-state-success-primary)}.krsr01_gateBadge[data-gate=fail]{color:var(--dsw-alias-state-error-primary)}.krsr01_gateBadge[data-gate=pending]{color:var(--dsw-alias-state-warn-label)}.krsr01_baselineAction{border-left:2px solid var(--dsw-alias-state-warn-label);background:var(--dsw-alias-bg-base);border-radius:5px;flex-direction:column;gap:1px;padding:4px 7px;font-size:10px;line-height:15px;display:flex}.krsr01_baselineAction[data-baseline-action=new_session]{border-left-color:var(--dsw-alias-state-error-primary)}.krsr01_baselineActionLabel{color:var(--dsw-alias-label-secondary);font-weight:510}.krsr01_baselineAction[data-baseline-action=new_session] .krsr01_baselineActionLabel{color:var(--dsw-alias-state-error-primary)}.krsr01_baselineActionReason{color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden}.krsr01_classicFoot{min-width:0;color:var(--dsw-alias-label-secondary);justify-content:space-between;font-size:10px;line-height:15px}.krsr01_workflowName{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.krsr01_fitBadge{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);border-radius:5px;flex:none;padding:0 5px}.krsr01_fitBadge[data-fit-confidence=high]{color:var(--dsw-alias-state-success-primary)}.krsr01_fitBadge[data-fit-confidence=low]{color:var(--dsw-alias-state-warn-label)}.krsr01_warningCount{color:var(--dsw-alias-state-warn-label);cursor:help;flex:none}.krsr01_decisionReason{border-top:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical;padding-top:5px;font-size:10px;line-height:15px;display:-webkit-box;overflow:hidden}.krsr01_classicDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:10px;padding-top:8px;display:flex}.krsr01_timeline{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px;margin:0;padding:0;list-style:none;display:grid}.krsr01_timelineStep{min-width:0;color:var(--dsw-alias-label-tertiary);align-items:center;gap:5px;font-size:10px;line-height:15px;display:flex}.krsr01_timelineStep[data-step-status=active]{color:var(--dsw-alias-state-business-primary)}.krsr01_timelineStep[data-step-status=failed]{color:var(--dsw-alias-state-error-primary)}.krsr01_detailGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;display:grid}.krsr01_detailSection{background:var(--dsw-alias-bg-base);min-width:0;color:var(--dsw-alias-label-tertiary);border-radius:8px;flex-direction:column;gap:3px;padding:8px;font-size:10px;line-height:15px;display:flex}.krsr01_detailTitle{color:var(--dsw-alias-label-primary);font-weight:510}.krsr01_detailReason,.krsr01_detailPath{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.krsr01_detailPath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.krsr01_detailNote,.krsr01_detailError{color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:15px}.krsr01_detailError{color:var(--dsw-alias-state-error-primary)}.krsr01_mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.krsr01_checks{flex-wrap:wrap;gap:2px 8px;margin:0;padding:0;list-style:none;display:flex}.krsr01_checks [data-check-passed=true]{color:var(--dsw-alias-state-success-primary)}.krsr01_checks [data-check-passed=false]{color:var(--dsw-alias-state-error-primary)}.krsr01_artifacts{color:var(--dsw-alias-label-tertiary);flex-direction:column;gap:2px;font-size:10px;line-height:15px;display:flex}.krsr01_design{flex-direction:column;gap:6px;display:flex}.krsr01_designMeta{flex-wrap:wrap;gap:4px;display:flex}.krsr01_designMeta>span{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);border-radius:5px;padding:1px 5px;font-size:10px;line-height:15px}.krsr01_requiredArgs{color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:15px}.krsr01_designDisclosure{background:var(--dsw-alias-bg-base);border-radius:8px}.krsr01_designDisclosure>summary{color:var(--dsw-alias-label-secondary);cursor:pointer;padding:7px 8px;font-size:10px;line-height:15px}.krsr01_designDisclosure>pre{border-top:1px solid var(--dsw-alias-border-l2);max-height:320px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;word-break:break-word;margin:0;padding:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;line-height:14px;overflow:auto}@media (width<=520px){.krsr01_classicRows,.krsr01_timeline,.krsr01_detailGrid{grid-template-columns:1fr}}.krsr01_rows{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.krsr01_row{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);border-radius:12px;flex-direction:column;gap:6px;padding:10px 12px;display:flex}.krsr01_row[data-run-status=active]{border-color:var(--dsw-alias-state-business-primary)}.krsr01_rowHead{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:8px;padding:2px;font-family:inherit;display:flex}.krsr01_rowHead:hover{background:var(--dsw-alias-bg-hover-secondary)}.krsr01_rowHead[aria-pressed=true]{background:var(--dsw-alias-bg-active-secondary)}.krsr01_runId{max-width:45%;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:20px;overflow:hidden}.krsr01_rowPath{min-width:0;color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;direction:rtl;flex:1;font-size:11px;line-height:16px;overflow:hidden}.krsr01_runDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:4px;padding:4px 2px 2px;display:flex}.krsr01_runHead{justify-content:space-between;align-items:center;gap:8px;display:flex}.krsr01_statusTail{height:20px;color:var(--dsw-alias-label-secondary);white-space:nowrap;flex:none;align-items:center;gap:4px;font-size:11px;font-weight:510;line-height:16px;display:inline-flex;overflow:hidden}.krsr01_runMeta{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:4px 12px;font-size:11px;line-height:16px;display:flex}.krsr01_runError{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.krsr01_phaseSection{flex-direction:column;margin-top:4px;display:flex}.krsr01_phaseHeader{box-sizing:border-box;background:var(--dsw-alias-bg-module-platform);border-radius:8px;align-items:center;gap:6px;width:100%;min-width:0;height:28px;padding:0 8px;display:flex}.krsr01_dotSlot{flex:none;justify-content:center;align-items:center;width:16px;display:inline-flex}.krsr01_phaseTitle{max-width:55%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:22px;overflow:hidden}.krsr01_phaseSummary{min-width:0;color:var(--dsw-alias-label-tertiary);text-align:right;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:11px;line-height:16px;overflow:hidden}.krsr01_callRow{align-items:center;gap:6px;min-height:24px;padding:0 0 0 8px;display:flex}.krsr01_callLabel{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:18px;overflow:hidden}.krsr01_callMeta{color:var(--dsw-alias-label-tertiary);flex:none;align-items:center;gap:6px;font-size:11px;line-height:16px;display:inline-flex}.krsr01_badge{border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.krsr01_callStatus{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;font-weight:510;line-height:16px}.krsr01_callRow[data-call-status=failed] .krsr01_callStatus{color:var(--dsw-alias-state-error-primary)}";
+		//#region \0dsh-css:1466f4ea44b824f4.mjs
+		const css = ".FSQJCq_layer{flex:none;align-items:center;width:100%;height:49px;margin:8px 0 0;display:flex;position:relative}.FSQJCq_trigger{width:100%;height:49px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:12px;align-items:center;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:13px;display:flex}.FSQJCq_trigger:hover{background:var(--dsw-alias-bg-hover-secondary)}.FSQJCq_trigger[aria-expanded=true]{background:var(--dsw-alias-bg-active-secondary)}.FSQJCq_triggerIcon{width:16px;height:16px;color:var(--dsw-alias-label-tertiary);flex:none;justify-content:center;align-items:center;display:inline-flex}.FSQJCq_triggerLabel{text-align:left;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.FSQJCq_triggerBadge{flex:none;align-items:center;display:inline-flex}.FSQJCq_panel{z-index:30;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);width:460px;max-width:calc(100vw - 24px);max-height:60vh;box-shadow:var(--dsw-shadow-lv2);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px;flex-direction:column;display:flex;position:fixed;bottom:128px;left:12px;overflow:hidden}.FSQJCq_header{box-sizing:border-box;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);flex:none;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:10px 12px;display:flex}.FSQJCq_title{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:20px}.FSQJCq_note,.FSQJCq_readError{color:var(--dsw-alias-label-tertiary);margin:4px 0;font-size:12px;line-height:18px}.FSQJCq_note{text-align:right;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.FSQJCq_readError{color:var(--dsw-alias-state-error-primary)}.FSQJCq_body{flex:1;min-height:0;padding:4px 12px 12px;overflow-y:auto}.FSQJCq_launcher{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:8px;margin:4px 0 10px;padding:10px 12px;display:flex}.FSQJCq_launcherHead,.FSQJCq_taskRow,.FSQJCq_activeRow{align-items:center;gap:8px;display:flex}.FSQJCq_launcherHead{justify-content:space-between}.FSQJCq_launcherTitle,.FSQJCq_taskLabel{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.FSQJCq_launcherSummary,.FSQJCq_activeRunId{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.FSQJCq_taskList,.FSQJCq_activeList{flex-direction:column;gap:4px;display:flex}.FSQJCq_taskRow,.FSQJCq_activeRow{min-height:28px}.FSQJCq_taskLabel,.FSQJCq_activeLabel{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.FSQJCq_activeLabel{color:var(--dsw-alias-label-secondary);flex-direction:column;font-size:12px;line-height:16px;display:flex}.FSQJCq_activeRunId{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.FSQJCq_controlButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);min-width:52px;height:26px;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:7px;flex:none;padding:0 10px;font-family:inherit;font-size:11px}.FSQJCq_controlButton:hover:not(:disabled){background:var(--dsw-alias-bg-hover-secondary)}.FSQJCq_controlButton:disabled{cursor:default;opacity:.55}.FSQJCq_controlButton[data-busy=true]{color:var(--dsw-alias-state-business-primary)}.FSQJCq_activitySection{flex-direction:column;gap:6px;margin-top:8px;display:flex}.FSQJCq_sectionHead,.FSQJCq_classicHead,.FSQJCq_classicFoot{align-items:center;gap:8px;display:flex}.FSQJCq_sectionHead{justify-content:space-between;min-height:24px;padding:0 2px}.FSQJCq_sectionTitle{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.FSQJCq_sectionSummary{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.FSQJCq_classicRows{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none;display:grid}.FSQJCq_classicRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:10px;flex-direction:column;gap:6px;min-width:0;padding:10px;display:flex}.FSQJCq_classicRow[data-session-health=active]{border-color:var(--dsw-alias-state-business-primary)}.FSQJCq_classicRow[data-session-health=stale],.FSQJCq_classicRow[data-session-health=needs_resume],.FSQJCq_classicRow[data-session-health=unknown]{border-color:var(--dsw-alias-state-warn-secondary)}.FSQJCq_classicRow[data-expanded=true]{grid-column:1/-1}.FSQJCq_classicHead{min-width:0}.FSQJCq_classicExpand{width:20px;height:20px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:0;border-radius:5px;flex:none;justify-content:center;align-items:center;padding:0;transition:transform .12s,background .12s;display:inline-flex}.FSQJCq_classicExpand:hover{background:var(--dsw-alias-bg-base)}.FSQJCq_classicExpand[aria-expanded=true]{transform:rotate(90deg)}.FSQJCq_sessionId{min-width:0;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:510;line-height:16px;overflow:hidden}.FSQJCq_phaseBadge{background:var(--dsw-alias-bg-base);max-width:42%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;border-radius:5px;flex:none;padding:1px 5px;font-size:10px;line-height:15px;overflow:hidden}.FSQJCq_classicMetrics{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:2px 8px;font-size:10px;line-height:15px;display:flex}.FSQJCq_classicMetrics [data-target-met=true]{color:var(--dsw-alias-state-success-primary)}.FSQJCq_routeBadge,.FSQJCq_authoringBadge,.FSQJCq_gateBadge{background:var(--dsw-alias-bg-base);border-radius:5px;padding:0 5px}.FSQJCq_routeBadge{color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.FSQJCq_authoringBadge{color:var(--dsw-alias-state-business-primary)}.FSQJCq_gateBadge[data-gate=pass]{color:var(--dsw-alias-state-success-primary)}.FSQJCq_gateBadge[data-gate=fail]{color:var(--dsw-alias-state-error-primary)}.FSQJCq_gateBadge[data-gate=pending]{color:var(--dsw-alias-state-warn-label)}.FSQJCq_baselineAction{border-left:2px solid var(--dsw-alias-state-warn-label);background:var(--dsw-alias-bg-base);border-radius:5px;flex-direction:column;gap:1px;padding:4px 7px;font-size:10px;line-height:15px;display:flex}.FSQJCq_baselineAction[data-baseline-action=new_session]{border-left-color:var(--dsw-alias-state-error-primary)}.FSQJCq_baselineActionLabel{color:var(--dsw-alias-label-secondary);font-weight:510}.FSQJCq_baselineAction[data-baseline-action=new_session] .FSQJCq_baselineActionLabel{color:var(--dsw-alias-state-error-primary)}.FSQJCq_baselineActionReason{color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden}.FSQJCq_classicFoot{min-width:0;color:var(--dsw-alias-label-secondary);justify-content:space-between;font-size:10px;line-height:15px}.FSQJCq_workflowName{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.FSQJCq_fitBadge{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);border-radius:5px;flex:none;padding:0 5px}.FSQJCq_fitBadge[data-fit-confidence=high]{color:var(--dsw-alias-state-success-primary)}.FSQJCq_fitBadge[data-fit-confidence=low]{color:var(--dsw-alias-state-warn-label)}.FSQJCq_warningCount{color:var(--dsw-alias-state-warn-label);cursor:help;flex:none}.FSQJCq_decisionReason{border-top:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical;padding-top:5px;font-size:10px;line-height:15px;display:-webkit-box;overflow:hidden}.FSQJCq_classicDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:10px;padding-top:8px;display:flex}.FSQJCq_timeline{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px;margin:0;padding:0;list-style:none;display:grid}.FSQJCq_timelineStep{min-width:0;color:var(--dsw-alias-label-tertiary);align-items:center;gap:5px;font-size:10px;line-height:15px;display:flex}.FSQJCq_timelineStep[data-step-status=active]{color:var(--dsw-alias-state-business-primary)}.FSQJCq_timelineStep[data-step-status=failed]{color:var(--dsw-alias-state-error-primary)}.FSQJCq_detailGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;display:grid}.FSQJCq_detailSection{background:var(--dsw-alias-bg-base);min-width:0;color:var(--dsw-alias-label-tertiary);border-radius:8px;flex-direction:column;gap:3px;padding:8px;font-size:10px;line-height:15px;display:flex}.FSQJCq_detailTitle{color:var(--dsw-alias-label-primary);font-weight:510}.FSQJCq_detailReason,.FSQJCq_detailPath{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.FSQJCq_detailPath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.FSQJCq_detailNote,.FSQJCq_detailError{color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:15px}.FSQJCq_detailError{color:var(--dsw-alias-state-error-primary)}.FSQJCq_mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.FSQJCq_checks{flex-wrap:wrap;gap:2px 8px;margin:0;padding:0;list-style:none;display:flex}.FSQJCq_checks [data-check-passed=true]{color:var(--dsw-alias-state-success-primary)}.FSQJCq_checks [data-check-passed=false]{color:var(--dsw-alias-state-error-primary)}.FSQJCq_artifacts{color:var(--dsw-alias-label-tertiary);flex-direction:column;gap:2px;font-size:10px;line-height:15px;display:flex}.FSQJCq_design{flex-direction:column;gap:6px;display:flex}.FSQJCq_designMeta{flex-wrap:wrap;gap:4px;display:flex}.FSQJCq_designMeta>span{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);border-radius:5px;padding:1px 5px;font-size:10px;line-height:15px}.FSQJCq_requiredArgs{color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:15px}.FSQJCq_designDisclosure{background:var(--dsw-alias-bg-base);border-radius:8px}.FSQJCq_designDisclosure>summary{color:var(--dsw-alias-label-secondary);cursor:pointer;padding:7px 8px;font-size:10px;line-height:15px}.FSQJCq_designDisclosure>pre{border-top:1px solid var(--dsw-alias-border-l2);max-height:320px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;word-break:break-word;margin:0;padding:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;line-height:14px;overflow:auto}@media (width<=520px){.FSQJCq_classicRows,.FSQJCq_timeline,.FSQJCq_detailGrid{grid-template-columns:1fr}}.FSQJCq_rows{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.FSQJCq_row{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);border-radius:12px;flex-direction:column;gap:6px;padding:10px 12px;display:flex}.FSQJCq_row[data-run-status=active]{border-color:var(--dsw-alias-state-business-primary)}.FSQJCq_rowHead{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:8px;padding:2px;font-family:inherit;display:flex}.FSQJCq_rowHead:hover{background:var(--dsw-alias-bg-hover-secondary)}.FSQJCq_rowHead[aria-pressed=true]{background:var(--dsw-alias-bg-active-secondary)}.FSQJCq_runId{max-width:45%;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:20px;overflow:hidden}.FSQJCq_rowPath{min-width:0;color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;direction:rtl;flex:1;font-size:11px;line-height:16px;overflow:hidden}.FSQJCq_runDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:4px;padding:4px 2px 2px;display:flex}.FSQJCq_runHead{justify-content:space-between;align-items:center;gap:8px;display:flex}.FSQJCq_statusTail{height:20px;color:var(--dsw-alias-label-secondary);white-space:nowrap;flex:none;align-items:center;gap:4px;font-size:11px;font-weight:510;line-height:16px;display:inline-flex;overflow:hidden}.FSQJCq_runMeta{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:4px 12px;font-size:11px;line-height:16px;display:flex}.FSQJCq_runError{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.FSQJCq_phaseSection{flex-direction:column;margin-top:4px;display:flex}.FSQJCq_phaseHeader{box-sizing:border-box;background:var(--dsw-alias-bg-module-platform);border-radius:8px;align-items:center;gap:6px;width:100%;min-width:0;height:28px;padding:0 8px;display:flex}.FSQJCq_dotSlot{flex:none;justify-content:center;align-items:center;width:16px;display:inline-flex}.FSQJCq_phaseTitle{max-width:55%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:22px;overflow:hidden}.FSQJCq_phaseSummary{min-width:0;color:var(--dsw-alias-label-tertiary);text-align:right;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:11px;line-height:16px;overflow:hidden}.FSQJCq_callRow{align-items:center;gap:6px;min-height:24px;padding:0 0 0 8px;display:flex}.FSQJCq_callLabel{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:18px;overflow:hidden}.FSQJCq_callMeta{color:var(--dsw-alias-label-tertiary);flex:none;align-items:center;gap:6px;font-size:11px;line-height:16px;display:inline-flex}.FSQJCq_badge{border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.FSQJCq_callStatus{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;font-weight:510;line-height:16px}.FSQJCq_callRow[data-call-status=failed] .FSQJCq_callStatus{color:var(--dsw-alias-state-error-primary)}";
 		const tagId = "@deepseek-ai/dsh-client-ui-kersor-viewer/KersorPanel.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -25,92 +24,92 @@ window.__ModuleLoader__.load({
 			tag.textContent = css;
 			document.head.appendChild(tag);
 		}
-		var _dsh_css_d1fc3a39f20dee20_default = {
-			"activeLabel": "krsr01_activeLabel",
-			"activeList": "krsr01_activeList",
-			"activeRow": "krsr01_activeRow",
-			"activeRunId": "krsr01_activeRunId",
-			"activitySection": "krsr01_activitySection",
-			"artifacts": "krsr01_artifacts",
-			"authoringBadge": "krsr01_authoringBadge",
-			"badge": "krsr01_badge",
-			"baselineAction": "krsr01_baselineAction",
-			"baselineActionLabel": "krsr01_baselineActionLabel",
-			"baselineActionReason": "krsr01_baselineActionReason",
-			"body": "krsr01_body",
-			"callLabel": "krsr01_callLabel",
-			"callMeta": "krsr01_callMeta",
-			"callRow": "krsr01_callRow",
-			"callStatus": "krsr01_callStatus",
-			"checks": "krsr01_checks",
-			"classicDetail": "krsr01_classicDetail",
-			"classicExpand": "krsr01_classicExpand",
-			"classicFoot": "krsr01_classicFoot",
-			"classicHead": "krsr01_classicHead",
-			"classicMetrics": "krsr01_classicMetrics",
-			"classicRow": "krsr01_classicRow",
-			"classicRows": "krsr01_classicRows",
-			"controlButton": "krsr01_controlButton",
-			"decisionReason": "krsr01_decisionReason",
-			"design": "krsr01_design",
-			"designDisclosure": "krsr01_designDisclosure",
-			"designMeta": "krsr01_designMeta",
-			"detailError": "krsr01_detailError",
-			"detailGrid": "krsr01_detailGrid",
-			"detailNote": "krsr01_detailNote",
-			"detailPath": "krsr01_detailPath",
-			"detailReason": "krsr01_detailReason",
-			"detailSection": "krsr01_detailSection",
-			"detailTitle": "krsr01_detailTitle",
-			"dotSlot": "krsr01_dotSlot",
-			"fitBadge": "krsr01_fitBadge",
-			"gateBadge": "krsr01_gateBadge",
-			"header": "krsr01_header",
-			"launcher": "krsr01_launcher",
-			"launcherHead": "krsr01_launcherHead",
-			"launcherSummary": "krsr01_launcherSummary",
-			"launcherTitle": "krsr01_launcherTitle",
-			"layer": "krsr01_layer",
-			"mono": "krsr01_mono",
-			"note": "krsr01_note",
-			"panel": "krsr01_panel",
-			"phaseBadge": "krsr01_phaseBadge",
-			"phaseHeader": "krsr01_phaseHeader",
-			"phaseSection": "krsr01_phaseSection",
-			"phaseSummary": "krsr01_phaseSummary",
-			"phaseTitle": "krsr01_phaseTitle",
-			"readError": "krsr01_readError",
-			"requiredArgs": "krsr01_requiredArgs",
-			"routeBadge": "krsr01_routeBadge",
-			"row": "krsr01_row",
-			"rowHead": "krsr01_rowHead",
-			"rowPath": "krsr01_rowPath",
-			"rows": "krsr01_rows",
-			"runDetail": "krsr01_runDetail",
-			"runError": "krsr01_runError",
-			"runHead": "krsr01_runHead",
-			"runId": "krsr01_runId",
-			"runMeta": "krsr01_runMeta",
-			"sectionHead": "krsr01_sectionHead",
-			"sectionSummary": "krsr01_sectionSummary",
-			"sectionTitle": "krsr01_sectionTitle",
-			"sessionId": "krsr01_sessionId",
-			"statusTail": "krsr01_statusTail",
-			"taskLabel": "krsr01_taskLabel",
-			"taskList": "krsr01_taskList",
-			"taskRow": "krsr01_taskRow",
-			"timeline": "krsr01_timeline",
-			"timelineStep": "krsr01_timelineStep",
-			"title": "krsr01_title",
-			"trigger": "krsr01_trigger",
-			"triggerBadge": "krsr01_triggerBadge",
-			"triggerIcon": "krsr01_triggerIcon",
-			"triggerLabel": "krsr01_triggerLabel",
-			"warningCount": "krsr01_warningCount",
-			"workflowName": "krsr01_workflowName"
+		var _dsh_css_1466f4ea44b824f4_default = {
+			"phaseBadge": "FSQJCq_phaseBadge",
+			"classicFoot": "FSQJCq_classicFoot",
+			"taskRow": "FSQJCq_taskRow",
+			"detailError": "FSQJCq_detailError",
+			"sectionHead": "FSQJCq_sectionHead",
+			"sessionId": "FSQJCq_sessionId",
+			"body": "FSQJCq_body",
+			"launcherHead": "FSQJCq_launcherHead",
+			"launcherSummary": "FSQJCq_launcherSummary",
+			"activeLabel": "FSQJCq_activeLabel",
+			"sectionTitle": "FSQJCq_sectionTitle",
+			"detailTitle": "FSQJCq_detailTitle",
+			"rows": "FSQJCq_rows",
+			"badge": "FSQJCq_badge",
+			"rowPath": "FSQJCq_rowPath",
+			"gateBadge": "FSQJCq_gateBadge",
+			"readError": "FSQJCq_readError",
+			"workflowName": "FSQJCq_workflowName",
+			"detailPath": "FSQJCq_detailPath",
+			"classicMetrics": "FSQJCq_classicMetrics",
+			"callLabel": "FSQJCq_callLabel",
+			"layer": "FSQJCq_layer",
+			"detailReason": "FSQJCq_detailReason",
+			"launcher": "FSQJCq_launcher",
+			"triggerIcon": "FSQJCq_triggerIcon",
+			"detailSection": "FSQJCq_detailSection",
+			"runHead": "FSQJCq_runHead",
+			"phaseHeader": "FSQJCq_phaseHeader",
+			"design": "FSQJCq_design",
+			"controlButton": "FSQJCq_controlButton",
+			"header": "FSQJCq_header",
+			"baselineActionReason": "FSQJCq_baselineActionReason",
+			"trigger": "FSQJCq_trigger",
+			"classicExpand": "FSQJCq_classicExpand",
+			"classicDetail": "FSQJCq_classicDetail",
+			"baselineActionLabel": "FSQJCq_baselineActionLabel",
+			"timelineStep": "FSQJCq_timelineStep",
+			"baselineAction": "FSQJCq_baselineAction",
+			"runMeta": "FSQJCq_runMeta",
+			"timeline": "FSQJCq_timeline",
+			"launcherTitle": "FSQJCq_launcherTitle",
+			"routeBadge": "FSQJCq_routeBadge",
+			"mono": "FSQJCq_mono",
+			"detailNote": "FSQJCq_detailNote",
+			"taskLabel": "FSQJCq_taskLabel",
+			"activeRow": "FSQJCq_activeRow",
+			"detailGrid": "FSQJCq_detailGrid",
+			"checks": "FSQJCq_checks",
+			"designMeta": "FSQJCq_designMeta",
+			"row": "FSQJCq_row",
+			"triggerLabel": "FSQJCq_triggerLabel",
+			"authoringBadge": "FSQJCq_authoringBadge",
+			"rowHead": "FSQJCq_rowHead",
+			"activitySection": "FSQJCq_activitySection",
+			"activeRunId": "FSQJCq_activeRunId",
+			"runDetail": "FSQJCq_runDetail",
+			"classicHead": "FSQJCq_classicHead",
+			"sectionSummary": "FSQJCq_sectionSummary",
+			"statusTail": "FSQJCq_statusTail",
+			"classicRows": "FSQJCq_classicRows",
+			"classicRow": "FSQJCq_classicRow",
+			"dotSlot": "FSQJCq_dotSlot",
+			"artifacts": "FSQJCq_artifacts",
+			"designDisclosure": "FSQJCq_designDisclosure",
+			"runError": "FSQJCq_runError",
+			"phaseSection": "FSQJCq_phaseSection",
+			"callRow": "FSQJCq_callRow",
+			"callStatus": "FSQJCq_callStatus",
+			"title": "FSQJCq_title",
+			"panel": "FSQJCq_panel",
+			"warningCount": "FSQJCq_warningCount",
+			"note": "FSQJCq_note",
+			"taskList": "FSQJCq_taskList",
+			"callMeta": "FSQJCq_callMeta",
+			"triggerBadge": "FSQJCq_triggerBadge",
+			"requiredArgs": "FSQJCq_requiredArgs",
+			"decisionReason": "FSQJCq_decisionReason",
+			"fitBadge": "FSQJCq_fitBadge",
+			"phaseSummary": "FSQJCq_phaseSummary",
+			"activeList": "FSQJCq_activeList",
+			"runId": "FSQJCq_runId",
+			"phaseTitle": "FSQJCq_phaseTitle"
 		};
 		//#endregion
-		//#region lib/types/client/KersorPanel.js
+		//#region src/client/KersorPanel.tsx
 		/** KerSor runs sidebar panel: run inventory with live phase/call progress. */
 		const RUN_STATUS_KEYS = {
 			running: "run.active",
@@ -208,65 +207,65 @@ window.__ModuleLoader__.load({
 		}
 		function ClassicSessionDetail({ detail, t }) {
 			const design = detail.authoring.design;
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: _dsh_css_d1fc3a39f20dee20_default.classicDetail,
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				className: _dsh_css_1466f4ea44b824f4_default.classicDetail,
 				children: [
-					(0, react_jsx_runtime.jsx)("ol", {
-						className: _dsh_css_d1fc3a39f20dee20_default.timeline,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("ol", {
+						className: _dsh_css_1466f4ea44b824f4_default.timeline,
 						"aria-label": t("detail.timeline"),
-						children: detail.steps.map((step) => (0, react_jsx_runtime.jsxs)("li", {
-							className: _dsh_css_d1fc3a39f20dee20_default.timelineStep,
+						children: detail.steps.map((step) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
+							className: _dsh_css_1466f4ea44b824f4_default.timelineStep,
 							"data-step-status": step.status,
-							children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicStepDotState(step.status) }), (0, react_jsx_runtime.jsx)("span", { children: t(CLASSIC_STEP_KEYS[step.id]) })]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicStepDotState(step.status) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(CLASSIC_STEP_KEYS[step.id]) })]
 						}, step.id))
 					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.detailGrid,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.detailGrid,
 						children: [
-							(0, react_jsx_runtime.jsxs)("section", {
-								className: _dsh_css_d1fc3a39f20dee20_default.detailSection,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+								className: _dsh_css_1466f4ea44b824f4_default.detailSection,
 								children: [
-									(0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.detailTitle,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.detailTitle,
 										children: t("detail.selection")
 									}),
-									(0, react_jsx_runtime.jsx)("span", { children: t(`detail.selection.${detail.selection.status}`) }),
-									detail.selection.workflow !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.mono,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(`detail.selection.${detail.selection.status}`) }),
+									detail.selection.workflow !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.mono,
 										children: detail.selection.workflow
 									}) : null,
-									detail.selection.reason !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.detailReason,
+									detail.selection.reason !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.detailReason,
 										children: detail.selection.reason
 									}) : null,
-									(0, react_jsx_runtime.jsx)("span", { children: t("detail.rejected", { count: detail.selection.rejectedCount }) })
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("detail.rejected", { count: detail.selection.rejectedCount }) })
 								]
 							}),
-							(0, react_jsx_runtime.jsxs)("section", {
-								className: _dsh_css_d1fc3a39f20dee20_default.detailSection,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+								className: _dsh_css_1466f4ea44b824f4_default.detailSection,
 								children: [
-									(0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.detailTitle,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.detailTitle,
 										children: t("detail.authoring")
 									}),
-									(0, react_jsx_runtime.jsx)("span", { children: t(`detail.authoring.${detail.authoring.status}`) }),
-									detail.authoring.omittedReason !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.detailError,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(`detail.authoring.${detail.authoring.status}`) }),
+									detail.authoring.omittedReason !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.detailError,
 										children: t("detail.omitted", { reason: detail.authoring.omittedReason })
 									}) : null
 								]
 							}),
-							(0, react_jsx_runtime.jsxs)("section", {
-								className: _dsh_css_d1fc3a39f20dee20_default.detailSection,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+								className: _dsh_css_1466f4ea44b824f4_default.detailSection,
 								children: [
-									(0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.detailTitle,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.detailTitle,
 										children: t("detail.validation")
 									}),
-									(0, react_jsx_runtime.jsx)("span", { children: t(`detail.validation.${detail.validation.status}`) }),
-									detail.validation.checks.length > 0 ? (0, react_jsx_runtime.jsx)("ul", {
-										className: _dsh_css_d1fc3a39f20dee20_default.checks,
-										children: detail.validation.checks.map((check) => (0, react_jsx_runtime.jsxs)("li", {
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(`detail.validation.${detail.validation.status}`) }),
+									detail.validation.checks.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ul", {
+										className: _dsh_css_1466f4ea44b824f4_default.checks,
+										children: detail.validation.checks.map((check) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
 											"data-check-passed": check.passed,
 											children: [
 												check.passed ? "✓" : "×",
@@ -277,20 +276,20 @@ window.__ModuleLoader__.load({
 									}) : null
 								]
 							}),
-							(0, react_jsx_runtime.jsxs)("section", {
-								className: _dsh_css_d1fc3a39f20dee20_default.detailSection,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+								className: _dsh_css_1466f4ea44b824f4_default.detailSection,
 								children: [
-									(0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.detailTitle,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.detailTitle,
 										children: t("detail.dispatch")
 									}),
-									(0, react_jsx_runtime.jsx)("span", { children: t(`detail.dispatch.${detail.dispatch.status}`) }),
-									detail.dispatch.runtimeStatus !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.mono,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(`detail.dispatch.${detail.dispatch.status}`) }),
+									detail.dispatch.runtimeStatus !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.mono,
 										children: detail.dispatch.runtimeStatus
 									}) : null,
-									detail.dispatch.runDir !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.detailPath,
+									detail.dispatch.runDir !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.detailPath,
 										title: detail.dispatch.runDir,
 										children: detail.dispatch.runDir
 									}) : null
@@ -298,13 +297,13 @@ window.__ModuleLoader__.load({
 							})
 						]
 					}),
-					detail.authoring.files.length > 0 ? (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.artifacts,
-						children: detail.authoring.files.map((file) => (0, react_jsx_runtime.jsxs)("span", {
+					detail.authoring.files.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.artifacts,
+						children: detail.authoring.files.map((file) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 							title: file.sha256,
 							children: [
-								(0, react_jsx_runtime.jsx)("span", {
-									className: _dsh_css_d1fc3a39f20dee20_default.mono,
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: _dsh_css_1466f4ea44b824f4_default.mono,
 									children: file.name
 								}),
 								" · ",
@@ -315,46 +314,46 @@ window.__ModuleLoader__.load({
 							]
 						}, file.name))
 					}) : null,
-					design !== void 0 ? (0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.design,
+					design !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.design,
 						children: [
-							(0, react_jsx_runtime.jsxs)("div", {
-								className: _dsh_css_d1fc3a39f20dee20_default.designMeta,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: _dsh_css_1466f4ea44b824f4_default.designMeta,
 								children: [
-									design.name !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.mono,
+									design.name !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.mono,
 										children: design.name
 									}) : null,
-									design.technique !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: design.technique }) : null,
-									design.methodCategory !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: design.methodCategory }) : null,
-									design.topology !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: design.topology }) : null,
-									design.languages.map((value) => (0, react_jsx_runtime.jsx)("span", { children: value }, `language:${value}`)),
-									design.backends.map((value) => (0, react_jsx_runtime.jsx)("span", { children: value }, `backend:${value}`)),
-									design.integrationPatterns.map((value) => (0, react_jsx_runtime.jsx)("span", { children: value }, `integration:${value}`))
+									design.technique !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: design.technique }) : null,
+									design.methodCategory !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: design.methodCategory }) : null,
+									design.topology !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: design.topology }) : null,
+									design.languages.map((value) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: value }, `language:${value}`)),
+									design.backends.map((value) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: value }, `backend:${value}`)),
+									design.integrationPatterns.map((value) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: value }, `integration:${value}`))
 								]
 							}),
-							design.requiredArgs.length > 0 ? (0, react_jsx_runtime.jsxs)("div", {
-								className: _dsh_css_d1fc3a39f20dee20_default.requiredArgs,
+							design.requiredArgs.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: _dsh_css_1466f4ea44b824f4_default.requiredArgs,
 								children: [
 									t("detail.requiredArgs"),
 									": ",
-									(0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.mono,
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.mono,
 										children: design.requiredArgs.join(", ")
 									})
 								]
 							}) : null,
-							(0, react_jsx_runtime.jsxs)("details", {
-								className: _dsh_css_d1fc3a39f20dee20_default.designDisclosure,
-								children: [(0, react_jsx_runtime.jsx)("summary", { children: t("detail.rationale") }), (0, react_jsx_runtime.jsx)("pre", { children: design.rationale })]
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("details", {
+								className: _dsh_css_1466f4ea44b824f4_default.designDisclosure,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("summary", { children: t("detail.rationale") }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("pre", { children: design.rationale })]
 							}),
-							(0, react_jsx_runtime.jsxs)("details", {
-								className: _dsh_css_d1fc3a39f20dee20_default.designDisclosure,
-								children: [(0, react_jsx_runtime.jsx)("summary", { children: t("detail.source") }), (0, react_jsx_runtime.jsx)("pre", { children: design.source })]
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("details", {
+								className: _dsh_css_1466f4ea44b824f4_default.designDisclosure,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("summary", { children: t("detail.source") }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("pre", { children: design.source })]
 							})
 						]
-					}) : (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.detailNote,
+					}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.detailNote,
 						children: t("detail.sealRequired")
 					})
 				]
@@ -372,121 +371,121 @@ window.__ModuleLoader__.load({
 			].filter(Boolean).join(" · ");
 			const activity = session.last_activity_at !== null && session.last_activity_at !== void 0 ? displayTime(session.last_activity_at) : void 0;
 			const fitConfidence = visibleFitConfidence(session);
-			return (0, react_jsx_runtime.jsxs)("li", {
-				className: _dsh_css_d1fc3a39f20dee20_default.classicRow,
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
+				className: _dsh_css_1466f4ea44b824f4_default.classicRow,
 				"data-session-health": session.health,
 				"data-session-lifecycle": session.lifecycle,
 				"data-expanded": selected,
 				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.classicHead,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.classicHead,
 						children: [
-							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicDotState(session.health, session.lifecycle) }),
-							(0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.sessionId,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicDotState(session.health, session.lifecycle) }),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.sessionId,
 								title: session.session_dir,
 								children: session.session_id
 							}),
-							(0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.phaseBadge,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.phaseBadge,
 								children: t(CLASSIC_HEALTH_KEYS[session.health])
 							}),
-							(0, react_jsx_runtime.jsx)("button", {
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
-								className: _dsh_css_d1fc3a39f20dee20_default.classicExpand,
+								className: _dsh_css_1466f4ea44b824f4_default.classicExpand,
 								"aria-expanded": selected,
 								"aria-label": selected ? t("detail.collapse") : t("detail.expand"),
 								onClick: onToggle,
-								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, {})
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, {})
 							})
 						]
 					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.classicMetrics,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.classicMetrics,
 						children: [
-							round !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: round }) : null,
-							session.best_speedup !== null && session.best_speedup !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
+							round !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: round }) : null,
+							session.best_speedup !== null && session.best_speedup !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								"data-target-met": session.target_met ?? void 0,
 								children: t("session.best", { speedup: speedup(session.best_speedup) })
 							}) : null,
-							session.target_speedup !== null && session.target_speedup !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("session.target", { speedup: speedup(session.target_speedup) }) }) : null,
-							(0, react_jsx_runtime.jsx)("span", { children: session.phase ?? t("session.unknownPhase") }),
-							details.length > 0 ? (0, react_jsx_runtime.jsx)("span", { children: details }) : null,
-							session.integration_pattern !== null && session.integration_pattern !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.routeBadge,
+							session.target_speedup !== null && session.target_speedup !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("session.target", { speedup: speedup(session.target_speedup) }) }) : null,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: session.phase ?? t("session.unknownPhase") }),
+							details.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: details }) : null,
+							session.integration_pattern !== null && session.integration_pattern !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.routeBadge,
 								children: session.integration_pattern
 							}) : null,
-							session.allow_workflow_authoring === true ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.authoringBadge,
+							session.allow_workflow_authoring === true ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.authoringBadge,
 								children: t("session.authoring", { budget: session.workflow_authoring_budget ?? "—" })
 							}) : null,
-							session.fresh_session != null ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.gateBadge,
+							session.fresh_session != null ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.gateBadge,
 								"data-gate": session.fresh_session,
 								children: t("session.freshGate", { status: t(GATE_KEYS[session.fresh_session]) })
 							}) : null,
-							session.allow_workflow_authoring === true && session.baseline_witness != null ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.gateBadge,
+							session.allow_workflow_authoring === true && session.baseline_witness != null ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.gateBadge,
 								"data-gate": session.baseline_witness,
 								children: t("session.baselineGate", { status: t(GATE_KEYS[session.baseline_witness]) })
 							}) : null,
-							session.allow_workflow_authoring === true && session.dsh_compatibility != null ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.gateBadge,
+							session.allow_workflow_authoring === true && session.dsh_compatibility != null ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.gateBadge,
 								"data-gate": session.dsh_compatibility,
 								children: t("session.dshGate", { status: t(GATE_KEYS[session.dsh_compatibility]) })
 							}) : null,
-							session.allow_workflow_authoring === true && session.candidate_ownership != null ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.gateBadge,
+							session.allow_workflow_authoring === true && session.candidate_ownership != null ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.gateBadge,
 								"data-gate": session.candidate_ownership,
 								children: t("session.ownershipGate", { status: t(GATE_KEYS[session.candidate_ownership]) })
 							}) : null,
-							activity !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("session.lastActivity", { time: activity }) }) : null
+							activity !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("session.lastActivity", { time: activity }) }) : null
 						]
 					}),
-					session.allow_workflow_authoring === true && session.baseline_next_action != null ? (0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.baselineAction,
+					session.allow_workflow_authoring === true && session.baseline_next_action != null ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.baselineAction,
 						"data-baseline-action": session.baseline_next_action,
 						title: session.baseline_reason ?? void 0,
-						children: [(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.baselineActionLabel,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.baselineActionLabel,
 							children: t(BASELINE_ACTION_KEYS[session.baseline_next_action])
-						}), session.baseline_reason != null ? (0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.baselineActionReason,
+						}), session.baseline_reason != null ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.baselineActionReason,
 							children: session.baseline_reason
 						}) : null]
 					}) : null,
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.classicFoot,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.classicFoot,
 						children: [
-							(0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.workflowName,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.workflowName,
 								children: session.selection_status === "stalled" ? t("session.selectorStalled") : session.workflow !== null && session.workflow !== void 0 ? t("session.workflow", { workflow: session.workflow }) : t("session.noWorkflow")
 							}),
-							fitConfidence !== void 0 ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.fitBadge,
+							fitConfidence !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.fitBadge,
 								"data-fit-confidence": fitConfidence,
 								children: t("session.fit", { confidence: fitConfidence })
 							}) : null,
-							session.warningCount > 0 ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.warningCount,
+							session.warningCount > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.warningCount,
 								children: t("session.warnings", { count: session.warningCount })
 							}) : null
 						]
 					}),
-					session.decision !== null && session.decision !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.decisionReason,
+					session.decision !== null && session.decision !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.decisionReason,
 						title: session.decision,
 						children: session.decision
 					}) : null,
-					selected && loading ? (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.detailNote,
+					selected && loading ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.detailNote,
 						children: t("detail.loading")
 					}) : null,
-					selected && error !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.detailError,
+					selected && error !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.detailError,
 						children: error
 					}) : null,
-					selected && !loading && detail !== void 0 ? (0, react_jsx_runtime.jsx)(ClassicSessionDetail, {
+					selected && !loading && detail !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ClassicSessionDetail, {
 						detail,
 						t
 					}) : null
@@ -502,33 +501,33 @@ window.__ModuleLoader__.load({
 		}
 		function CallRow({ call, t }) {
 			const duration = durationSeconds(call.startedTs, call.endedTs);
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: _dsh_css_d1fc3a39f20dee20_default.callRow,
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				className: _dsh_css_1466f4ea44b824f4_default.callRow,
 				"data-call-status": call.status,
 				children: [
-					(0, react_jsx_runtime.jsx)("span", {
-						className: _dsh_css_d1fc3a39f20dee20_default.dotSlot,
-						children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: callDotState(call.status) })
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: _dsh_css_1466f4ea44b824f4_default.dotSlot,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: callDotState(call.status) })
 					}),
-					(0, react_jsx_runtime.jsx)("span", {
-						className: _dsh_css_d1fc3a39f20dee20_default.callLabel,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: _dsh_css_1466f4ea44b824f4_default.callLabel,
 						title: call.callId,
 						children: call.label
 					}),
-					(0, react_jsx_runtime.jsxs)("span", {
-						className: _dsh_css_d1fc3a39f20dee20_default.callMeta,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+						className: _dsh_css_1466f4ea44b824f4_default.callMeta,
 						children: [
 							call.kind === "evaluation" ? t("call.evaluation") : null,
-							call.rolledBack ? (0, react_jsx_runtime.jsx)("span", {
-								className: _dsh_css_d1fc3a39f20dee20_default.badge,
+							call.rolledBack ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: _dsh_css_1466f4ea44b824f4_default.badge,
 								children: t("call.rolledBack")
 							}) : null,
-							duration !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: duration }) : null,
-							call.tokens !== void 0 ? (0, react_jsx_runtime.jsxs)("span", { children: [call.tokens.toLocaleString(), " tk"] }) : null
+							duration !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: duration }) : null,
+							call.tokens !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [call.tokens.toLocaleString(), " tk"] }) : null
 						]
 					}),
-					(0, react_jsx_runtime.jsx)("span", {
-						className: _dsh_css_d1fc3a39f20dee20_default.callStatus,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: _dsh_css_1466f4ea44b824f4_default.callStatus,
 						children: t(CALL_STATUS_KEYS[call.status])
 					})
 				]
@@ -536,59 +535,59 @@ window.__ModuleLoader__.load({
 		}
 		function PhaseSection({ phase, t }) {
 			const title = phase.title.length > 0 ? phase.title : t("phase.empty");
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: _dsh_css_d1fc3a39f20dee20_default.phaseSection,
-				children: [(0, react_jsx_runtime.jsxs)("div", {
-					className: _dsh_css_d1fc3a39f20dee20_default.phaseHeader,
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				className: _dsh_css_1466f4ea44b824f4_default.phaseSection,
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+					className: _dsh_css_1466f4ea44b824f4_default.phaseHeader,
 					children: [
-						(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.dotSlot,
-							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: phaseDotState(phase.status) })
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.dotSlot,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: phaseDotState(phase.status) })
 						}),
-						(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.phaseTitle,
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.phaseTitle,
 							children: title
 						}),
-						(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.phaseSummary,
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.phaseSummary,
 							children: phase.calls.length
 						})
 					]
-				}), phase.calls.map((call) => (0, react_jsx_runtime.jsx)(CallRow, {
+				}), phase.calls.map((call) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CallRow, {
 					call,
 					t
 				}, call.callId))]
 			});
 		}
 		function RunDetail({ view, t }) {
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: _dsh_css_d1fc3a39f20dee20_default.runDetail,
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				className: _dsh_css_1466f4ea44b824f4_default.runDetail,
 				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.runHead,
-						children: [(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.runId,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.runHead,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.runId,
 							title: view.runDir,
 							children: view.runId
-						}), (0, react_jsx_runtime.jsxs)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.statusTail,
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.statusTail,
 							"data-status": view.status,
-							children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: runDotState(view.status) }), (0, react_jsx_runtime.jsx)("span", { children: t(RUN_STATUS_KEYS[view.status]) })]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: runDotState(view.status) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(RUN_STATUS_KEYS[view.status]) })]
 						})]
 					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.runMeta,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.runMeta,
 						children: [
-							view.currentPhase.length > 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("run.currentPhase", { phase: view.currentPhase }) }) : null,
-							(0, react_jsx_runtime.jsx)("span", { children: t("run.calls", { calls: view.totals.calls }) }),
-							view.totals.tokens > 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("run.tokens", { tokens: view.totals.tokens.toLocaleString() }) }) : null
+							view.currentPhase.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("run.currentPhase", { phase: view.currentPhase }) }) : null,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("run.calls", { calls: view.totals.calls }) }),
+							view.totals.tokens > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("run.tokens", { tokens: view.totals.tokens.toLocaleString() }) }) : null
 						]
 					}),
-					view.error !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.runError,
+					view.error !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.runError,
 						children: t("run.error", { message: view.error })
 					}) : null,
-					view.phases.map((phase) => (0, react_jsx_runtime.jsx)(PhaseSection, {
+					view.phases.map((phase) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PhaseSection, {
 						phase,
 						t
 					}, `${phase.index}-${phase.title}`))
@@ -597,32 +596,32 @@ window.__ModuleLoader__.load({
 		}
 		function LauncherControls({ launcher, busy, start, stop, t }) {
 			const labels = new Map(launcher.tasks.map((task) => [task.id, task.label]));
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: _dsh_css_d1fc3a39f20dee20_default.launcher,
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+				className: _dsh_css_1466f4ea44b824f4_default.launcher,
 				"aria-label": t("launcher.title"),
 				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.launcherHead,
-						children: [(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.launcherTitle,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.launcherHead,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.launcherTitle,
 							children: t("launcher.title")
-						}), launcher.active.length > 0 ? (0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.launcherSummary,
+						}), launcher.active.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.launcherSummary,
 							children: t("launcher.running", { count: launcher.active.length })
 						}) : null]
 					}),
-					(0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.taskList,
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.taskList,
 						children: launcher.tasks.map((task) => {
 							const key = `start:${task.id}`;
-							return (0, react_jsx_runtime.jsxs)("div", {
-								className: _dsh_css_d1fc3a39f20dee20_default.taskRow,
-								children: [(0, react_jsx_runtime.jsx)("span", {
-									className: _dsh_css_d1fc3a39f20dee20_default.taskLabel,
+							return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: _dsh_css_1466f4ea44b824f4_default.taskRow,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: _dsh_css_1466f4ea44b824f4_default.taskLabel,
 									children: task.label
-								}), (0, react_jsx_runtime.jsx)("button", {
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
-									className: _dsh_css_d1fc3a39f20dee20_default.controlButton,
+									className: _dsh_css_1466f4ea44b824f4_default.controlButton,
 									disabled: busy !== void 0,
 									onClick: () => {
 										start(task.id);
@@ -633,23 +632,23 @@ window.__ModuleLoader__.load({
 							}, task.id);
 						})
 					}),
-					launcher.active.length > 0 ? (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.activeList,
-						children: launcher.active.map((launch) => (0, react_jsx_runtime.jsxs)("div", {
-							className: _dsh_css_d1fc3a39f20dee20_default.activeRow,
+					launcher.active.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.activeList,
+						children: launcher.active.map((launch) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: _dsh_css_1466f4ea44b824f4_default.activeRow,
 							children: [
-								(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" }),
-								(0, react_jsx_runtime.jsxs)("span", {
-									className: _dsh_css_d1fc3a39f20dee20_default.activeLabel,
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" }),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+									className: _dsh_css_1466f4ea44b824f4_default.activeLabel,
 									title: launch.runDir,
-									children: [labels.get(launch.taskId) ?? launch.taskId, (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.activeRunId,
+									children: [labels.get(launch.taskId) ?? launch.taskId, /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.activeRunId,
 										children: launch.runId
 									})]
 								}),
-								(0, react_jsx_runtime.jsx)("button", {
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
-									className: _dsh_css_d1fc3a39f20dee20_default.controlButton,
+									className: _dsh_css_1466f4ea44b824f4_default.controlButton,
 									disabled: busy !== void 0,
 									onClick: () => {
 										stop(launch.runDir);
@@ -660,8 +659,8 @@ window.__ModuleLoader__.load({
 							]
 						}, launch.runDir))
 					}) : null,
-					launcher.error !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.readError,
+					launcher.error !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.readError,
 						children: t("launcher.error", { message: launcher.error })
 					}) : null
 				]
@@ -723,11 +722,11 @@ window.__ModuleLoader__.load({
 				store.selectClassic(sessionDir);
 				loadClassic(sessionDir);
 			};
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: _dsh_css_d1fc3a39f20dee20_default.layer,
-				children: [(0, react_jsx_runtime.jsxs)("button", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				className: _dsh_css_1466f4ea44b824f4_default.layer,
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 					type: "button",
-					className: _dsh_css_d1fc3a39f20dee20_default.trigger,
+					className: _dsh_css_1466f4ea44b824f4_default.trigger,
 					"aria-expanded": open,
 					"aria-label": t("panel.trigger"),
 					onClick: () => {
@@ -735,48 +734,48 @@ window.__ModuleLoader__.load({
 						if (!open) refresh();
 					},
 					children: [
-						(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.triggerIcon,
-							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, {})
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.triggerIcon,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, {})
 						}),
-						(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.triggerLabel,
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.triggerLabel,
 							children: t("panel.trigger")
 						}),
-						rows.some((row) => row.discovery === "active") || classicSessions.some((session) => session.health === "active") ? (0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.triggerBadge,
-							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" })
+						rows.some((row) => row.discovery === "active") || classicSessions.some((session) => session.health === "active") ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.triggerBadge,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" })
 						}) : null
 					]
-				}), open ? (0, react_jsx_runtime.jsxs)("div", {
-					className: _dsh_css_d1fc3a39f20dee20_default.panel,
+				}), open ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+					className: _dsh_css_1466f4ea44b824f4_default.panel,
 					role: "dialog",
 					"aria-label": t("panel.title"),
-					children: [(0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.header,
-						children: [(0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.title,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.header,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.title,
 							children: t("panel.title")
-						}), (0, react_jsx_runtime.jsx)("span", {
-							className: _dsh_css_d1fc3a39f20dee20_default.note,
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_1466f4ea44b824f4_default.note,
 							children: t("panel.hint")
 						})]
-					}), (0, react_jsx_runtime.jsxs)("div", {
-						className: _dsh_css_d1fc3a39f20dee20_default.body,
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_1466f4ea44b824f4_default.body,
 						children: [
-							state.launcher !== void 0 ? (0, react_jsx_runtime.jsx)(LauncherControls, {
+							state.launcher !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(LauncherControls, {
 								launcher: state.launcher,
 								busy,
 								start: runStart,
 								stop: runStop,
 								t
 							}) : null,
-							state.transportError !== void 0 ? (0, react_jsx_runtime.jsx)("div", {
-								className: _dsh_css_d1fc3a39f20dee20_default.readError,
+							state.transportError !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: _dsh_css_1466f4ea44b824f4_default.readError,
 								children: t("panel.readFailed", { message: state.transportError })
 							}) : null,
-							health !== void 0 && health.state !== "healthy" ? (0, react_jsx_runtime.jsx)("div", {
-								className: _dsh_css_d1fc3a39f20dee20_default.readError,
+							health !== void 0 && health.state !== "healthy" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: _dsh_css_1466f4ea44b824f4_default.readError,
 								"data-source-health": health.state,
 								children: t(health.state === "failed" ? "panel.sourcesFailed" : "panel.sourcesDegraded", {
 									roots: health.roots,
@@ -787,32 +786,32 @@ window.__ModuleLoader__.load({
 									occurrences: health.issue?.occurrences ?? 1
 								})
 							}) : null,
-							state.loading ? (0, react_jsx_runtime.jsx)("div", {
-								className: _dsh_css_d1fc3a39f20dee20_default.note,
+							state.loading ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: _dsh_css_1466f4ea44b824f4_default.note,
 								children: t("panel.loading")
 							}) : null,
-							!state.loading && state.transportError === void 0 && health?.state === "healthy" && rows.length === 0 && classicSessions.length === 0 ? (0, react_jsx_runtime.jsx)("div", {
-								className: _dsh_css_d1fc3a39f20dee20_default.note,
+							!state.loading && state.transportError === void 0 && health?.state === "healthy" && rows.length === 0 && classicSessions.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: _dsh_css_1466f4ea44b824f4_default.note,
 								children: t("panel.empty", { roots: health.roots })
 							}) : null,
-							classicSessions.length > 0 ? (0, react_jsx_runtime.jsxs)("section", {
-								className: _dsh_css_d1fc3a39f20dee20_default.activitySection,
+							classicSessions.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+								className: _dsh_css_1466f4ea44b824f4_default.activitySection,
 								"aria-label": t("session.title"),
-								children: [(0, react_jsx_runtime.jsxs)("div", {
-									className: _dsh_css_d1fc3a39f20dee20_default.sectionHead,
-									children: [(0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.sectionTitle,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+									className: _dsh_css_1466f4ea44b824f4_default.sectionHead,
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.sectionTitle,
 										children: t("session.title")
-									}), (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.sectionSummary,
+									}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.sectionSummary,
 										children: t("session.summary", {
 											count: classicSessions.length,
 											active: classicSessions.filter((session) => session.health === "active").length
 										})
 									})]
-								}), (0, react_jsx_runtime.jsx)("ul", {
-									className: _dsh_css_d1fc3a39f20dee20_default.classicRows,
-									children: classicSessions.map((session) => (0, react_jsx_runtime.jsx)(ClassicSessionRow, {
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ul", {
+									className: _dsh_css_1466f4ea44b824f4_default.classicRows,
+									children: classicSessions.map((session) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ClassicSessionRow, {
 										session,
 										selected: store.selectedClassicSessionDir === session.session_dir,
 										loading: state.classicDetailLoading === session.session_dir,
@@ -825,50 +824,50 @@ window.__ModuleLoader__.load({
 									}, session.session_dir))
 								})]
 							}) : null,
-							rows.length > 0 ? (0, react_jsx_runtime.jsxs)("section", {
-								className: _dsh_css_d1fc3a39f20dee20_default.activitySection,
+							rows.length > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+								className: _dsh_css_1466f4ea44b824f4_default.activitySection,
 								"aria-label": t("run.sectionTitle"),
-								children: [(0, react_jsx_runtime.jsxs)("div", {
-									className: _dsh_css_d1fc3a39f20dee20_default.sectionHead,
-									children: [(0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.sectionTitle,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+									className: _dsh_css_1466f4ea44b824f4_default.sectionHead,
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.sectionTitle,
 										children: t("run.sectionTitle")
-									}), (0, react_jsx_runtime.jsx)("span", {
-										className: _dsh_css_d1fc3a39f20dee20_default.sectionSummary,
+									}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: _dsh_css_1466f4ea44b824f4_default.sectionSummary,
 										children: rows.length
 									})]
-								}), (0, react_jsx_runtime.jsx)("ul", {
-									className: _dsh_css_d1fc3a39f20dee20_default.rows,
-									children: rows.map((row) => (0, react_jsx_runtime.jsxs)("li", {
-										className: _dsh_css_d1fc3a39f20dee20_default.row,
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ul", {
+									className: _dsh_css_1466f4ea44b824f4_default.rows,
+									children: rows.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
+										className: _dsh_css_1466f4ea44b824f4_default.row,
 										"data-run-status": row.discovery,
-										children: [(0, react_jsx_runtime.jsxs)("button", {
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 											type: "button",
-											className: _dsh_css_d1fc3a39f20dee20_default.rowHead,
+											className: _dsh_css_1466f4ea44b824f4_default.rowHead,
 											"aria-pressed": store.selectedRunDir === row.runDir,
 											onClick: () => {
 												store.select(store.selectedRunDir === row.runDir ? void 0 : row.runDir);
 											},
 											children: [
-												(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: row.discovery === "active" ? "ongoing" : row.discovery === "failed" ? "error" : "done" }),
-												(0, react_jsx_runtime.jsx)("span", {
-													className: _dsh_css_d1fc3a39f20dee20_default.runId,
+												/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: row.discovery === "active" ? "ongoing" : row.discovery === "failed" ? "error" : "done" }),
+												/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+													className: _dsh_css_1466f4ea44b824f4_default.runId,
 													children: row.runId
 												}),
-												(0, react_jsx_runtime.jsx)("span", {
-													className: _dsh_css_d1fc3a39f20dee20_default.rowPath,
+												/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+													className: _dsh_css_1466f4ea44b824f4_default.rowPath,
 													title: row.runDir,
 													children: row.sessionDir
 												})
 											]
-										}), store.selectedRunDir === row.runDir && row.view !== void 0 ? (0, react_jsx_runtime.jsx)(RunDetail, {
+										}), store.selectedRunDir === row.runDir && row.view !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(RunDetail, {
 											view: row.view,
 											t
 										}) : null]
 									}, row.runDir))
 								})]
 							}) : null,
-							rows.length > 0 && view !== void 0 && !rows.some((row) => row.runDir === store.selectedRunDir) ? (0, react_jsx_runtime.jsx)(RunDetail, {
+							rows.length > 0 && view !== void 0 && !rows.some((row) => row.runDir === store.selectedRunDir) ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(RunDetail, {
 								view,
 								t
 							}) : null
@@ -878,13 +877,7 @@ window.__ModuleLoader__.load({
 			});
 		}
 		//#endregion
-		//#region lib/types/client/store.js
-		/**
-		* Browser-side KerSor viewer store. One Host snapshot owns inventory,
-		* classic Sessions, and source health; folded run views and launcher process
-		* ownership remain orthogonal client-side accounts.
-		* @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
-		*/
+		//#region src/client/store.ts
 		/** Snapshot store over the Host projection and per-run folded views. */
 		var KersorViewerStore = class {
 			state = {
@@ -1095,7 +1088,7 @@ window.__ModuleLoader__.load({
 			}
 		};
 		//#endregion
-		//#region lib/types/client/locales.js
+		//#region src/client/locales.ts
 		/** KerSor viewer UI dictionaries. */
 		const NS = "kersorViewer";
 		/** Simplified Chinese KerSor viewer messages. */
@@ -1307,12 +1300,7 @@ window.__ModuleLoader__.load({
 			"call.duration": "{seconds}"
 		};
 		//#endregion
-		//#region lib/types/client/index.js
-		/**
-		* KerSor viewer browser half: one atomic Host snapshot plus optional launcher
-		* process ownership, rendered in the sidebar.
-		* @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
-		*/
+		//#region src/client/index.ts
 		/** Required services: viewer UI seams, assembled Remotes, and Host inventory. */
 		const inject = [
 			"slots",

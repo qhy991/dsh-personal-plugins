@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Rebuild portable KerSor plugin artifacts against one DSH checkout.
+"""Verify personal sources and refresh artifacts from one DSH checkout.
 
 The source packages intentionally retain DSH's monorepo-relative TypeScript
 contracts. This command stages them under the expected ``packages/extensions``
-layout, links the selected DSH dependency graph read-only, builds there, and
-copies only generated ``lib`` artifacts back. It never writes the DSH checkout.
+layout, links the selected DSH dependency graph read-only, and builds there.
+After that proof succeeds it copies the selected DSH checkout's authoritative
+``lib`` artifacts back. It never writes the DSH checkout.
 """
 
 from __future__ import annotations
@@ -246,7 +247,10 @@ def build(dsh_root: Path) -> None:
         normalize_generated_bundles(viewer, ui, zod_version)
 
         for name in ("kersor-viewer", "ui-kersor-viewer"):
-            built = extensions / name / "lib"
+            built = require(
+                dsh_root / "packages" / "extensions" / name / "lib",
+                f"DSH-owned {name} artifacts",
+            )
             destination = ROOT / "plugins" / name / "lib"
             shutil.copytree(
                 built,
@@ -270,7 +274,7 @@ def main() -> int:
     except (BuildError, OSError) as exc:
         print(f"BUILD FAILED: {exc}")
         return 1
-    print("Built KerSor viewer host artifacts and browser bundle")
+    print("Verified KerSor sources and refreshed DSH-owned artifacts")
     return 0
 
 

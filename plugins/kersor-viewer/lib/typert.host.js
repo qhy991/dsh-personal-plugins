@@ -8,16 +8,16 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_classicSessionDetail_result$sc
   'current_round': z.number().readonly(),
   'steps': z.array(z.object({
   'id': z.union([z.literal("setup"), z.literal("baseline"), z.literal("profile"), z.literal("selection"), z.literal("authoring"), z.literal("validation"), z.literal("dispatch"), z.literal("measurement"), z.literal("decision")]).readonly(),
-  'status': z.union([z.literal("active"), z.literal("completed"), z.literal("failed"), z.literal("pending")]).readonly(),
+  'status': z.union([z.literal("failed"), z.literal("pending"), z.literal("active"), z.literal("completed")]).readonly(),
 })).readonly(),
   'selection': z.object({
-  'status': z.union([z.literal("stalled"), z.literal("pending"), z.literal("selected")]).readonly(),
+  'status': z.union([z.literal("pending"), z.literal("stalled"), z.literal("selected")]).readonly(),
   'workflow': z.string().readonly().optional(),
   'reason': z.string().readonly().optional(),
   'rejectedCount': z.number().readonly(),
 }).readonly(),
   'authoring': z.object({
-  'status': z.union([z.literal("not_started"), z.literal("in_progress"), z.literal("sealed"), z.literal("saved"), z.literal("rejected")]).readonly(),
+  'status': z.union([z.literal("rejected"), z.literal("not_started"), z.literal("in_progress"), z.literal("sealed"), z.literal("saved")]).readonly(),
   'files': z.array(z.object({
   'name': z.string().readonly(),
   'sha256': z.string().readonly(),
@@ -45,7 +45,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_classicSessionDetail_result$sc
 })).readonly(),
 }).readonly(),
   'dispatch': z.object({
-  'status': z.union([z.literal("completed"), z.literal("failed"), z.literal("pending"), z.literal("running"), z.literal("preparing")]).readonly(),
+  'status': z.union([z.literal("running"), z.literal("failed"), z.literal("pending"), z.literal("completed"), z.literal("preparing")]).readonly(),
   'runDir': z.string().readonly().optional(),
   'runtimeStatus': z.string().readonly().optional(),
 }).readonly(),
@@ -55,20 +55,20 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema = z.u
   'runId': z.string().readonly(),
   'runDir': z.string().readonly(),
   'sessionDir': z.string().readonly(),
-  'status': z.union([z.literal("completed"), z.literal("failed"), z.literal("unknown"), z.literal("running")]),
+  'status': z.union([z.literal("running"), z.literal("failed"), z.literal("completed"), z.literal("unknown")]),
   'startedTs': z.union([z.undefined(), z.string()]).optional(),
   'endedTs': z.union([z.undefined(), z.string()]).optional(),
   'currentPhase': z.string(),
   'phases': z.array(z.object({
   'title': z.string().readonly(),
   'index': z.number().readonly(),
-  'status': z.union([z.literal("completed"), z.literal("failed"), z.literal("running")]),
+  'status': z.union([z.literal("running"), z.literal("failed"), z.literal("completed")]),
   'calls': z.array(z.object({
   'seq': z.number().readonly(),
   'callId': z.string().readonly(),
   'label': z.string().readonly(),
   'kind': z.union([z.literal("agent"), z.literal("evaluation")]).readonly(),
-  'status': z.union([z.literal("completed"), z.literal("failed"), z.literal("running"), z.literal("queued")]),
+  'status': z.union([z.literal("running"), z.literal("failed"), z.literal("completed"), z.literal("queued")]),
   'startedTs': z.union([z.undefined(), z.string()]).optional(),
   'endedTs': z.union([z.undefined(), z.string()]).optional(),
   'tokens': z.union([z.undefined(), z.number()]).optional(),
@@ -91,7 +91,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'runDir': z.string().readonly(),
   'sessionDir': z.string().readonly(),
   'root': z.string().readonly(),
-  'discovery': z.union([z.literal("active"), z.literal("completed"), z.literal("failed")]).readonly(),
+  'discovery': z.union([z.literal("failed"), z.literal("active"), z.literal("completed")]).readonly(),
 })).readonly(),
   'classic': z.object({
   'sessions': z.array(z.object({
@@ -99,7 +99,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'session_dir': z.string().readonly(),
   'storage_kind': z.union([z.literal("v2"), z.literal("legacy")]).readonly(),
   'phase': z.union([z.literal(null), z.string()]).readonly().optional(),
-  'lifecycle': z.union([z.literal("active"), z.literal("completed"), z.literal("stalled"), z.literal("cancelled")]).readonly(),
+  'lifecycle': z.union([z.literal("cancelled"), z.literal("active"), z.literal("completed"), z.literal("stalled")]).readonly(),
   'status': z.union([z.literal("terminal-complete"), z.literal("terminal-stalled"), z.literal("terminal-cancelled"), z.literal("resumable"), z.literal("in-progress"), z.literal("pre-round-1")]).readonly(),
   'health': z.union([z.literal("active"), z.literal("stale"), z.literal("needs_resume"), z.literal("terminal"), z.literal("unknown")]).readonly(),
   'started_at': z.union([z.literal(null), z.string()]).readonly().optional(),
@@ -116,7 +116,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'workflow_authoring_budget': z.union([z.literal(null), z.number()]).readonly().optional(),
   'kernel_name': z.union([z.literal(null), z.string()]).readonly().optional(),
   'workflow': z.union([z.literal(null), z.string()]).readonly().optional(),
-  'selection_status': z.union([z.literal(null), z.literal("stalled"), z.literal("pending"), z.literal("selected")]).readonly().optional(),
+  'selection_status': z.union([z.literal(null), z.literal("pending"), z.literal("stalled"), z.literal("selected")]).readonly().optional(),
   'decision': z.union([z.literal(null), z.string()]).readonly().optional(),
   'fit_confidence': z.union([z.literal(null), z.string()]).readonly().optional(),
   'baseline_witness': z.union([z.literal(null), z.literal("pending"), z.literal("pass"), z.literal("fail"), z.literal("not_required")]).readonly().optional(),
@@ -133,7 +133,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'lastIssue': z.object({
   'stage': z.union([z.literal("checkout_pointer"), z.literal("root_scan"), z.literal("session_inspect"), z.literal("runs_scan"), z.literal("summary_read"), z.literal("backfill_read"), z.literal("event_parse"), z.literal("event_fold"), z.literal("tailer_watch"), z.literal("tailer_read"), z.literal("classic_bridge")]).readonly(),
   'code': z.union([z.literal("not_found"), z.literal("permission_denied"), z.literal("invalid_json"), z.literal("invalid_payload"), z.literal("watch_unavailable"), z.literal("process_unavailable"), z.literal("timeout"), z.literal("io_error"), z.literal("unexpected")]).readonly(),
-  'severity': z.union([z.literal("warning"), z.literal("error")]).readonly(),
+  'severity': z.union([z.literal("error"), z.literal("warning")]).readonly(),
   'occurrences': z.number().readonly(),
   'lastSeenAt': z.string().readonly(),
 }).readonly().optional(),
@@ -141,21 +141,21 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
 }).readonly(),
   'diagnostics': z.object({
   'scan': z.object({
-  'state': z.union([z.literal("failed"), z.literal("healthy"), z.literal("degraded"), z.literal("never"), z.literal("running")]).readonly(),
+  'state': z.union([z.literal("running"), z.literal("failed"), z.literal("healthy"), z.literal("degraded"), z.literal("never")]).readonly(),
   'startedAt': z.string().readonly().optional(),
   'completedAt': z.string().readonly().optional(),
   'lastSuccessfulAt': z.string().readonly().optional(),
   'roots': z.array(z.object({
   'root': z.string().readonly(),
   'origin': z.union([z.literal("configured"), z.literal("default"), z.literal("checkout"), z.literal("workspace")]).readonly(),
-  'state': z.union([z.literal("failed"), z.literal("healthy"), z.literal("degraded"), z.literal("absent")]).readonly(),
+  'state': z.union([z.literal("failed"), z.literal("absent"), z.literal("healthy"), z.literal("degraded")]).readonly(),
   'sessionsExamined': z.number().readonly(),
   'sessionsAccepted': z.number().readonly(),
   'runsFound': z.number().readonly(),
   'lastIssue': z.object({
   'stage': z.union([z.literal("checkout_pointer"), z.literal("root_scan"), z.literal("session_inspect"), z.literal("runs_scan"), z.literal("summary_read"), z.literal("backfill_read"), z.literal("event_parse"), z.literal("event_fold"), z.literal("tailer_watch"), z.literal("tailer_read"), z.literal("classic_bridge")]).readonly(),
   'code': z.union([z.literal("not_found"), z.literal("permission_denied"), z.literal("invalid_json"), z.literal("invalid_payload"), z.literal("watch_unavailable"), z.literal("process_unavailable"), z.literal("timeout"), z.literal("io_error"), z.literal("unexpected")]).readonly(),
-  'severity': z.union([z.literal("warning"), z.literal("error")]).readonly(),
+  'severity': z.union([z.literal("error"), z.literal("warning")]).readonly(),
   'occurrences': z.number().readonly(),
   'lastSeenAt': z.string().readonly(),
 }).readonly().optional(),
@@ -163,7 +163,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'lastIssue': z.object({
   'stage': z.union([z.literal("checkout_pointer"), z.literal("root_scan"), z.literal("session_inspect"), z.literal("runs_scan"), z.literal("summary_read"), z.literal("backfill_read"), z.literal("event_parse"), z.literal("event_fold"), z.literal("tailer_watch"), z.literal("tailer_read"), z.literal("classic_bridge")]).readonly(),
   'code': z.union([z.literal("not_found"), z.literal("permission_denied"), z.literal("invalid_json"), z.literal("invalid_payload"), z.literal("watch_unavailable"), z.literal("process_unavailable"), z.literal("timeout"), z.literal("io_error"), z.literal("unexpected")]).readonly(),
-  'severity': z.union([z.literal("warning"), z.literal("error")]).readonly(),
+  'severity': z.union([z.literal("error"), z.literal("warning")]).readonly(),
   'occurrences': z.number().readonly(),
   'lastSeenAt': z.string().readonly(),
 }).readonly().optional(),
@@ -171,7 +171,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'runs': z.array(z.object({
   'runDir': z.string().readonly(),
   'mode': z.union([z.literal("tail"), z.literal("backfill")]).readonly(),
-  'state': z.union([z.literal("failed"), z.literal("healthy"), z.literal("degraded"), z.literal("waiting"), z.literal("complete")]).readonly(),
+  'state': z.union([z.literal("waiting"), z.literal("failed"), z.literal("complete"), z.literal("healthy"), z.literal("degraded")]).readonly(),
   'byteOffset': z.number().readonly(),
   'linesRead': z.number().readonly(),
   'linesRejected': z.number().readonly(),
@@ -179,7 +179,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'lastIssue': z.object({
   'stage': z.union([z.literal("checkout_pointer"), z.literal("root_scan"), z.literal("session_inspect"), z.literal("runs_scan"), z.literal("summary_read"), z.literal("backfill_read"), z.literal("event_parse"), z.literal("event_fold"), z.literal("tailer_watch"), z.literal("tailer_read"), z.literal("classic_bridge")]).readonly(),
   'code': z.union([z.literal("not_found"), z.literal("permission_denied"), z.literal("invalid_json"), z.literal("invalid_payload"), z.literal("watch_unavailable"), z.literal("process_unavailable"), z.literal("timeout"), z.literal("io_error"), z.literal("unexpected")]).readonly(),
-  'severity': z.union([z.literal("warning"), z.literal("error")]).readonly(),
+  'severity': z.union([z.literal("error"), z.literal("warning")]).readonly(),
   'occurrences': z.number().readonly(),
   'lastSeenAt': z.string().readonly(),
 }).readonly().optional(),

@@ -40,6 +40,7 @@ class MirrorManifestTests(unittest.TestCase):
             self.assertTrue(any("unlisted.spec.ts: mirrored file is absent" in item for item in violations))
             self.assertFalse(any("index.js.map" in item for item in violations))
             self.assertFalse(any("tsconfig.tsbuildinfo" in item for item in violations))
+            self.assertFalse(any("kersor-viewer/tsdown.config.ts" in item for item in violations))
 
     def test_ci_uses_the_manifest_pinned_dsh_toolchain(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(

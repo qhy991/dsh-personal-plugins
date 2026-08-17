@@ -323,15 +323,15 @@ function ClassicSessionRow({ session, selected, detail, loading, error, onToggle
       </div>
       {session.allow_workflow_authoring === true && session.baseline_next_action != null
         ? <div
-            className={css.baselineAction}
-            data-baseline-action={session.baseline_next_action}
-            title={session.baseline_reason ?? undefined}
-          >
-            <span className={css.baselineActionLabel}>{t(BASELINE_ACTION_KEYS[session.baseline_next_action])}</span>
-            {session.baseline_reason != null
-              ? <span className={css.baselineActionReason}>{session.baseline_reason}</span>
-              : null}
-          </div>
+          className={css.baselineAction}
+          data-baseline-action={session.baseline_next_action}
+          title={session.baseline_reason ?? undefined}
+        >
+          <span className={css.baselineActionLabel}>{t(BASELINE_ACTION_KEYS[session.baseline_next_action])}</span>
+          {session.baseline_reason != null
+            ? <span className={css.baselineActionReason}>{session.baseline_reason}</span>
+            : null}
+        </div>
         : null}
       <div className={css.classicFoot}>
         <span className={css.workflowName}>

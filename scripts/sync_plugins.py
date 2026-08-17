@@ -37,6 +37,9 @@ TOP_LEVEL_FILES = (
 )
 MIRROR_DIRECTORIES = ("src", "tests", "lib")
 BUILD_INTERNAL_SUFFIXES = (".map", ".tsbuildinfo")
+DISTRIBUTION_OWNED_FILES = {
+    PurePosixPath("plugins/kersor-viewer/tsdown.config.ts"),
+}
 
 
 class MirrorError(RuntimeError):
@@ -59,8 +62,11 @@ def selected_relative_files(root: Path, prefix: str) -> list[PurePosixPath]:
         package_root = root / prefix / package
         for name in TOP_LEVEL_FILES:
             path = package_root / name
-            if path.is_file():
-                selected.append(PurePosixPath(prefix, package, name))
+            relative = PurePosixPath(prefix, package, name)
+            if path.is_file() and not (
+                prefix == "plugins" and relative in DISTRIBUTION_OWNED_FILES
+            ):
+                selected.append(relative)
         for directory in MIRROR_DIRECTORIES:
             directory_root = package_root / directory
             if not directory_root.is_dir():
