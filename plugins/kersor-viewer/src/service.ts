@@ -12,6 +12,8 @@ import z from '@deepseek-ai/schemastery'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { createRunView, foldEvent } from './fold.ts'
 import type { KersorEvent, KersorRunView } from './fold.ts'
+import { readClassicSessions } from './classic.ts'
+import type { KersorClassicSnapshot } from './classic.ts'
 import { scanRoots } from './scanner.ts'
 import type { KersorRunRef } from './scanner.ts'
 import { EventsTailer } from './tailer.ts'
@@ -19,10 +21,12 @@ import type { KersorViewerFrame } from './types.ts'
 
 export type { KersorEvent, KersorRunView } from './fold.ts'
 export type { KersorRunRef } from './scanner.ts'
+export type { KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot } from './classic.ts'
 export type { KersorViewerFrame } from './types.ts'
 export { EventsTailer } from './tailer.ts'
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from './scanner.ts'
 export { createRunView, foldEvent } from './fold.ts'
+export { installedBridge, readClassicSessions } from './classic.ts'
 
 /** Viewer configuration (cordis.patch.yml row config). */
 export interface Config {
@@ -32,6 +36,8 @@ export interface Config {
   noDefaultRoots?: boolean
   /** Discovery rescan interval in milliseconds. */
   scanIntervalMs?: number
+  /** Number of recent classic optimization Sessions shown; zero disables it. */
+  classicSessionLimit?: number
 }
 
 interface TrackedRun {
@@ -49,16 +55,20 @@ export class KersorViewerService extends TypertRemoteService {
     roots: z.array(z.string()).default([]),
     noDefaultRoots: z.boolean().default(false),
     scanIntervalMs: z.number().min(500).default(5000),
+    classicSessionLimit: z.number().step(1).min(0).max(100).default(20),
   })
 
   private readonly rootCtx: Context
   private readonly configuredRoots: string[]
   private readonly includeDefaults: boolean
   private readonly scanIntervalMs: number
+  private readonly classicSessionLimit: number
   private readonly tracked = new Map<string, TrackedRun>()
   private group: Fiber | undefined
   private scanTimer: NodeJS.Timeout | undefined
   private emittedRunsSignature = ''
+  private classicSnapshot: KersorClassicSnapshot = { sessions: [] }
+  private scanInFlight: Promise<void> | undefined
 
   /** Create the service under the Host composition. */
   constructor(ctx: Context, config: Config) {
@@ -67,6 +77,7 @@ export class KersorViewerService extends TypertRemoteService {
     this.configuredRoots = config.roots ?? []
     this.includeDefaults = !(config.noDefaultRoots ?? false)
     this.scanIntervalMs = config.scanIntervalMs ?? 5000
+    this.classicSessionLimit = config.classicSessionLimit ?? 20
   }
 
   /** Start discovery and tailing under the plugin's fiber once ready. */
@@ -105,6 +116,12 @@ export class KersorViewerService extends TypertRemoteService {
       .sort((left, right) => rank(right) - rank(left) || right.runId.localeCompare(left.runId))
   }
 
+  /** Recent classic and Session-v2 optimization summaries from KerSor stores. */
+  @Remote('listClassicSessions')
+  listClassicSessions(): KersorClassicSnapshot {
+    return this.classicSnapshot
+  }
+
   /** Full folded view of one run (panel open / reconnect backlog). */
   @Remote('runBacklog')
   runBacklog(runDir: string): KersorRunView | undefined {
@@ -113,7 +130,24 @@ export class KersorViewerService extends TypertRemoteService {
 
   /** Rescan roots; start and stop tailers to match discovery. */
   async rescan(): Promise<void> {
-    const found = await scanRoots(this.configuredRoots, this.includeDefaults)
+    if (this.scanInFlight !== undefined) return this.scanInFlight
+    const current = this.performRescan()
+    this.scanInFlight = current
+    try {
+      await current
+    } finally {
+      if (this.scanInFlight === current) this.scanInFlight = undefined
+    }
+  }
+
+  private async performRescan(): Promise<void> {
+    const [found, classicSnapshot] = await Promise.all([
+      scanRoots(this.configuredRoots, this.includeDefaults),
+      this.classicSessionLimit === 0
+        ? Promise.resolve({ sessions: [] } satisfies KersorClassicSnapshot)
+        : readClassicSessions(this.classicSessionLimit),
+    ])
+    this.classicSnapshot = classicSnapshot
     const byRunDir = new Map(found.map(ref => [ref.runDir, ref]))
     for (const [runDir, tracked] of this.tracked) {
       if (byRunDir.has(runDir)) continue

@@ -225,6 +225,136 @@
   color: var(--dsw-alias-state-business-primary);
 }
 
+.activitySection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sectionHead,
+.classicHead,
+.classicFoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionHead {
+  justify-content: space-between;
+  min-height: 24px;
+  padding: 0 2px;
+}
+
+.sectionTitle {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 510;
+  line-height: 18px;
+}
+
+.sectionSummary {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.classicRows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.classicRow {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.classicRow[data-session-lifecycle='active'] {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.classicHead {
+  min-width: 0;
+}
+
+.sessionId {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 510;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phaseBadge {
+  flex: none;
+  max-width: 42%;
+  overflow: hidden;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.classicMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.classicMetrics [data-target-met='true'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.classicFoot {
+  justify-content: space-between;
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.workflowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.warningCount {
+  flex: none;
+  color: var(--dsw-alias-state-warn-label);
+  cursor: help;
+}
+
+@media (max-width: 520px) {
+  .classicRows {
+    grid-template-columns: 1fr;
+  }
+}
+
 .rows {
   display: flex;
   flex-direction: column;

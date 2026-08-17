@@ -1,7 +1,7 @@
 {
   "name": "@qhy991/dsh-kersor-web",
-  "description": "Read-only KerSor run viewer and sidebar composition for the DSH web profile",
-  "version": "0.1.0",
+  "description": "Read-only KerSor optimization Session and Workflow viewer for the DSH web profile",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "license": "MIT",

@@ -43,11 +43,13 @@ import { Service } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import { createRunView, foldEvent } from "./fold.js";
+import { readClassicSessions } from "./classic.js";
 import { scanRoots } from "./scanner.js";
 import { EventsTailer } from "./tailer.js";
 export { EventsTailer } from "./tailer.js";
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from "./scanner.js";
 export { createRunView, foldEvent } from "./fold.js";
+export { installedBridge, readClassicSessions } from "./classic.js";
 /**
  * Host service: run inventory, live event folding, and browser push. Exposes
  * `listRuns` and `runBacklog` remotes for panel open and reconnect.
@@ -56,13 +58,16 @@ let KersorViewerService = (() => {
     let _classSuper = TypertRemoteService;
     let _instanceExtraInitializers = [];
     let _listRuns_decorators;
+    let _listClassicSessions_decorators;
     let _runBacklog_decorators;
     return class KersorViewerService extends _classSuper {
         static {
             const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
             _listRuns_decorators = [Remote('listRuns')];
+            _listClassicSessions_decorators = [Remote('listClassicSessions')];
             _runBacklog_decorators = [Remote('runBacklog')];
             __esDecorate(this, null, _listRuns_decorators, { kind: "method", name: "listRuns", static: false, private: false, access: { has: obj => "listRuns" in obj, get: obj => obj.listRuns }, metadata: _metadata }, null, _instanceExtraInitializers);
+            __esDecorate(this, null, _listClassicSessions_decorators, { kind: "method", name: "listClassicSessions", static: false, private: false, access: { has: obj => "listClassicSessions" in obj, get: obj => obj.listClassicSessions }, metadata: _metadata }, null, _instanceExtraInitializers);
             __esDecorate(this, null, _runBacklog_decorators, { kind: "method", name: "runBacklog", static: false, private: false, access: { has: obj => "runBacklog" in obj, get: obj => obj.runBacklog }, metadata: _metadata }, null, _instanceExtraInitializers);
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
@@ -70,15 +75,19 @@ let KersorViewerService = (() => {
             roots: z.array(z.string()).default([]),
             noDefaultRoots: z.boolean().default(false),
             scanIntervalMs: z.number().min(500).default(5000),
+            classicSessionLimit: z.number().step(1).min(0).max(100).default(20),
         });
         rootCtx = __runInitializers(this, _instanceExtraInitializers);
         configuredRoots;
         includeDefaults;
         scanIntervalMs;
+        classicSessionLimit;
         tracked = new Map();
         group;
         scanTimer;
         emittedRunsSignature = '';
+        classicSnapshot = { sessions: [] };
+        scanInFlight;
         /** Create the service under the Host composition. */
         constructor(ctx, config) {
             super(ctx, 'kersorViewer');
@@ -86,6 +95,7 @@ let KersorViewerService = (() => {
             this.configuredRoots = config.roots ?? [];
             this.includeDefaults = !(config.noDefaultRoots ?? false);
             this.scanIntervalMs = config.scanIntervalMs ?? 5000;
+            this.classicSessionLimit = config.classicSessionLimit ?? 20;
         }
         /** Start discovery and tailing under the plugin's fiber once ready. */
         *[Service.init]() {
@@ -122,13 +132,36 @@ let KersorViewerService = (() => {
             return [...this.tracked.values()].map(tracked => tracked.ref)
                 .sort((left, right) => rank(right) - rank(left) || right.runId.localeCompare(left.runId));
         }
+        /** Recent classic and Session-v2 optimization summaries from KerSor stores. */
+        listClassicSessions() {
+            return this.classicSnapshot;
+        }
         /** Full folded view of one run (panel open / reconnect backlog). */
         runBacklog(runDir) {
             return this.tracked.get(runDir)?.view;
         }
         /** Rescan roots; start and stop tailers to match discovery. */
         async rescan() {
-            const found = await scanRoots(this.configuredRoots, this.includeDefaults);
+            if (this.scanInFlight !== undefined)
+                return this.scanInFlight;
+            const current = this.performRescan();
+            this.scanInFlight = current;
+            try {
+                await current;
+            }
+            finally {
+                if (this.scanInFlight === current)
+                    this.scanInFlight = undefined;
+            }
+        }
+        async performRescan() {
+            const [found, classicSnapshot] = await Promise.all([
+                scanRoots(this.configuredRoots, this.includeDefaults),
+                this.classicSessionLimit === 0
+                    ? Promise.resolve({ sessions: [] })
+                    : readClassicSessions(this.classicSessionLimit),
+            ]);
+            this.classicSnapshot = classicSnapshot;
             const byRunDir = new Map(found.map(ref => [ref.runDir, ref]));
             for (const [runDir, tracked] of this.tracked) {
                 if (byRunDir.has(runDir))

@@ -8,6 +8,7 @@
 import type { KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorRunRef } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorViewerFrame } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type { KersorClassicSession, KersorClassicSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorActiveFrame, KersorActiveLaunch, KersorTaskRef } from '@deepseek-ai/dsh-kersor/types'
 
 export interface KersorRunRow extends KersorRunRef {
@@ -16,6 +17,8 @@ export interface KersorRunRow extends KersorRunRef {
 
 export interface KersorViewerState {
   readonly rows: readonly KersorRunRow[]
+  readonly classicSessions: readonly KersorClassicSession[]
+  readonly classicWarning?: string
   readonly loading: boolean
   readonly error?: string
   /** Present only while the optional Host launcher namespace is available. */
@@ -30,7 +33,7 @@ type Listener = () => void
 
 /** Snapshot store over the run inventory and per-run folded views. */
 export class KersorViewerStore {
-  private state: KersorViewerState = { rows: [], loading: true }
+  private state: KersorViewerState = { rows: [], classicSessions: [], loading: true }
   private readonly listeners = new Set<Listener>()
   private selected: string | undefined
 
@@ -68,6 +71,24 @@ export class KersorViewerStore {
     const byDir = new Map(this.state.rows.map(row => [row.runDir, row]))
     const rows = refs.map(ref => ({ ...ref, view: byDir.get(ref.runDir)?.view }) satisfies KersorRunRow)
     this.state = { ...this.state, rows, loading: false }
+    this.emit()
+  }
+
+  /** Replace the classic optimization Session inventory independently. */
+  setClassic(snapshot: KersorClassicSnapshot): void {
+    const next = { ...this.state, classicSessions: snapshot.sessions }
+    if (snapshot.warning === undefined) {
+      const { classicWarning: _, ...state } = next
+      this.state = state
+    } else {
+      this.state = { ...next, classicWarning: snapshot.warning }
+    }
+    this.emit()
+  }
+
+  /** Keep a classic-adapter failure separate from autonomous-run reads. */
+  setClassicWarning(message: string): void {
+    this.state = { ...this.state, classicWarning: message }
     this.emit()
   }
 
@@ -130,7 +151,7 @@ export class KersorViewerStore {
 
   /** Drop everything (connection reset). */
   reset(): void {
-    this.state = { rows: [], loading: true }
+    this.state = { rows: [], classicSessions: [], loading: true }
     this.selected = undefined
     this.emit()
   }

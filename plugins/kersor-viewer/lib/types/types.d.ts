@@ -7,6 +7,7 @@ import type { KersorRunView } from './fold.ts';
 import type { KersorRunRef } from './scanner.ts';
 export type { KersorRunStatus, KersorCallStatus, KersorCallKind, KersorCallView, KersorPhaseView, KersorRunView } from './fold.ts';
 export type { KersorRunDiscovery, KersorRunRef } from './scanner.ts';
+export type { KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot } from './classic.ts';
 /** Inventory or folded-run frame pushed to browser consumers. */
 export type KersorViewerFrame = {
     kind: 'runs';

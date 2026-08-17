@@ -31,7 +31,14 @@ dsh plugin --profile web add --force "file:$PWD/bundles/kersor-web"
 
 若 `dsh` 未加入 `PATH`，可在 DSH checkout 中用 `pnpm dsh plugin --profile web add ...` 执行同一操作，并把 `file:` 后的路径写成此仓库 bundle 的绝对路径。
 
-该 bundle 会安装三个插件，但默认只挂载只读 viewer 与 UI。`@deepseek-ai/dsh-kersor` 启动器只有在 profile patch 中显式登记至少一个 `kersor-mission-v1` Mission 后才应挂载；配置合同见 [`plugins/kersor/README.zh.md`](plugins/kersor/README.zh.md)。更新仓库后重跑同一条 `add --force` 命令即可刷新 profile 内的打包副本。
+该 bundle 会安装三个插件，但默认只挂载只读 viewer 与 UI。`@deepseek-ai/dsh-kersor` 启动器只有在 profile patch 中显式登记至少一个 `kersor-mission-v1` Mission 后才应挂载；配置合同见 [`plugins/kersor/README.zh.md`](plugins/kersor/README.zh.md)。
+
+更新仓库后，先移除再重装这一精确 bundle，确保 pnpm 不复用旧的本地目录快照：
+
+```bash
+dsh plugin --profile web remove @qhy991/dsh-kersor-web
+dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
+```
 
 若 DSH 使用非默认位置：
 
@@ -48,7 +55,7 @@ python3 scripts/install.py \
 
 `kersor_status` 工具默认读取当前 DSH task 的工作区，展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence 和最近决策。结果使用 DSH 原生可回放卡片；传入子路径时只允许当前工作区内部，避免 host-side bridge 越过 DSH 会话边界。
 
-Web 侧栏每两秒读取 KerSor 的 `summary.json`／`events.jsonl` 折叠快照，显示 run、phase、agent/evaluation call、耗时、token、回滚和终态。`waiting` 按本次 invocation 的终态处理；短暂断连或漏帧会由下一次快照自动恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`，路径只有一个机器侧权威来源。
+Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以及 autonomous run 的实时进度。经典状态由 KerSor 自己的 `SessionStore`／`AttemptResultStore` 解析；侧栏不复制 legacy frontmatter 规则。run 视图每两秒读取 `summary.json`／`events.jsonl` 折叠快照，显示 phase、agent/evaluation call、耗时、token、回滚和终态。`waiting` 按本次 invocation 的终态处理；短暂断连或漏帧会由下一次快照自动恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`，路径只有一个机器侧权威来源。
 
 环境变量 `KERSOR_ROOT` 可以临时覆盖安装时记录的 checkout：
 
@@ -69,8 +76,8 @@ python3 scripts/check.py
 ```text
 bundles/kersor-web/         # Web profile 的只读 viewer + UI 组合层
 plugins/kersor/             # 可选有限 Mission 启动器（Host）
-plugins/kersor-viewer/      # run 发现、tail、fold 与 snapshot remotes
-plugins/ui-kersor-viewer/   # Web 侧栏（Client）
+plugins/kersor-viewer/      # Session 摘要、run 发现、tail、fold 与 snapshot remotes
+plugins/ui-kersor-viewer/   # 优化会话与 run 的 Web 侧栏（Client）
 presets/kersor/
   preset.yml                 # DSH picker metadata
   skills/kersor/SKILL.md     # 只负责路由到 KerSor 的轻量适配层

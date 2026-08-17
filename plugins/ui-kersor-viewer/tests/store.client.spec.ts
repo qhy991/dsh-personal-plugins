@@ -33,6 +33,35 @@ describe('inventory', () => {
     expect(store.getSnapshot().loading).toBe(false)
   })
 
+  it('keeps classic optimization Sessions separate from autonomous runs', () => {
+    const store = new KersorViewerStore()
+    store.setClassic({
+      sessions: [{
+        session_id: '20260817-120000',
+        session_dir: '/sessions/20260817-120000',
+        storage_kind: 'legacy',
+        phase: 'optimizing',
+        lifecycle: 'active',
+        current_round: 2,
+        max_workflows: 4,
+        best_speedup: 1.25,
+        warnings: [],
+      }],
+    })
+    expect(store.getSnapshot().classicSessions[0]).toMatchObject({
+      session_id: '20260817-120000', lifecycle: 'active', best_speedup: 1.25,
+    })
+    expect(store.getSnapshot().rows).toEqual([])
+  })
+
+  it('replaces and clears the non-fatal classic bridge warning', () => {
+    const store = new KersorViewerStore()
+    store.setClassic({ sessions: [], warning: 'bridge unavailable' })
+    expect(store.getSnapshot().classicWarning).toBe('bridge unavailable')
+    store.setClassic({ sessions: [] })
+    expect(store.getSnapshot().classicWarning).toBeUndefined()
+  })
+
   it('a runs frame replaces the inventory but keeps folded views', () => {
     const store = new KersorViewerStore()
     store.applyFrame(runFrame())

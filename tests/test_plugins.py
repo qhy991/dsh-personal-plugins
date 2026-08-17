@@ -71,6 +71,8 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn('ctx.get("remote.kersorViewer")', client)
         self.assertNotIn("ctx.remote.kersorViewer", client)
         self.assertIn("kersor-viewer: remote snapshot polling", client)
+        self.assertIn("listClassicSessions", client)
+        self.assertIn("classicSessions", client)
 
     def test_pure_viewer_fold_and_browser_store_compose(self) -> None:
         script = r'''
@@ -186,6 +188,49 @@ console.log(JSON.stringify(await scanner.scanRoots([], true)))
             self.assertEqual(completed.returncode, 0, completed.stderr)
             value = json.loads(completed.stdout)
             self.assertTrue(any(item["runDir"] == str(run) for item in value))
+
+    def test_built_classic_adapter_uses_the_installed_preset_bridge(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bridge = (
+                root / "dsh" / ".agent-presets" / "kersor" / "bin" / "kersor_bridge.py"
+            )
+            bridge.parent.mkdir(parents=True)
+            bridge.write_text(
+                """import json
+print(json.dumps({"sessions": [{"session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "legacy", "phase": "optimizing", "lifecycle": "active", "warnings": []}]}))
+""",
+                encoding="utf-8",
+            )
+            script = r'''
+import { pathToFileURL } from 'node:url'
+const viewer = await import(pathToFileURL(process.env.VIEWER).href)
+console.log(JSON.stringify(await viewer.readClassicSessions(1)))
+'''
+            environment = dict(os.environ)
+            environment.update(
+                {
+                    "DSH_HOME": str(root / "dsh"),
+                    "VIEWER": str(
+                        ROOT
+                        / "plugins"
+                        / "kersor-viewer"
+                        / "lib"
+                        / "types"
+                        / "classic.js"
+                    ),
+                }
+            )
+            completed = subprocess.run(
+                ["node", "--input-type=module", "--eval", script],
+                check=False,
+                capture_output=True,
+                text=True,
+                env=environment,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            value = json.loads(completed.stdout)
+            self.assertEqual(value["sessions"][0]["session_id"], "s1")
 
 
 if __name__ == "__main__":

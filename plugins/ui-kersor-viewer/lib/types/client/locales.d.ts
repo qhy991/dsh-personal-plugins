@@ -2,12 +2,23 @@
 export declare const NS = "kersorViewer";
 /** Simplified Chinese KerSor viewer messages. */
 export declare const zh: {
-    readonly 'panel.trigger': "KerSor 运行";
-    readonly 'panel.title': "KerSor Workflow 运行";
-    readonly 'panel.empty': "没有发现任何 KerSor 运行";
+    readonly 'panel.trigger': "KerSor 活动";
+    readonly 'panel.title': "KerSor 活动";
+    readonly 'panel.empty': "没有发现 KerSor 优化会话或 Workflow 运行";
     readonly 'panel.loading': "读取中…";
     readonly 'panel.readFailed': "读取运行清单失败：{message}";
-    readonly 'panel.hint': "在左侧栏底部查看 KerSor workflow 的实时进度";
+    readonly 'panel.hint': "优化会话摘要与 Workflow 实时进度";
+    readonly 'session.title': "优化会话";
+    readonly 'session.count': "最近 {count} 个";
+    readonly 'session.round': "第 {current}/{maximum} 轮";
+    readonly 'session.roundOpen': "第 {current} 轮";
+    readonly 'session.best': "最佳 {speedup}x";
+    readonly 'session.target': "目标 {speedup}x";
+    readonly 'session.workflow': "Workflow：{workflow}";
+    readonly 'session.noWorkflow': "尚未选择 Workflow";
+    readonly 'session.unknownPhase': "未知阶段";
+    readonly 'session.warnings': "{count} 个状态提醒";
+    readonly 'run.sectionTitle': "Autonomous Workflow";
     readonly 'launcher.title': "任务控制";
     readonly 'launcher.start': "启动";
     readonly 'launcher.stop': "停止";
@@ -34,12 +45,23 @@ export declare const zh: {
 };
 /** English KerSor viewer messages. */
 export declare const en: {
-    readonly 'panel.trigger': "KerSor runs";
-    readonly 'panel.title': "KerSor Workflow runs";
-    readonly 'panel.empty': "No KerSor runs discovered";
+    readonly 'panel.trigger': "KerSor activity";
+    readonly 'panel.title': "KerSor activity";
+    readonly 'panel.empty': "No KerSor optimization Sessions or Workflow runs discovered";
     readonly 'panel.loading': "Loading…";
     readonly 'panel.readFailed': "Reading the run inventory failed: {message}";
-    readonly 'panel.hint': "Live KerSor workflow progress in the left sidebar footer";
+    readonly 'panel.hint': "Optimization summaries and live Workflow progress";
+    readonly 'session.title': "Optimization Sessions";
+    readonly 'session.count': "Latest {count}";
+    readonly 'session.round': "Round {current}/{maximum}";
+    readonly 'session.roundOpen': "Round {current}";
+    readonly 'session.best': "Best {speedup}x";
+    readonly 'session.target': "Target {speedup}x";
+    readonly 'session.workflow': "Workflow: {workflow}";
+    readonly 'session.noWorkflow': "No Workflow selected yet";
+    readonly 'session.unknownPhase': "Unknown phase";
+    readonly 'session.warnings': "{count} status warning(s)";
+    readonly 'run.sectionTitle': "Autonomous Workflows";
     readonly 'launcher.title': "Task controls";
     readonly 'launcher.start': "Start";
     readonly 'launcher.stop': "Stop";

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-kersor-viewer",
-  "description": "KerSor autonomous-workflow host service: run discovery, events.jsonl tailing, and folded-view snapshot remotes",
-  "version": "0.1.0-rc.5",
+  "description": "KerSor host viewer: classic optimization Session summaries plus autonomous-workflow live progress",
+  "version": "0.1.0-rc.6",
   "publishConfig": {
     "access": "public"
   },

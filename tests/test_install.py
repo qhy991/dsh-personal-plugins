@@ -232,6 +232,38 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(value["target_met"], False)
         self.assertEqual(value["rounds"][0]["decision"].split(":", 1)[0], "CONTINUE")
 
+    def test_sessions_bridge_lists_bounded_recent_store_snapshots(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        # The inventory is checkout-scoped, matching the installed preset's
+        # canonical KerSor root rather than a caller-selected workspace.
+        checkout_session = self.kersor / ".kersor" / session.name
+        checkout_session.parent.mkdir()
+        shutil.copytree(session, checkout_session)
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "sessions",
+                "--limit",
+                "1",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        value = json.loads(completed.stdout)
+        self.assertEqual(len(value["sessions"]), 1)
+        row = value["sessions"][0]
+        self.assertEqual(row["session_id"], session.name)
+        self.assertEqual(row["storage_kind"], "v2")
+        self.assertEqual(row["lifecycle"], "active")
+        self.assertEqual(row["best_speedup"], 1.25)
+        self.assertEqual(row["kernel_name"], "kernel.cu")
+        self.assertNotIn("kernel_path", row)
+
     @unittest.skipIf(shutil.which("node") is None, "Node.js is required by DSH")
     def test_status_tool_executes_and_rejects_workspace_escape(self) -> None:
         project = self.make_status_project()

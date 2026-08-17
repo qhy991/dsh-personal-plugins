@@ -1,8 +1,10 @@
 import { Service } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
-import { open, readFile, readdir } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { access, open, readFile, readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { watch } from "node:fs";
 //#region ../../../vendor/cosmokit/src/misc.ts
 /** Return true when a value is `null` or `undefined`. */
@@ -958,6 +960,68 @@ function createRunView(runId, runDir, sessionDir) {
 	};
 }
 //#endregion
+//#region lib/types/classic.js
+/**
+* Read-only adapter from the installed KerSor preset bridge to the viewer.
+* KerSor's Python SessionStore remains the canonical parser for both v2 and
+* legacy state; this module only launches the bounded projection and checks
+* its wire shape.
+* @module @deepseek-ai/dsh-kersor-viewer
+*/
+const execFileAsync = promisify(execFile);
+function dshHome() {
+	const configured = process.env.DSH_HOME?.trim();
+	if (!configured) return path.join(homedir(), ".dsh");
+	if (configured === "~") return homedir();
+	return configured.startsWith("~/") ? path.join(homedir(), configured.slice(2)) : path.resolve(configured);
+}
+/** Path copied by the portable preset installer. */
+function installedBridge() {
+	return path.join(dshHome(), ".agent-presets", "kersor", "bin", "kersor_bridge.py");
+}
+function isClassicSession(value) {
+	if (value === null || typeof value !== "object") return false;
+	const row = value;
+	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
+}
+/** Invoke the installed bridge without a shell and return a bounded snapshot. */
+async function readClassicSessions(limit) {
+	const bridge = installedBridge();
+	try {
+		await access(bridge);
+	} catch {
+		return { sessions: [] };
+	}
+	try {
+		const { stdout } = await execFileAsync("python3", [
+			bridge,
+			"sessions",
+			"--limit",
+			String(limit)
+		], {
+			encoding: "utf8",
+			maxBuffer: 2 * 1024 * 1024,
+			timeout: 1e4
+		});
+		const decoded = JSON.parse(stdout);
+		if (!Array.isArray(decoded.sessions) || !decoded.sessions.every(isClassicSession)) return {
+			sessions: [],
+			warning: "KerSor bridge returned an invalid session inventory"
+		};
+		const warning = Array.isArray(decoded.warnings) && decoded.warnings.every((item) => typeof item === "string") && decoded.warnings.length > 0 ? decoded.warnings.join("; ") : void 0;
+		return {
+			sessions: decoded.sessions.slice(0, limit),
+			...warning === void 0 ? {} : { warning }
+		};
+	} catch (error) {
+		const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : void 0;
+		return {
+			sessions: [],
+			warning: `KerSor session inventory unavailable${code === void 0 ? "" : ` (${code})`}`
+		};
+	}
+}
+//#endregion
 //#region lib/types/scanner.js
 /**
 * Root-directory discovery of KerSor autonomous runs. A root is scanned for
@@ -1203,11 +1267,13 @@ let KersorViewerService = (() => {
 	let _classSuper = TypertRemoteService;
 	let _instanceExtraInitializers = [];
 	let _listRuns_decorators;
+	let _listClassicSessions_decorators;
 	let _runBacklog_decorators;
 	return class KersorViewerService extends _classSuper {
 		static {
 			const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
 			_listRuns_decorators = [Remote("listRuns")];
+			_listClassicSessions_decorators = [Remote("listClassicSessions")];
 			_runBacklog_decorators = [Remote("runBacklog")];
 			__esDecorate(this, null, _listRuns_decorators, {
 				kind: "method",
@@ -1217,6 +1283,17 @@ let KersorViewerService = (() => {
 				access: {
 					has: (obj) => "listRuns" in obj,
 					get: (obj) => obj.listRuns
+				},
+				metadata: _metadata
+			}, null, _instanceExtraInitializers);
+			__esDecorate(this, null, _listClassicSessions_decorators, {
+				kind: "method",
+				name: "listClassicSessions",
+				static: false,
+				private: false,
+				access: {
+					has: (obj) => "listClassicSessions" in obj,
+					get: (obj) => obj.listClassicSessions
 				},
 				metadata: _metadata
 			}, null, _instanceExtraInitializers);
@@ -1241,16 +1318,20 @@ let KersorViewerService = (() => {
 		static Config = Schema.object({
 			roots: Schema.array(Schema.string()).default([]),
 			noDefaultRoots: Schema.boolean().default(false),
-			scanIntervalMs: Schema.number().min(500).default(5e3)
+			scanIntervalMs: Schema.number().min(500).default(5e3),
+			classicSessionLimit: Schema.number().step(1).min(0).max(100).default(20)
 		});
 		rootCtx = __runInitializers(this, _instanceExtraInitializers);
 		configuredRoots;
 		includeDefaults;
 		scanIntervalMs;
+		classicSessionLimit;
 		tracked = /* @__PURE__ */ new Map();
 		group;
 		scanTimer;
 		emittedRunsSignature = "";
+		classicSnapshot = { sessions: [] };
+		scanInFlight;
 		/** Create the service under the Host composition. */
 		constructor(ctx, config) {
 			super(ctx, "kersorViewer");
@@ -1258,6 +1339,7 @@ let KersorViewerService = (() => {
 			this.configuredRoots = config.roots ?? [];
 			this.includeDefaults = !(config.noDefaultRoots ?? false);
 			this.scanIntervalMs = config.scanIntervalMs ?? 5e3;
+			this.classicSessionLimit = config.classicSessionLimit ?? 20;
 		}
 		/** Start discovery and tailing under the plugin's fiber once ready. */
 		*[Service.init]() {
@@ -1292,13 +1374,28 @@ let KersorViewerService = (() => {
 		listRuns() {
 			return [...this.tracked.values()].map((tracked) => tracked.ref).sort((left, right) => rank(right) - rank(left) || right.runId.localeCompare(left.runId));
 		}
+		/** Recent classic and Session-v2 optimization summaries from KerSor stores. */
+		listClassicSessions() {
+			return this.classicSnapshot;
+		}
 		/** Full folded view of one run (panel open / reconnect backlog). */
 		runBacklog(runDir) {
 			return this.tracked.get(runDir)?.view;
 		}
 		/** Rescan roots; start and stop tailers to match discovery. */
 		async rescan() {
-			const found = await scanRoots(this.configuredRoots, this.includeDefaults);
+			if (this.scanInFlight !== void 0) return this.scanInFlight;
+			const current = this.performRescan();
+			this.scanInFlight = current;
+			try {
+				await current;
+			} finally {
+				if (this.scanInFlight === current) this.scanInFlight = void 0;
+			}
+		}
+		async performRescan() {
+			const [found, classicSnapshot] = await Promise.all([scanRoots(this.configuredRoots, this.includeDefaults), this.classicSessionLimit === 0 ? Promise.resolve({ sessions: [] }) : readClassicSessions(this.classicSessionLimit)]);
+			this.classicSnapshot = classicSnapshot;
 			const byRunDir = new Map(found.map((ref) => [ref.runDir, ref]));
 			for (const [runDir, tracked] of this.tracked) {
 				if (byRunDir.has(runDir)) continue;

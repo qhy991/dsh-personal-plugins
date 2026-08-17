@@ -8,6 +8,7 @@
     "src/index.ts",
     "src/service.ts",
     "src/types.ts",
+    "src/classic.ts",
     "src/scanner.ts",
     "src/tailer.ts",
     "src/fold.ts",

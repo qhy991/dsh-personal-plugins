@@ -230,6 +230,12 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         value = snapshot.get(name)
         return value if isinstance(value, str) and value else None
 
+    kernel_path = optional_string("kernel_path")
+    if kernel_path is not None:
+        resolved_kernel = Path(kernel_path).expanduser()
+        if resolved_kernel.is_absolute() and not resolved_kernel.exists():
+            warnings.append(f"kernel path no longer exists: {kernel_path}")
+
     max_workflows = snapshot.get("max_workflows")
     return {
         "found": True,
@@ -244,13 +250,98 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "mode": optional_string("mode"),
         "backend": optional_string("backend"),
         "kernel_language": optional_string("kernel_language"),
-        "kernel_path": optional_string("kernel_path"),
+        "kernel_path": kernel_path,
         "workflow": selected_workflow(session_dir, round_number),
         "fit_confidence": fit_confidence,
         "best_speedup": best_speedup,
         "rounds": rounds,
         "warnings": warnings,
     }
+
+
+def lifecycle(phase: object) -> str:
+    """Project a KerSor phase onto the small lifecycle used by the viewer."""
+    if phase == "complete" or phase == "single_run":
+        return "completed"
+    if phase == "stalled":
+        return "stalled"
+    if phase == "cancelled":
+        return "cancelled"
+    return "active"
+
+
+def session_summary(value: dict[str, Any]) -> dict[str, Any]:
+    """Return the bounded, path-light projection consumed by the DSH viewer."""
+    session_dir = Path(str(value["session_dir"]))
+    kernel_path = value.get("kernel_path")
+    warnings: list[str] = []
+    for warning in value.get("warnings", []):
+        if not isinstance(warning, str):
+            continue
+        if warning.startswith("kernel path no longer exists:"):
+            projected = "kernel path no longer exists"
+        elif "Attempt Result" in warning:
+            projected = "Attempt Result is unusable"
+        else:
+            projected = "session status could not be read completely"
+        if projected not in warnings:
+            warnings.append(projected)
+    return {
+        "session_id": session_dir.name,
+        "session_dir": str(session_dir),
+        "storage_kind": value.get("storage_kind"),
+        "phase": value.get("phase"),
+        "lifecycle": lifecycle(value.get("phase")),
+        "current_round": value.get("current_round"),
+        "max_workflows": value.get("max_workflows"),
+        "target_speedup": value.get("target_speedup"),
+        "target_met": value.get("target_met"),
+        "mode": value.get("mode"),
+        "backend": value.get("backend"),
+        "kernel_language": value.get("kernel_language"),
+        "kernel_name": (
+            Path(kernel_path).name
+            if isinstance(kernel_path, str) and kernel_path
+            else None
+        ),
+        "workflow": value.get("workflow"),
+        "fit_confidence": value.get("fit_confidence"),
+        "best_speedup": value.get("best_speedup"),
+        "warnings": warnings,
+    }
+
+
+def sessions(root: Path, limit: int) -> dict[str, Any]:
+    """List recent readable sessions from the configured KerSor checkout."""
+    sessions_root = root / ".kersor"
+    try:
+        candidates = sorted(
+            (path for path in sessions_root.iterdir() if path.is_dir()),
+            key=lambda path: path.name,
+            reverse=True,
+        )
+    except OSError as error:
+        return {
+            "sessions": [],
+            "warnings": [f"KerSor session root unavailable ({type(error).__name__})"],
+        }
+
+    result: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    for candidate in candidates:
+        if len(result) >= limit:
+            break
+        try:
+            value = status(root, candidate)
+        except Exception as error:
+            warnings.append(
+                f"unreadable session {candidate.name} ({type(error).__name__})"
+            )
+            continue
+        if not value["found"]:
+            continue
+        result.append(session_summary(value))
+    return {"sessions": result, "warnings": warnings}
 
 
 def status_parser() -> argparse.ArgumentParser:
@@ -260,10 +351,19 @@ def status_parser() -> argparse.ArgumentParser:
     return result
 
 
+def sessions_parser() -> argparse.ArgumentParser:
+    """Build the parser for the recent-session inventory action."""
+    result = argparse.ArgumentParser(prog="kersor_bridge.py sessions")
+    result.add_argument("--limit", type=int, choices=range(1, 101), default=20)
+    return result
+
+
 def parser() -> argparse.ArgumentParser:
     """Build the bridge command parser."""
     result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("action", choices=("root", "doctor", "compose", "status"))
+    result.add_argument(
+        "action", choices=("root", "doctor", "compose", "status", "sessions")
+    )
     result.add_argument("args", nargs=argparse.REMAINDER)
     return result
 
@@ -283,6 +383,14 @@ def main(argv: list[str] | None = None) -> int:
         if options.action == "status":
             status_options = status_parser().parse_args(options.args)
             print(json.dumps(status(root, status_options.path), ensure_ascii=False))
+            return 0
+        if options.action == "sessions":
+            sessions_options = sessions_parser().parse_args(options.args)
+            print(
+                json.dumps(
+                    sessions(root, sessions_options.limit), ensure_ascii=False
+                )
+            )
             return 0
         exec_compose(root, options.args)
     except RuntimeError as error:

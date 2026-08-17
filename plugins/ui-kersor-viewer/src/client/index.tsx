@@ -63,12 +63,15 @@ export async function apply(ctx: ClientContext): Promise<() => Promise<void>> {
   const refreshViewer = async (): Promise<void> => {
     try {
       const remote = viewerRemote()
-      const answered = await remote.listRuns()
-      if (!answered.ok) {
-        store.setError(`${answered.error.code}: ${answered.error.message}`)
-        return
-      }
-      store.setInventory(answered.value)
+      const [answered, classic] = await Promise.all([
+        remote.listRuns(),
+        remote.listClassicSessions(),
+      ])
+      if (!answered.ok) store.setError(`${answered.error.code}: ${answered.error.message}`)
+      else store.setInventory(answered.value)
+      if (!classic.ok) store.setClassicWarning(`${classic.error.code}: ${classic.error.message}`)
+      else store.setClassic(classic.value)
+      if (!answered.ok) return
       const selected = store.selectedRunDir
       if (selected !== undefined) {
         const backlog = await remote.runBacklog(selected)

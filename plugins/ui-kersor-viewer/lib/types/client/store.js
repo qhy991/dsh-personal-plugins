@@ -6,7 +6,7 @@
  */
 /** Snapshot store over the run inventory and per-run folded views. */
 export class KersorViewerStore {
-    state = { rows: [], loading: true };
+    state = { rows: [], classicSessions: [], loading: true };
     listeners = new Set();
     selected;
     /** Stable snapshot for useSyncExternalStore. */
@@ -38,6 +38,23 @@ export class KersorViewerStore {
         const byDir = new Map(this.state.rows.map(row => [row.runDir, row]));
         const rows = refs.map(ref => ({ ...ref, view: byDir.get(ref.runDir)?.view }));
         this.state = { ...this.state, rows, loading: false };
+        this.emit();
+    }
+    /** Replace the classic optimization Session inventory independently. */
+    setClassic(snapshot) {
+        const next = { ...this.state, classicSessions: snapshot.sessions };
+        if (snapshot.warning === undefined) {
+            const { classicWarning: _, ...state } = next;
+            this.state = state;
+        }
+        else {
+            this.state = { ...next, classicWarning: snapshot.warning };
+        }
+        this.emit();
+    }
+    /** Keep a classic-adapter failure separate from autonomous-run reads. */
+    setClassicWarning(message) {
+        this.state = { ...this.state, classicWarning: message };
         this.emit();
     }
     /** Mark a failed inventory read. */
@@ -96,7 +113,7 @@ export class KersorViewerStore {
     }
     /** Drop everything (connection reset). */
     reset() {
-        this.state = { rows: [], loading: true };
+        this.state = { rows: [], classicSessions: [], loading: true };
         this.selected = undefined;
         this.emit();
     }

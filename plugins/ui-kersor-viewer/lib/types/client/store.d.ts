@@ -7,12 +7,15 @@
 import type { KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types';
 import type { KersorRunRef } from '@deepseek-ai/dsh-kersor-viewer/types';
 import type { KersorViewerFrame } from '@deepseek-ai/dsh-kersor-viewer/types';
+import type { KersorClassicSession, KersorClassicSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types';
 import type { KersorActiveFrame, KersorActiveLaunch, KersorTaskRef } from '@deepseek-ai/dsh-kersor/types';
 export interface KersorRunRow extends KersorRunRef {
     view?: KersorRunView | undefined;
 }
 export interface KersorViewerState {
     readonly rows: readonly KersorRunRow[];
+    readonly classicSessions: readonly KersorClassicSession[];
+    readonly classicWarning?: string;
     readonly loading: boolean;
     readonly error?: string;
     /** Present only while the optional Host launcher namespace is available. */
@@ -40,6 +43,10 @@ export declare class KersorViewerStore {
     get activeView(): KersorRunView | undefined;
     /** Replace the inventory half from a `listRuns` remote answer. */
     setInventory(refs: readonly KersorRunRef[]): void;
+    /** Replace the classic optimization Session inventory independently. */
+    setClassic(snapshot: KersorClassicSnapshot): void;
+    /** Keep a classic-adapter failure separate from autonomous-run reads. */
+    setClassicWarning(message: string): void;
     /** Mark a failed inventory read. */
     setError(message: string): void;
     /** Replace the optional launcher's configured-task and owned-process inventory. */

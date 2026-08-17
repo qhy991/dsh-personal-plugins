@@ -2,15 +2,15 @@
 
 English | [中文](README.zh.md)
 
-KerSor autonomous-workflow surfaces, browser half: a sidebar panel that lists the runs the host package [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) discovered and renders the selected run's live phase/call progress, styled after the workflow-run progress card.
+KerSor activity surfaces, browser half: one sidebar panel shows recent classic/Session-v2 optimization summaries from the host package [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md), then lists autonomous-workflow runs and renders the selected run's live phase/call progress. The compact two-column Session cards show phase, round budget, best/target speedup, backend/mode, selected Workflow, storage kind, and status-warning count.
 
 When the optional Host launcher [`@deepseek-ai/dsh-kersor`](../kersor/README.md) is loaded, the same panel also lists its deployment-configured tasks and the launcher processes dsh currently owns, with Start and Stop controls. The launcher remote is deliberately not an injection dependency: if its namespace is unavailable, the panel still mounts and the controls are absent.
 
-**One store, one snapshot path.** The panel's facts live in a `useSyncExternalStore` observable refreshed every two seconds through the generated `kersorViewer/listRuns`, `runBacklog`, `kersor/listTasks`, and `listActive` remotes. The client plugin mounts those generated Remote contributions itself, so a third-party install does not need to edit dsh's core Remote assembly or Host-event allowlist. Reconnect resets and immediately refreshes the same snapshot path. Phases render as disclosure rows with the shared state dot (running blue, completed green, failed red) and their agent/evaluation calls as rows with status, elapsed time, tokens and a rolled-back mark; loop re-visits each get their own bucket in execution order, so a KSearch cycle reads as separate rounds.
+**One store, one snapshot path.** The panel's facts live in a `useSyncExternalStore` observable refreshed every two seconds through the generated `kersorViewer/listClassicSessions`, `listRuns`, `runBacklog`, `kersor/listTasks`, and `listActive` remotes. The client plugin mounts those generated Remote contributions itself, so a third-party install does not need to edit dsh's core Remote assembly or Host-event allowlist. Reconnect resets and immediately refreshes the same snapshot path. Phases render as disclosure rows with the shared state dot (running blue, completed green, failed red) and their agent/evaluation calls as rows with status, elapsed time, tokens and a rolled-back mark; loop re-visits each get their own bucket in execution order, so a KSearch cycle reads as separate rounds.
 
 **The node half is empty.** All runtime behavior lives in `src/client/` and ships through the `./client` export as the browser bundle; the package's node-side `apply` exists only so the same package name participates in the browser roster. Discovery, tailing and folding are the host package's; this package renders their results.
 
-**Two state accounts stay separate.** Launcher frames replace only the list of process trees dsh owns. Viewer frames replace or fold KerSor run state. A process disappearing never marks a workflow completed; the KerSor summary and events decide that status.
+**Three state accounts stay separate.** Classic Session snapshots, autonomous-run views, and launcher-owned process trees replace only their own store slice. A process disappearing never marks a workflow completed; KerSor's Session store, summary, and events decide status.
 
 ## Model Experience
 

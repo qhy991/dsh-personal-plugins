@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-kersor-viewer",
-  "description": "KerSor viewer sidebar panel: run inventory with live phase/call progress from the host viewer service",
-  "version": "0.1.0-rc.5",
+  "description": "KerSor sidebar: optimization Session summaries and autonomous-workflow live progress",
+  "version": "0.1.0-rc.6",
   "publishConfig": {
     "access": "public"
   },

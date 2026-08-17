@@ -2,15 +2,15 @@
 
 [English](README.md) | 中文
 
-KerSor autonomous-workflow 界面，browser 半：一个侧栏面板，列出 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 发现的 run，并渲染选中 run 的实时阶段/调用进度，视觉沿用 workflow-run 进度卡。
+KerSor 活动界面的 browser 半：同一个侧栏面板先展示 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 提供的最近经典／Session-v2 优化摘要，再列出 autonomous-workflow run，并渲染选中 run 的实时阶段／调用进度。紧凑的双列 Session 卡片展示 phase、轮次预算、最佳／目标加速比、backend/mode、选中 Workflow、存储格式与状态提醒数。
 
 加载可选 Host 启动器 [`@deepseek-ai/dsh-kersor`](../kersor/README.zh.md) 后，同一面板还会列出部署配置中的任务和 dsh 当前持有的 launcher 进程，并提供启动／停止操作。launcher remote 被刻意排除在注入依赖之外；它的 namespace 不可用时，面板仍会挂载，只是不显示控制区。
 
-**一个 store，一条快照路径。** 面板数据存在一个 `useSyncExternalStore` observable 里，每两秒通过生成的 `kersorViewer/listRuns`、`runBacklog`、`kersor/listTasks` 与 `listActive` remote 刷新。client 插件自行挂载这些生成的 Remote contribution，因此第三方安装无需修改 dsh 核心 Remote assembly 或 Host 事件白名单；重连也会重置并立即刷新同一条快照路径。阶段渲染为带共享状态点（running 蓝、completed 绿、failed 红）的折叠行，其下的 agent/evaluation 调用行带状态、耗时、tokens 与回滚标记；循环重访的 phase 按执行顺序各占一个桶，KSearch 循环读起来就是独立的多轮。
+**一个 store，一条快照路径。** 面板数据存在一个 `useSyncExternalStore` observable 里，每两秒通过生成的 `kersorViewer/listClassicSessions`、`listRuns`、`runBacklog`、`kersor/listTasks` 与 `listActive` remote 刷新。client 插件自行挂载这些生成的 Remote contribution，因此第三方安装无需修改 dsh 核心 Remote assembly 或 Host 事件白名单；重连也会重置并立即刷新同一条快照路径。阶段渲染为带共享状态点（running 蓝、completed 绿、failed 红）的折叠行，其下的 agent/evaluation 调用行带状态、耗时、tokens 与回滚标记；循环重访的 phase 按执行顺序各占一个桶，KSearch 循环读起来就是独立的多轮。
 
 **node 半为空。** 所有运行时行为在 `src/client/` 中，经 `./client` 导出为浏览器 bundle；包的 node 侧 `apply` 只为让同名包进入浏览器 roster。发现、tail 与折叠属于 host 包；本包渲染它们的结果。
 
-**两套状态记账保持分离。** Launcher 帧只替换 dsh 持有的进程树清单；viewer 帧替换或折叠 KerSor run 状态。进程从清单消失不会把 workflow 标成完成；该状态由 KerSor summary 与事件决定。
+**三套状态记账保持分离。** 经典 Session 快照、autonomous-run 视图与 launcher 持有的进程树只替换各自的 store slice。进程从清单消失不会把 workflow 标成完成；状态由 KerSor Session store、summary 与事件决定。
 
 ## Model Experience
 
