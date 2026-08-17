@@ -32,7 +32,7 @@ The plugin row accepts config in `cordis.patch.yml`:
 
 A summary with `workflow_status: "waiting"` is terminal for discovery: the KerSor controller has stopped and written its summary, even though the workflow is awaiting external input rather than semantically completed.
 
-Classic Session cards keep KerSor's canonical phase separate from advisory health. Stable-artifact activity within the threshold is `active`; an old clean `CONTINUE` boundary is `needs_resume`; other unfinished old work is `stale`; terminal phases are `terminal`. Elapsed time never mutates phase. The bounded projection also carries language/backend, integration pattern, and the workflow-authoring gate/budget so routing drift is visible without opening Session files. It includes the last stable-artifact timestamp, and a missing absolute kernel path becomes a path-free warning rather than leaking the old local path to the browser.
+Classic Session cards keep KerSor's canonical phase separate from advisory health. Stable-artifact activity within the threshold is `active`; an old clean `CONTINUE` boundary is `needs_resume`; other unfinished old work is `stale`; terminal phases are `terminal`. Elapsed time never mutates phase. The bounded projection also carries language/backend, integration pattern, the workflow-authoring gate/budget, and the latest canonical protocol decision so routing drift and terminal reasons are visible without opening Session files. It includes the last stable-artifact timestamp, and a missing absolute kernel path becomes a path-free warning rather than leaking the old local path to the browser.
 
 ## Layout
 

@@ -24,6 +24,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_listClassicSessions_result$sch
   'workflow_authoring_budget': z.union([z.literal(null), z.number()]).readonly().optional(),
   'kernel_name': z.union([z.literal(null), z.string()]).readonly().optional(),
   'workflow': z.union([z.literal(null), z.string()]).readonly().optional(),
+  'decision': z.union([z.literal(null), z.string()]).readonly().optional(),
   'fit_confidence': z.union([z.literal(null), z.string()]).readonly().optional(),
   'best_speedup': z.union([z.literal(null), z.number()]).readonly().optional(),
   'warnings': z.array(z.string()).readonly(),

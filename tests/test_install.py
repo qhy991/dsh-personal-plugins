@@ -184,6 +184,8 @@ class InstallTests(unittest.TestCase):
         self.assertIn("Structural Proposal gates do not make", skill)
         self.assertIn("outer optimize alone installs a winner", skill)
         self.assertIn("transition the Session to `stalled`", skill)
+        self.assertIn("`kersor_status` first with an empty argument object", skill)
+        self.assertIn("never pass the KerSor checkout", skill)
 
     def make_status_project(self) -> Path:
         """Create a small v2 project whose stores exercise the bridge contract."""
@@ -303,6 +305,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["integration_pattern"], "custom_simulator")
         self.assertIs(row["allow_workflow_authoring"], True)
         self.assertEqual(row["workflow_authoring_budget"], 1)
+        self.assertEqual(row["decision"], "CONTINUE: measure another workflow.")
         self.assertNotIn("kernel_path", row)
 
     def test_sessions_bridge_includes_registered_dsh_workspace(self) -> None:
@@ -363,10 +366,8 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["health"], "needs_resume")
 
     @unittest.skipIf(shutil.which("node") is None, "Node.js is required by DSH")
-    def test_status_tool_executes_and_rejects_workspace_escape(self) -> None:
+    def test_status_tool_executes_for_the_current_workspace_only(self) -> None:
         project = self.make_status_project()
-        outside = self.root / "outside"
-        outside.mkdir()
         plugin = ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs"
         script = r'''
 import { pathToFileURL } from 'node:url'
@@ -388,9 +389,15 @@ if (JSON.stringify(requiredKeys) !== JSON.stringify(valueKeys)) {
 const content = tool.output.render({}, value)
 const meta = tool.output.presentationMeta({}, value)
 const card = tool.presentResult({}, { content, isError: false, meta })
-let escaped = false
-try { await tool.execute({ path: process.env.OUTSIDE }, exec) } catch { escaped = true }
-console.log(JSON.stringify({ name: tool.name, value, content, meta, card, escaped }))
+console.log(JSON.stringify({
+  name: tool.name,
+  description: tool.description,
+  parameterProperties: tool.parameters.properties,
+  value,
+  content,
+  meta,
+  card,
+}))
 '''
         environment = dict(os.environ)
         environment.update(
@@ -398,7 +405,6 @@ console.log(JSON.stringify({ name: tool.name, value, content, meta, card, escape
                 "KERSOR_ROOT": str(self.kersor),
                 "PLUGIN_PATH": str(plugin),
                 "WORKSPACE": str(project),
-                "OUTSIDE": str(outside),
             }
         )
         completed = subprocess.run(
@@ -419,7 +425,8 @@ console.log(JSON.stringify({ name: tool.name, value, content, meta, card, escape
         self.assertIn("enabled · budget 1", result["content"][0]["text"])
         self.assertIn("1.25x", result["content"][0]["text"])
         self.assertEqual(result["card"]["title"], "KerSor · optimizing · r2/4 · 1.25x")
-        self.assertTrue(result["escaped"])
+        self.assertEqual(result["parameterProperties"], {})
+        self.assertIn("empty argument object", result["description"])
 
 
 if __name__ == "__main__":

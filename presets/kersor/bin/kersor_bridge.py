@@ -365,6 +365,18 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
     kernel_path = value.get("kernel_path")
     activity_epoch, last_activity_at = last_activity(session_dir)
     status, health = session_health(value, activity_epoch, stale_after)
+    decided_rounds = [
+        row
+        for row in value.get("rounds", [])
+        if isinstance(row, dict)
+        and isinstance(row.get("round"), int)
+        and isinstance(row.get("decision"), str)
+    ]
+    latest_decision = max(
+        decided_rounds,
+        key=lambda row: row["round"],
+        default={},
+    ).get("decision")
     warnings: list[str] = []
     for warning in value.get("warnings", []):
         if not isinstance(warning, str):
@@ -403,6 +415,7 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
             else None
         ),
         "workflow": value.get("workflow"),
+        "decision": latest_decision,
         "fit_confidence": value.get("fit_confidence"),
         "best_speedup": value.get("best_speedup"),
         "warnings": warnings,

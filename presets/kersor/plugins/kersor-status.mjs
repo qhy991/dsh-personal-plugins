@@ -2,7 +2,6 @@
 
 import { execFile } from 'node:child_process'
 import { realpath } from 'node:fs/promises'
-import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
@@ -141,37 +140,22 @@ export function statusTitle(meta) {
   return `KerSor · ${display(meta.phase)}${round}${best}`
 }
 
-async function workspaceTarget(args, exec) {
+async function workspaceTarget(exec) {
   const workspace = exec.agent?.session.header.cwd
   if (typeof workspace !== 'string' || workspace.length === 0) {
     throw new Error('kersor_status requires a DSH session workspace')
   }
-  const workspaceRoot = await realpath(workspace)
-  const requested = args.path === undefined ? workspaceRoot : args.path
-  if (typeof requested !== 'string' || requested.trim().length === 0) {
-    throw new Error('path must be a non-empty string when provided')
-  }
-  const target = await realpath(resolve(workspaceRoot, requested))
-  const relation = relative(workspaceRoot, target)
-  if (relation === '..' || relation.startsWith(`..${sep}`) || isAbsolute(relation)) {
-    throw new Error(`path is outside the DSH session workspace: ${requested}`)
-  }
-  return target
+  return realpath(workspace)
 }
 
 export function createTool() {
   return {
     name: 'kersor_status',
-    description: 'Read the current KerSor session phase, routing contract, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions in this DSH workspace.',
+    description: 'Read the current KerSor session phase, routing contract, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
     parameters: {
       type: 'object',
       additionalProperties: false,
-      properties: {
-        path: {
-          type: 'string',
-          description: 'Workspace-relative project or KerSor session path. Defaults to the DSH session workspace.',
-        },
-      },
+      properties: {},
     },
     output: {
       schema: STATUS_SCHEMA,
@@ -192,8 +176,8 @@ export function createTool() {
         started_at: value.started_at,
       }),
     },
-    async execute(args, exec) {
-      const target = await workspaceTarget(args, exec)
+    async execute(_args, exec) {
+      const target = await workspaceTarget(exec)
       const { stdout } = await execFileAsync(
         'python3',
         [BRIDGE, 'status', '--path', target],
@@ -203,12 +187,11 @@ export function createTool() {
       if (!isRecord(value)) throw new Error('KerSor status bridge returned a non-object')
       return value
     },
-    presentCall(args) {
+    presentCall(_args) {
       return {
         card: 'generic',
         title: 'Read KerSor status',
         kind: 'read',
-        ...(args.path === undefined ? {} : { rawInput: args.path }),
       }
     },
     presentResult(_args, result) {

@@ -31,6 +31,8 @@ export interface KersorClassicSession {
     readonly workflow_authoring_budget?: number | null;
     readonly kernel_name?: string | null;
     readonly workflow?: string | null;
+    /** Latest canonical COMPLETE/CONTINUE/STALLED line, when a round has decided. */
+    readonly decision?: string | null;
     readonly fit_confidence?: string | null;
     readonly best_speedup?: number | null;
     readonly warnings: readonly string[];

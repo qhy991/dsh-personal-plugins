@@ -143,6 +143,9 @@ function ClassicSessionRow({ session, t }: {
           ? <span className={css.warningCount} title={session.warnings.join('\n')}>{t('session.warnings', { count: session.warnings.length })}</span>
           : null}
       </div>
+      {session.decision !== null && session.decision !== undefined
+        ? <div className={css.decisionReason} title={session.decision}>{session.decision}</div>
+        : null}
     </li>
   )
 }

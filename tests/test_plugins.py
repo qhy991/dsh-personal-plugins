@@ -76,6 +76,7 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn("integration_pattern", client)
         self.assertIn("allow_workflow_authoring", client)
         self.assertIn("workflow_authoring_budget", client)
+        self.assertIn("decisionReason", client)
         self.assertIn("routeBadge", client)
         self.assertIn("Authoring · budget {budget}", client)
 
@@ -87,6 +88,7 @@ class BuiltPluginTests(unittest.TestCase):
             "integration_pattern",
             "allow_workflow_authoring",
             "workflow_authoring_budget",
+            "decision",
         ):
             self.assertIn(field, schema)
             self.assertIn(field, classic)

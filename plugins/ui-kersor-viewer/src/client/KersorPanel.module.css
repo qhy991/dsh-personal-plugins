@@ -371,6 +371,19 @@
   cursor: help;
 }
 
+.decisionReason {
+  display: -webkit-box;
+  overflow: hidden;
+  padding-top: 5px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 15px;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 @media (max-width: 520px) {
   .classicRows {
     grid-template-columns: 1fr;

@@ -52,7 +52,7 @@ python tests/submission_tests.py
 
 首先加载 kersor skill，按 task directory 运行 compose optimize，并显式传入
 --integration-pattern custom_simulator --allow-workflow-authoring
---workflow-authoring-budget 1；确认 kersor_status 成功返回后才允许修改文件。
+--workflow-authoring-budget 1；用空参数 `{}` 调用 kersor_status，确认成功返回后才允许修改文件。
 这是 Python VLIW 模拟器，不是 CUDA；Session 必须冻结为
 python_reference/python/custom_simulator。已发布 Workflow 均不适配时应先
 STALLED，再由 Phase 3.6 创作并验证 VLIW-native Proposal，不得硬套 CUDA，
