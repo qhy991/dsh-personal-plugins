@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from 'react'
 import { IconChevronRightOutline14, StateDot, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { KersorCallView, KersorPhaseView, KersorRunStatus, KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
-import type { KersorClassicGate, KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type { KersorBaselineAction, KersorClassicGate, KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorTaskId } from '@deepseek-ai/dsh-kersor/types'
 import type { KersorViewerState } from './store.ts'
 import type { KersorViewerKey } from './locales.ts'
@@ -86,6 +86,12 @@ const GATE_KEYS = {
   not_required: 'session.gate.notRequired',
 } as const satisfies Record<KersorClassicGate, KersorViewerKey>
 
+const BASELINE_ACTION_KEYS = {
+  init: 'session.baselineAction.init',
+  record_verify: 'session.baselineAction.recordVerify',
+  new_session: 'session.baselineAction.newSession',
+} as const satisfies Record<KersorBaselineAction, KersorViewerKey>
+
 function displayTime(value: string): string | undefined {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return undefined
@@ -160,6 +166,18 @@ function ClassicSessionRow({ session, t }: {
           : null}
         {activity !== undefined ? <span>{t('session.lastActivity', { time: activity })}</span> : null}
       </div>
+      {session.allow_workflow_authoring === true && session.baseline_next_action != null
+        ? <div
+            className={css.baselineAction}
+            data-baseline-action={session.baseline_next_action}
+            title={session.baseline_reason ?? undefined}
+          >
+            <span className={css.baselineActionLabel}>{t(BASELINE_ACTION_KEYS[session.baseline_next_action])}</span>
+            {session.baseline_reason != null
+              ? <span className={css.baselineActionReason}>{session.baseline_reason}</span>
+              : null}
+          </div>
+        : null}
       <div className={css.classicFoot}>
         <span className={css.workflowName}>
           {session.workflow !== null && session.workflow !== undefined

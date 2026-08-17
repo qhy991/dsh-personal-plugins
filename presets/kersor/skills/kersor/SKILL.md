@@ -92,10 +92,15 @@ semantic failure means `needs_revision` and canonical `stalled`, not a patch or
 retry. Any extra staging file or directory is mixed provenance.
 
 Do not accept a prose-only baseline. After Session creation and before
-selection or authoring, record and verify the baseline through KerSor's
-Session-owned witness:
+selection or authoring, create the minimal task-native test method through the
+deterministic initializer when the exact commands are already known, then
+record and verify the baseline through KerSor's Session-owned witness:
 
 ```bash
+python3 "$kersor_root/scripts/baseline-witness.py" init \
+  --session "$SESSION_DIR" \
+  --correctness-command "$CORRECTNESS_COMMAND" \
+  --benchmark-command "$BENCHMARK_COMMAND"
 python3 "$kersor_root/scripts/baseline-witness.py" record \
   --session "$SESSION_DIR" --project-root "$TASK_DIR"
 python3 "$kersor_root/scripts/baseline-witness.py" verify \
@@ -103,6 +108,10 @@ python3 "$kersor_root/scripts/baseline-witness.py" verify \
 ```
 
 `test-method.md` owns the exact correctness and benchmark commands. The
+initializer atomically writes both commands and `Baseline Status: present`,
+rejects blank/multiline input, and never overwrites an existing owner. Do not
+hand-format a minimal `test-method.md` or wrap its command values in Markdown
+code spans. The
 immutable witness binds their post-Session execution to the Session config and
 kernel hash. Output produced before Session creation, or a historical cycle
 count copied into Markdown, is not execution evidence. A failed witness is a

@@ -39,6 +39,9 @@ function isClassicSession(value) {
         && (row.status === 'terminal-complete' || row.status === 'terminal-stalled'
             || row.status === 'terminal-cancelled' || row.status === 'resumable'
             || row.status === 'in-progress' || row.status === 'pre-round-1')
+        && (row.baseline_next_action == null || row.baseline_next_action === 'init'
+            || row.baseline_next_action === 'record_verify' || row.baseline_next_action === 'new_session')
+        && (row.baseline_reason == null || typeof row.baseline_reason === 'string')
         && Array.isArray(row.warnings)
         && row.warnings.every(item => typeof item === 'string');
 }

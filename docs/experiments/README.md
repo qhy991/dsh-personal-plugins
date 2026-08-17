@@ -23,3 +23,4 @@
 | [10](2026-08-17-vliw-from-scratch-10.md) | VLIW Take-Home DSH dispatch | 合法 handoff 能否以当前 Session baseline 安全进入 DSH Workflow | handoff 全链首次通过；pre-Session baseline 与 DSH schema drift 复现；因果 witness、兼容门禁与可视化实现 |
 | [11](2026-08-17-vliw-from-scratch-11.md) | VLIW Take-Home DSH child ownership | 一次合法 DSH Workflow 调用能否把所有候选限制在 Session 内 | baseline、handoff、兼容与单次 dispatch 全部通过；Generate 越权修改规范文件；host 所有权门禁与红色徽标实现 |
 | [12](2026-08-17-vliw-from-scratch-12.md) | VLIW Take-Home fresh Session isolation | “从头开始”是否真的禁止读取旧 Session | baseline 前历史读取被停止；`--fresh-session` 物理 preflight 与红色隔离徽标实现 |
+| [13](2026-08-17-vliw-from-scratch-13.md) | VLIW Take-Home baseline witness | fresh Session 能否可靠建立 task-native baseline | fresh isolation 通过；手写 status 字段失败；原子 `init`、下一步 callout 与 blocker 可视化实现 |

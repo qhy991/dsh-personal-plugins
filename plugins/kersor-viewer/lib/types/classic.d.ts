@@ -8,6 +8,7 @@
 export type KersorClassicLifecycle = 'active' | 'completed' | 'stalled' | 'cancelled';
 export type KersorClassicHealth = 'active' | 'stale' | 'needs_resume' | 'terminal' | 'unknown';
 export type KersorClassicGate = 'pass' | 'fail' | 'pending' | 'not_required';
+export type KersorBaselineAction = 'init' | 'record_verify' | 'new_session';
 export type KersorClassicStatus = 'terminal-complete' | 'terminal-stalled' | 'terminal-cancelled' | 'resumable' | 'in-progress' | 'pre-round-1';
 /** One recent optimization Session projected by the canonical KerSor stores. */
 export interface KersorClassicSession {
@@ -36,6 +37,8 @@ export interface KersorClassicSession {
     readonly decision?: string | null;
     readonly fit_confidence?: string | null;
     readonly baseline_witness?: KersorClassicGate | null;
+    readonly baseline_next_action?: KersorBaselineAction | null;
+    readonly baseline_reason?: string | null;
     readonly dsh_compatibility?: KersorClassicGate | null;
     readonly candidate_ownership?: KersorClassicGate | null;
     readonly fresh_session?: KersorClassicGate | null;

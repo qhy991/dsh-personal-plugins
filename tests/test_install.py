@@ -199,6 +199,8 @@ class InstallTests(unittest.TestCase):
         self.assertIn("canonical `stalled`, not a patch or\nretry", skill)
         self.assertIn("Do not accept a prose-only baseline", skill)
         self.assertIn("scripts/baseline-witness.py", skill)
+        self.assertIn("baseline-witness.py\" init", skill)
+        self.assertIn('--correctness-command "$CORRECTNESS_COMMAND"', skill)
         self.assertIn("baseline-witness.py\" record", skill)
         self.assertIn('--session "$SESSION_DIR" --project-root "$TASK_DIR"', skill)
         self.assertIn("Output produced before Session creation", skill)
@@ -308,6 +310,8 @@ class InstallTests(unittest.TestCase):
         self.assertIs(value["allow_workflow_authoring"], True)
         self.assertEqual(value["workflow_authoring_budget"], 1)
         self.assertEqual(value["baseline_witness"], "pending")
+        self.assertEqual(value["baseline_next_action"], "init")
+        self.assertIsNone(value["baseline_reason"])
         self.assertEqual(value["dsh_compatibility"], "pass")
         self.assertEqual(value["candidate_ownership"], "pass")
         self.assertEqual(value["fresh_session"], "pass")
@@ -334,7 +338,61 @@ class InstallTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(json.loads(completed.stdout)["fresh_session"], "fail")
+        value = json.loads(completed.stdout)
+        self.assertEqual(value["fresh_session"], "fail")
+        self.assertIsNone(value["baseline_next_action"])
+
+    def test_status_bridge_projects_baseline_action_and_failure_reason(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        method = session / "test-method.md"
+        method.write_text(
+            "# Test Method\n\n"
+            "- Correctness Command: python tests.py correctness\n"
+            "- Benchmark Command: python tests.py benchmark\n"
+            "- Baseline Status: present\n",
+            encoding="utf-8",
+        )
+
+        def status() -> dict[str, object]:
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(destination / "bin" / "kersor_bridge.py"),
+                    "status",
+                    "--path",
+                    str(project),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            return json.loads(completed.stdout)
+
+        ready = status()
+        self.assertEqual(ready["baseline_witness"], "pending")
+        self.assertEqual(ready["baseline_next_action"], "record_verify")
+        self.assertIsNone(ready["baseline_reason"])
+
+        (session / "run-2" / "baseline-gate.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "verdict": "fail",
+                    "reason": "Baseline Status must be present before recording, found unknown",
+                }
+            ),
+            encoding="utf-8",
+        )
+        failed = status()
+        self.assertEqual(failed["baseline_witness"], "fail")
+        self.assertEqual(failed["baseline_next_action"], "new_session")
+        self.assertEqual(
+            failed["baseline_reason"],
+            "Baseline Status must be present before recording, found unknown",
+        )
 
     def test_sessions_bridge_lists_bounded_recent_store_snapshots(self) -> None:
         destination, _, _ = self.run_install()
@@ -376,6 +434,8 @@ class InstallTests(unittest.TestCase):
         self.assertIs(row["allow_workflow_authoring"], True)
         self.assertEqual(row["workflow_authoring_budget"], 1)
         self.assertEqual(row["baseline_witness"], "pending")
+        self.assertEqual(row["baseline_next_action"], "init")
+        self.assertIsNone(row["baseline_reason"])
         self.assertEqual(row["dsh_compatibility"], "pass")
         self.assertEqual(row["candidate_ownership"], "pass")
         self.assertEqual(row["fresh_session"], "pass")
@@ -496,11 +556,13 @@ console.log(JSON.stringify({
         self.assertEqual(result["meta"]["integration_pattern"], "custom_simulator")
         self.assertIs(result["meta"]["allow_workflow_authoring"], True)
         self.assertEqual(result["meta"]["baseline_witness"], "pending")
+        self.assertEqual(result["meta"]["baseline_next_action"], "init")
         self.assertEqual(result["meta"]["dsh_compatibility"], "pass")
         self.assertEqual(result["meta"]["candidate_ownership"], "pass")
         self.assertIn("custom_simulator", result["content"][0]["text"])
         self.assertIn("enabled · budget 1", result["content"][0]["text"])
         self.assertIn("| pending | pass | pass |", result["content"][0]["text"])
+        self.assertIn("Baseline next action: init", result["content"][0]["text"])
         self.assertIn("1.25x", result["content"][0]["text"])
         self.assertEqual(result["card"]["title"], "KerSor · optimizing · r2/4 · 1.25x")
         self.assertEqual(result["parameterProperties"], {})

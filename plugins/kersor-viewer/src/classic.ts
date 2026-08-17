@@ -17,6 +17,7 @@ const execFileAsync = promisify(execFile)
 export type KersorClassicLifecycle = 'active' | 'completed' | 'stalled' | 'cancelled'
 export type KersorClassicHealth = 'active' | 'stale' | 'needs_resume' | 'terminal' | 'unknown'
 export type KersorClassicGate = 'pass' | 'fail' | 'pending' | 'not_required'
+export type KersorBaselineAction = 'init' | 'record_verify' | 'new_session'
 export type KersorClassicStatus =
   | 'terminal-complete'
   | 'terminal-stalled'
@@ -52,6 +53,8 @@ export interface KersorClassicSession {
   readonly decision?: string | null
   readonly fit_confidence?: string | null
   readonly baseline_witness?: KersorClassicGate | null
+  readonly baseline_next_action?: KersorBaselineAction | null
+  readonly baseline_reason?: string | null
   readonly dsh_compatibility?: KersorClassicGate | null
   readonly candidate_ownership?: KersorClassicGate | null
   readonly fresh_session?: KersorClassicGate | null
@@ -102,6 +105,9 @@ function isClassicSession(value: unknown): value is KersorClassicSession {
     && (row.status === 'terminal-complete' || row.status === 'terminal-stalled'
       || row.status === 'terminal-cancelled' || row.status === 'resumable'
       || row.status === 'in-progress' || row.status === 'pre-round-1')
+    && (row.baseline_next_action == null || row.baseline_next_action === 'init'
+      || row.baseline_next_action === 'record_verify' || row.baseline_next_action === 'new_session')
+    && (row.baseline_reason == null || typeof row.baseline_reason === 'string')
     && Array.isArray(row.warnings)
     && row.warnings.every(item => typeof item === 'string')
 }

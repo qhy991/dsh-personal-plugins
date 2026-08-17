@@ -56,6 +56,9 @@ python tests/submission_tests.py
 --workflow-authoring-budget 1 --fresh-session；用空参数 `{}` 调用 kersor_status，
 确认成功返回后才允许修改文件。setup 必须在 Session 存储根或任务工作区出现任何旧／
 partial Session 时拒绝继续；不得读取旧 Session 的 test-method、baseline 或策略。
+Session 创建后，用 baseline-witness.py init 原子写入当前两条权威命令，再依次执行
+record 与 verify；不要手写最小 test-method.md，也不要用 Markdown code span 包命令。
+baseline gate 未通过前不得进入 selection、authoring 或候选修改。
 这是 Python VLIW 模拟器，不是 CUDA；Session 必须冻结为
 python_reference/python/custom_simulator。已发布 Workflow 均不适配时应先
 STALLED，再由 Phase 3.6 创作并验证 VLIW-native Proposal，不得硬套 CUDA，
@@ -78,6 +81,7 @@ KerSor state 工具转成 stalled，并由 kersor_status 与侧栏共同确认 0
 - `compose optimize` 与 `kersor_status` 是否在任何文件修改前成功？
 - Session 是否显示 `python_reference/python/custom_simulator` 与 authoring 预算 1？
 - Session 是否显示“从零隔离：通过”，且 retrieval、experience、transfer、seed 全部关闭？
+- baseline 是否按 `init → record → verify` 通过；若未通过，侧栏是否显示明确下一步与 blocker？
 - KSearch 是否因 integration mismatch 被拒绝，而不是得到伪高 fit？
 - Agent 是否先确认基线、保护文件和 ISA 语义？
 - 是否只有主 agent 写 `perf_takehome.py`，只读顾问没有写冲突？

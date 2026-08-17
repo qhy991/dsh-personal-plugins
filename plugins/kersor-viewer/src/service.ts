@@ -22,7 +22,7 @@ import type { KersorViewerFrame } from './types.ts'
 
 export type { KersorEvent, KersorRunView } from './fold.ts'
 export type { KersorRunRef } from './scanner.ts'
-export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts'
+export type { KersorBaselineAction, KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts'
 export type { KersorViewerFrame } from './types.ts'
 export { EventsTailer } from './tailer.ts'
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from './scanner.ts'

@@ -110,8 +110,18 @@ def numeric(value: object) -> float | None:
     return number if number == number and abs(number) != float("inf") else None
 
 
-def baseline_gate(root: Path, session_dir: Path) -> str:
-    """Project the canonical baseline verifier without reimplementing its rules."""
+def bounded_reason(value: object, limit: int = 240) -> str | None:
+    """Normalize one bounded single-line diagnostic for browser projection."""
+    if not isinstance(value, str):
+        return None
+    reason = " ".join(value.split())
+    return reason[:limit] if reason else None
+
+
+def baseline_projection(
+    root: Path, session_dir: Path, round_number: int
+) -> tuple[str, str | None, str | None]:
+    """Project the canonical baseline verifier plus its next artifact boundary."""
     config = read_json_object(session_dir / "session-config.json")
     extensions = config.get("extensions")
     required = (
@@ -119,12 +129,18 @@ def baseline_gate(root: Path, session_dir: Path) -> str:
         and extensions.get("baseline_witness_required") is True
     )
     if not required:
-        return "not_required"
+        return "not_required", None, None
+    failure = read_json_object(
+        session_dir / f"run-{round_number}" / "baseline-gate.json"
+    )
+    if failure.get("verdict") == "fail":
+        return "fail", "new_session", bounded_reason(failure.get("reason"))
     if not (session_dir / "baseline-witness.json").is_file():
-        return "pending"
+        action = "record_verify" if (session_dir / "test-method.md").is_file() else "init"
+        return "pending", action, None
     verifier = root / "scripts" / "baseline-witness.py"
     if not verifier.is_file():
-        return "fail"
+        return "fail", "new_session", "baseline verifier is unavailable"
     try:
         completed = subprocess.run(
             [sys.executable, str(verifier), "verify", "--session", str(session_dir)],
@@ -134,8 +150,11 @@ def baseline_gate(root: Path, session_dir: Path) -> str:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return "fail"
-    return "pass" if completed.returncode == 0 else "fail"
+        return "fail", "new_session", "baseline verification could not complete"
+    if completed.returncode == 0:
+        return "pass", None, None
+    reason = bounded_reason(completed.stderr) or "baseline witness verification failed"
+    return "fail", "new_session", reason
 
 
 def dsh_compatibility_gate(session_dir: Path, round_number: int) -> str:
@@ -256,6 +275,8 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "workflow": None,
             "fit_confidence": None,
             "baseline_witness": None,
+            "baseline_next_action": None,
+            "baseline_reason": None,
             "dsh_compatibility": None,
             "candidate_ownership": None,
             "fresh_session": None,
@@ -323,6 +344,12 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
     max_workflows = snapshot.get("max_workflows")
     allow_workflow_authoring = snapshot.get("allow_workflow_authoring")
     workflow_authoring_budget = snapshot.get("workflow_authoring_budget")
+    fresh_session = fresh_session_gate(session_dir, round_number)
+    baseline_witness, baseline_next_action, baseline_reason = baseline_projection(
+        root, session_dir, round_number
+    )
+    if fresh_session == "fail":
+        baseline_next_action = None
     return {
         "found": True,
         "project_path": str(project_path),
@@ -352,10 +379,12 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "started_at": optional_string("started_at"),
         "workflow": selected_workflow(session_dir, round_number),
         "fit_confidence": fit_confidence,
-        "baseline_witness": baseline_gate(root, session_dir),
+        "baseline_witness": baseline_witness,
+        "baseline_next_action": baseline_next_action,
+        "baseline_reason": baseline_reason,
         "dsh_compatibility": dsh_compatibility_gate(session_dir, round_number),
         "candidate_ownership": candidate_ownership_gate(session_dir, round_number),
-        "fresh_session": fresh_session_gate(session_dir, round_number),
+        "fresh_session": fresh_session,
         "best_speedup": best_speedup,
         "rounds": rounds,
         "warnings": warnings,
@@ -500,6 +529,8 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "decision": latest_decision,
         "fit_confidence": value.get("fit_confidence"),
         "baseline_witness": value.get("baseline_witness"),
+        "baseline_next_action": value.get("baseline_next_action"),
+        "baseline_reason": value.get("baseline_reason"),
         "dsh_compatibility": value.get("dsh_compatibility"),
         "candidate_ownership": value.get("candidate_ownership"),
         "fresh_session": value.get("fresh_session"),

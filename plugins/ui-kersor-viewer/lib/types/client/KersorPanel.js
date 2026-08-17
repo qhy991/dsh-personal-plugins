@@ -67,6 +67,11 @@ const GATE_KEYS = {
     pending: 'session.gate.pending',
     not_required: 'session.gate.notRequired',
 };
+const BASELINE_ACTION_KEYS = {
+    init: 'session.baselineAction.init',
+    record_verify: 'session.baselineAction.recordVerify',
+    new_session: 'session.baselineAction.newSession',
+};
 function displayTime(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime()))
@@ -117,7 +122,11 @@ function ClassicSessionRow({ session, t }) {
                         ? _jsx("span", { className: css.gateBadge, "data-gate": session.candidate_ownership, children: t('session.ownershipGate', {
                                 status: t(GATE_KEYS[session.candidate_ownership]),
                             }) })
-                        : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
+                        : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), session.allow_workflow_authoring === true && session.baseline_next_action != null
+                ? _jsxs("div", { className: css.baselineAction, "data-baseline-action": session.baseline_next_action, title: session.baseline_reason ?? undefined, children: [_jsx("span", { className: css.baselineActionLabel, children: t(BASELINE_ACTION_KEYS[session.baseline_next_action]) }), session.baseline_reason != null
+                            ? _jsx("span", { className: css.baselineActionReason, children: session.baseline_reason })
+                            : null] })
+                : null, _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
                             ? t('session.workflow', { workflow: session.workflow })
                             : t('session.noWorkflow') }), session.lifecycle !== 'stalled' && session.lifecycle !== 'cancelled'
                         && session.fit_confidence !== null && session.fit_confidence !== undefined

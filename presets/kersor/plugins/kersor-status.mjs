@@ -38,6 +38,8 @@ const STATUS_SCHEMA = {
     workflow: nullable({ type: 'string' }),
     fit_confidence: nullable({ type: 'string' }),
     baseline_witness: nullable({ type: 'string' }),
+    baseline_next_action: nullable({ type: 'string' }),
+    baseline_reason: nullable({ type: 'string' }),
     dsh_compatibility: nullable({ type: 'string' }),
     candidate_ownership: nullable({ type: 'string' }),
     fresh_session: nullable({ type: 'string' }),
@@ -64,7 +66,8 @@ const STATUS_SCHEMA = {
     'backend', 'kernel_language', 'integration_pattern',
     'allow_workflow_authoring', 'workflow_authoring_budget',
     'kernel_path', 'started_at', 'workflow',
-    'fit_confidence', 'baseline_witness', 'dsh_compatibility', 'candidate_ownership',
+    'fit_confidence', 'baseline_witness', 'baseline_next_action', 'baseline_reason',
+    'dsh_compatibility', 'candidate_ownership',
     'fresh_session',
     'best_speedup', 'rounds', 'warnings',
   ],
@@ -129,6 +132,12 @@ export function renderStatus(value) {
     '| --- | --- | --- | --- |',
     `| ${gate(value.fresh_session)} | ${gate(value.baseline_witness)} | ${gate(value.dsh_compatibility)} | ${gate(value.candidate_ownership)} |`,
   )
+  if (value.baseline_next_action !== null) {
+    lines.push('', `Baseline next action: ${value.baseline_next_action}`)
+  }
+  if (value.baseline_reason !== null) {
+    lines.push(`Baseline blocker: ${value.baseline_reason}`)
+  }
 
   const recent = value.rounds.slice(-5)
   if (recent.length > 0) {
@@ -190,6 +199,8 @@ export function createTool() {
         allow_workflow_authoring: value.allow_workflow_authoring,
         workflow_authoring_budget: value.workflow_authoring_budget,
         baseline_witness: value.baseline_witness,
+        baseline_next_action: value.baseline_next_action,
+        baseline_reason: value.baseline_reason,
         dsh_compatibility: value.dsh_compatibility,
         candidate_ownership: value.candidate_ownership,
         fresh_session: value.fresh_session,
