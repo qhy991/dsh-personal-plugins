@@ -9,8 +9,8 @@ import type { Fiber } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-workspace'
-import { readClassicSessions } from './classic.ts'
-import type { KersorClassicSnapshot } from './classic.ts'
+import { readClassicSessionDetail, readClassicSessions } from './classic.ts'
+import type { KersorClassicSessionDetail, KersorClassicSnapshot } from './classic.ts'
 import { createIssue, issueFromError, mergeIssue } from './diagnostics.ts'
 import { createRunView, foldEvent } from './fold.ts'
 import type { KersorEvent, KersorRunView } from './fold.ts'
@@ -21,12 +21,15 @@ import type { KersorRunObservation, KersorViewerFrame, KersorViewerSnapshot } fr
 
 export type { KersorEvent, KersorRunView } from './fold.ts'
 export type { KersorRunRef } from './scanner.ts'
-export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts'
+export type {
+  KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession,
+  KersorClassicSessionDetail, KersorClassicSnapshot, KersorClassicStatus,
+} from './classic.ts'
 export type { KersorRunObservation, KersorViewerFrame, KersorViewerSnapshot } from './types.ts'
 export { EventsTailer } from './tailer.ts'
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from './scanner.ts'
 export { createRunView, foldEvent } from './fold.ts'
-export { installedBridge, readClassicSessions } from './classic.ts'
+export { installedBridge, readClassicSessionDetail, readClassicSessions } from './classic.ts'
 
 /** Viewer configuration (cordis.patch.yml row config). */
 export interface Config {
@@ -135,6 +138,17 @@ export class KersorViewerService extends TypertRemoteService {
   @Remote('runBacklog')
   runBacklog(runDir: string): KersorRunView | undefined {
     return this.tracked.get(runDir)?.view
+  }
+
+  /**
+   * Read sealed, bounded detail for one classic Session present in the snapshot.
+   * @param sessionDir - Exact discovered Session directory.
+   * @returns Inspector detail, or `undefined` for an unknown or unreadable Session.
+   */
+  @Remote('classicSessionDetail')
+  async classicSessionDetail(sessionDir: string): Promise<KersorClassicSessionDetail | undefined> {
+    if (!this.classicSnapshot.sessions.some(session => session.session_dir === sessionDir)) return undefined
+    return readClassicSessionDetail(sessionDir)
   }
 
   /** Rescan roots once; concurrent callers share the in-flight scan. */

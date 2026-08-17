@@ -3,14 +3,16 @@ import type {
   RemoteResult,
   TypertRemoteContribution,
 } from '@deepseek-ai/dsh-typert-protocol'
-import type { KersorRunView, KersorViewerSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type { KersorClassicSessionDetail, KersorRunView, KersorViewerSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteNamespace$6b6572736f72566965776572 {
+    classicSessionDetail: (sessionDir: string) => Promise<RemoteResult<KersorClassicSessionDetail | undefined>>
     runBacklog: (runDir: string) => Promise<RemoteResult<KersorRunView | undefined>>
     snapshot: () => Promise<RemoteResult<KersorViewerSnapshot>>
   }
   interface TypertRemoteMap {
+    'kersorViewer/classicSessionDetail': (sessionDir: string) => Promise<RemoteResult<KersorClassicSessionDetail | undefined>>
     'kersorViewer/runBacklog': (runDir: string) => Promise<RemoteResult<KersorRunView | undefined>>
     'kersorViewer/snapshot': () => Promise<RemoteResult<KersorViewerSnapshot>>
   }

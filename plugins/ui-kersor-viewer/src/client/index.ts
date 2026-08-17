@@ -76,6 +76,8 @@ export function apply(ctx: ClientContext): void {
         }
         store.setBacklog(selected, backlog.value)
       }
+      const selectedClassic = store.selectedClassicSessionDir
+      if (selectedClassic !== undefined) await loadClassic(selectedClassic)
     } catch (error) {
       store.setTransportError(error instanceof Error ? error.message : String(error))
     }
@@ -100,6 +102,20 @@ export function apply(ctx: ClientContext): void {
     } catch {
       // Optional launcher discovery must not disable the read-only viewer.
       store.setLauncherUnavailable()
+    }
+  }
+
+  const loadClassic = async (sessionDir: string): Promise<void> => {
+    store.setClassicDetailLoading(sessionDir)
+    try {
+      const answered = await viewerRemote().classicSessionDetail(sessionDir)
+      if (!answered.ok) {
+        store.setClassicDetailError(sessionDir, `${answered.error.code}: ${answered.error.message}`)
+        return
+      }
+      store.setClassicDetail(sessionDir, answered.value)
+    } catch (error) {
+      store.setClassicDetailError(sessionDir, error instanceof Error ? error.message : String(error))
     }
   }
 
@@ -151,13 +167,16 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.remote.$on('kersor/event', (frame: KersorViewerFrame) => {
     store.applyFrame(frame)
+    if (frame.kind === 'snapshot' && store.selectedClassicSessionDir !== undefined) {
+      void loadClassic(store.selectedClassicSessionDir)
+    }
   })
   ctx.remote.$on('kersor/active', (frame: KersorActiveFrame) => {
     store.applyActiveFrame(frame)
   })
   void refresh()
 
-  const face: KersorPanelFace = { store, refresh, start, stop }
+  const face: KersorPanelFace = { store, refresh, loadClassic, start, stop }
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'kersor-panel',

@@ -34,6 +34,16 @@ afterEach(async () => {
 })
 
 describe('Host snapshot', () => {
+  it('refuses detail reads outside the discovered classic Session inventory', async () => {
+    const ctx = new Context()
+    ctx.provide('workspaceRegistry', { list: () => [] } as never)
+    const service = new KersorViewerService(ctx, {
+      noDefaultRoots: true, classicSessionLimit: 0,
+    })
+
+    await expect(service.classicSessionDetail('/sessions/not-discovered')).resolves.toBeUndefined()
+  })
+
   it('keeps terminal lifecycle while exposing a missing backfill as structured failure', async () => {
     const { workspace, runDir } = await fixture(undefined)
     const ctx = new Context()

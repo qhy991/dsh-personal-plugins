@@ -4,6 +4,9 @@ import { useState, useSyncExternalStore } from 'react'
 import { IconChevronRightOutline14, StateDot, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
+  KersorClassicSessionDetail,
+  KersorClassicStepId,
+  KersorClassicStepStatus,
   KersorCallView,
   KersorDiagnosticIssue,
   KersorPhaseView,
@@ -72,6 +75,27 @@ const CLASSIC_HEALTH_KEYS = {
   unknown: 'session.health.unknown',
 } as const satisfies Record<KersorClassicHealth, KersorViewerKey>
 
+const CLASSIC_STEP_KEYS = {
+  setup: 'detail.step.setup',
+  baseline: 'detail.step.baseline',
+  profile: 'detail.step.profile',
+  selection: 'detail.step.selection',
+  authoring: 'detail.step.authoring',
+  validation: 'detail.step.validation',
+  dispatch: 'detail.step.dispatch',
+  measurement: 'detail.step.measurement',
+  decision: 'detail.step.decision',
+} as const satisfies Record<KersorClassicStepId, KersorViewerKey>
+
+function classicStepDotState(status: KersorClassicStepStatus): StateDotState {
+  switch (status) {
+    case 'pending': return 'warning'
+    case 'active': return 'ongoing'
+    case 'completed': return 'done'
+    case 'failed': return 'error'
+  }
+}
+
 function classicDotState(health: KersorClassicHealth, lifecycle: KersorClassicLifecycle): StateDotState {
   if (health === 'active') return 'ongoing'
   if (health !== 'terminal') return 'warning'
@@ -96,8 +120,114 @@ function displayTime(value: string): string | undefined {
   }).format(date)
 }
 
-function ClassicSessionRow({ session, t }: {
+function ClassicSessionDetail({ detail, t }: {
+  readonly detail: KersorClassicSessionDetail
+  readonly t: KersorPanelProps['t']
+}): React.JSX.Element {
+  const design = detail.authoring.design
+  return (
+    <div className={css.classicDetail}>
+      <ol className={css.timeline} aria-label={t('detail.timeline')}>
+        {detail.steps.map(step => (
+          <li key={step.id} className={css.timelineStep} data-step-status={step.status}>
+            <StateDot state={classicStepDotState(step.status)} />
+            <span>{t(CLASSIC_STEP_KEYS[step.id])}</span>
+          </li>
+        ))}
+      </ol>
+      <div className={css.detailGrid}>
+        <section className={css.detailSection}>
+          <span className={css.detailTitle}>{t('detail.selection')}</span>
+          <span>{t(`detail.selection.${detail.selection.status}`)}</span>
+          {detail.selection.workflow !== undefined
+            ? <span className={css.mono}>{detail.selection.workflow}</span>
+            : null}
+          {detail.selection.reason !== undefined
+            ? <span className={css.detailReason}>{detail.selection.reason}</span>
+            : null}
+          <span>{t('detail.rejected', { count: detail.selection.rejectedCount })}</span>
+        </section>
+        <section className={css.detailSection}>
+          <span className={css.detailTitle}>{t('detail.authoring')}</span>
+          <span>{t(`detail.authoring.${detail.authoring.status}`)}</span>
+          {detail.authoring.omittedReason !== undefined
+            ? <span className={css.detailError}>{t('detail.omitted', { reason: detail.authoring.omittedReason })}</span>
+            : null}
+        </section>
+        <section className={css.detailSection}>
+          <span className={css.detailTitle}>{t('detail.validation')}</span>
+          <span>{t(`detail.validation.${detail.validation.status}`)}</span>
+          {detail.validation.checks.length > 0
+            ? (
+              <ul className={css.checks}>
+                {detail.validation.checks.map(check => (
+                  <li key={check.name} data-check-passed={check.passed}>
+                    {check.passed ? '✓' : '×'} {check.name}
+                  </li>
+                ))}
+              </ul>
+            )
+            : null}
+        </section>
+        <section className={css.detailSection}>
+          <span className={css.detailTitle}>{t('detail.dispatch')}</span>
+          <span>{t(`detail.dispatch.${detail.dispatch.status}`)}</span>
+          {detail.dispatch.runtimeStatus !== undefined
+            ? <span className={css.mono}>{detail.dispatch.runtimeStatus}</span>
+            : null}
+          {detail.dispatch.runDir !== undefined
+            ? <span className={css.detailPath} title={detail.dispatch.runDir}>{detail.dispatch.runDir}</span>
+            : null}
+        </section>
+      </div>
+      {detail.authoring.files.length > 0
+        ? (
+          <div className={css.artifacts}>
+            {detail.authoring.files.map(file => (
+              <span key={file.name} title={file.sha256}>
+                <span className={css.mono}>{file.name}</span> · {file.bytes} B · {file.sha256.slice(0, 18)}…
+              </span>
+            ))}
+          </div>
+        )
+        : null}
+      {design !== undefined
+        ? (
+          <div className={css.design}>
+            <div className={css.designMeta}>
+              {design.name !== undefined ? <span className={css.mono}>{design.name}</span> : null}
+              {design.technique !== undefined ? <span>{design.technique}</span> : null}
+              {design.methodCategory !== undefined ? <span>{design.methodCategory}</span> : null}
+              {design.topology !== undefined ? <span>{design.topology}</span> : null}
+              {design.languages.map(value => <span key={`language:${value}`}>{value}</span>)}
+              {design.backends.map(value => <span key={`backend:${value}`}>{value}</span>)}
+              {design.integrationPatterns.map(value => <span key={`integration:${value}`}>{value}</span>)}
+            </div>
+            {design.requiredArgs.length > 0
+              ? <div className={css.requiredArgs}>{t('detail.requiredArgs')}: <span className={css.mono}>{design.requiredArgs.join(', ')}</span></div>
+              : null}
+            <details className={css.designDisclosure}>
+              <summary>{t('detail.rationale')}</summary>
+              <pre>{design.rationale}</pre>
+            </details>
+            <details className={css.designDisclosure}>
+              <summary>{t('detail.source')}</summary>
+              <pre>{design.source}</pre>
+            </details>
+          </div>
+        )
+        : <div className={css.detailNote}>{t('detail.sealRequired')}</div>}
+    </div>
+  )
+}
+
+function ClassicSessionRow({ session, selected, detail, loading, error, onToggle, t }: {
   readonly session: KersorClassicSession
+  readonly selected: boolean
+  readonly detail?: KersorClassicSessionDetail | undefined
+  readonly loading: boolean
+  readonly error?: string | undefined
+  readonly onToggle: () => void
   readonly t: KersorPanelProps['t']
 }): React.JSX.Element {
   const round = session.current_round !== null && session.current_round !== undefined
@@ -116,11 +246,25 @@ function ClassicSessionRow({ session, t }: {
     : undefined
   const fitConfidence = visibleFitConfidence(session)
   return (
-    <li className={css.classicRow} data-session-health={session.health} data-session-lifecycle={session.lifecycle}>
+    <li
+      className={css.classicRow}
+      data-session-health={session.health}
+      data-session-lifecycle={session.lifecycle}
+      data-expanded={selected}
+    >
       <div className={css.classicHead}>
         <StateDot state={classicDotState(session.health, session.lifecycle)} />
         <span className={css.sessionId} title={session.session_dir}>{session.session_id}</span>
         <span className={css.phaseBadge}>{t(CLASSIC_HEALTH_KEYS[session.health])}</span>
+        <button
+          type="button"
+          className={css.classicExpand}
+          aria-expanded={selected}
+          aria-label={selected ? t('detail.collapse') : t('detail.expand')}
+          onClick={onToggle}
+        >
+          <IconChevronRightOutline14 />
+        </button>
       </div>
       <div className={css.classicMetrics}>
         {round !== undefined ? <span>{round}</span> : null}
@@ -144,9 +288,11 @@ function ClassicSessionRow({ session, t }: {
       </div>
       <div className={css.classicFoot}>
         <span className={css.workflowName}>
-          {session.workflow !== null && session.workflow !== undefined
-            ? t('session.workflow', { workflow: session.workflow })
-            : t('session.noWorkflow')}
+          {session.selection_status === 'stalled'
+            ? t('session.selectorStalled')
+            : session.workflow !== null && session.workflow !== undefined
+              ? t('session.workflow', { workflow: session.workflow })
+              : t('session.noWorkflow')}
         </span>
         {fitConfidence !== undefined
           ? <span className={css.fitBadge} data-fit-confidence={fitConfidence}>{t('session.fit', { confidence: fitConfidence })}</span>
@@ -158,6 +304,9 @@ function ClassicSessionRow({ session, t }: {
       {session.decision !== null && session.decision !== undefined
         ? <div className={css.decisionReason} title={session.decision}>{session.decision}</div>
         : null}
+      {selected && loading ? <div className={css.detailNote}>{t('detail.loading')}</div> : null}
+      {selected && error !== undefined ? <div className={css.detailError}>{error}</div> : null}
+      {selected && !loading && detail !== undefined ? <ClassicSessionDetail detail={detail} t={t} /> : null}
     </li>
   )
 }
@@ -332,7 +481,7 @@ function viewerHealth(snapshot: KersorViewerSnapshot): ViewerHealth {
 }
 
 /** Sidebar footer panel: trigger row plus the fixed inventory popup. */
-export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps): React.JSX.Element {
+export function KersorPanel({ t, store, refresh, loadClassic, start, stop }: KersorPanelProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string>()
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
@@ -357,6 +506,15 @@ export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps
     } finally {
       setBusy(undefined)
     }
+  }
+
+  const toggleClassic = (sessionDir: string): void => {
+    if (store.selectedClassicSessionDir === sessionDir) {
+      store.selectClassic(undefined)
+      return
+    }
+    store.selectClassic(sessionDir)
+    void loadClassic(sessionDir)
   }
 
   return (
@@ -425,7 +583,22 @@ export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps
                       })}</span>
                     </div>
                     <ul className={css.classicRows}>
-                      {classicSessions.map(session => <ClassicSessionRow key={session.session_dir} session={session} t={t} />)}
+                      {classicSessions.map(session => (
+                        <ClassicSessionRow
+                          key={session.session_dir}
+                          session={session}
+                          selected={store.selectedClassicSessionDir === session.session_dir}
+                          loading={state.classicDetailLoading === session.session_dir}
+                          {...(state.classicDetails.get(session.session_dir) === undefined
+                            ? {}
+                            : { detail: state.classicDetails.get(session.session_dir) })}
+                          {...(state.classicDetailError?.startsWith(`${session.session_dir}: `) === true
+                            ? { error: state.classicDetailError.slice(session.session_dir.length + 2) }
+                            : {})}
+                          onToggle={() => { toggleClassic(session.session_dir) }}
+                          t={t}
+                        />
+                      ))}
                     </ul>
                   </section>
                 )

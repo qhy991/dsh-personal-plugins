@@ -6,16 +6,17 @@
 import { Context, Service } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
+import type { KersorClassicSessionDetail } from './classic.ts';
 import type { KersorRunView } from './fold.ts';
 import type { KersorViewerSnapshot } from './types.ts';
 export type { KersorEvent, KersorRunView } from './fold.ts';
 export type { KersorRunRef } from './scanner.ts';
-export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts';
+export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSessionDetail, KersorClassicSnapshot, KersorClassicStatus, } from './classic.ts';
 export type { KersorRunObservation, KersorViewerFrame, KersorViewerSnapshot } from './types.ts';
 export { EventsTailer } from './tailer.ts';
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from './scanner.ts';
 export { createRunView, foldEvent } from './fold.ts';
-export { installedBridge, readClassicSessions } from './classic.ts';
+export { installedBridge, readClassicSessionDetail, readClassicSessions } from './classic.ts';
 /** Viewer configuration (cordis.patch.yml row config). */
 export interface Config {
     /** Extra KerSor session roots scanned in addition to the defaults. */
@@ -54,6 +55,12 @@ export declare class KersorViewerService extends TypertRemoteService {
     snapshot(): KersorViewerSnapshot;
     /** Full folded view of one run (panel open / reconnect backlog). */
     runBacklog(runDir: string): KersorRunView | undefined;
+    /**
+     * Read sealed, bounded detail for one classic Session present in the snapshot.
+     * @param sessionDir - Exact discovered Session directory.
+     * @returns Inspector detail, or `undefined` for an unknown or unreadable Session.
+     */
+    classicSessionDetail(sessionDir: string): Promise<KersorClassicSessionDetail | undefined>;
     /** Rescan roots once; concurrent callers share the in-flight scan. */
     rescan(): Promise<void>;
     private performRescan;

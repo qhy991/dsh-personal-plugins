@@ -29,11 +29,82 @@ export interface KersorClassicSession {
     readonly workflow_authoring_budget?: number | null;
     readonly kernel_name?: string | null;
     readonly workflow?: string | null;
+    /** Outcome of the deterministic selector, separate from a Workflow name. */
+    readonly selection_status?: 'pending' | 'stalled' | 'selected' | null;
     /** Latest canonical COMPLETE/CONTINUE/STALLED line, when a round has decided. */
     readonly decision?: string | null;
     readonly fit_confidence?: string | null;
     readonly best_speedup?: number | null;
     readonly warningCount: number;
+}
+/** Stable stage identifiers rendered by the classic Session inspector. */
+export type KersorClassicStepId = 'setup' | 'baseline' | 'profile' | 'selection' | 'authoring' | 'validation' | 'dispatch' | 'measurement' | 'decision';
+/** Artifact-derived lifecycle of one inspector stage. */
+export type KersorClassicStepStatus = 'pending' | 'active' | 'completed' | 'failed';
+/** One artifact-derived step in a classic optimization Session. */
+export interface KersorClassicStep {
+    readonly id: KersorClassicStepId;
+    readonly status: KersorClassicStepStatus;
+}
+/** Selector outcome kept separate from authored or released Workflow identity. */
+export interface KersorClassicSelectionDetail {
+    readonly status: 'pending' | 'stalled' | 'selected';
+    readonly workflow?: string;
+    readonly reason?: string;
+    readonly rejectedCount: number;
+}
+/** One sealed or persisted Workflow file. */
+export interface KersorClassicArtifact {
+    readonly name: string;
+    readonly sha256: string;
+    readonly bytes: number;
+}
+/** Curated routing metadata plus sealed, read-only design text. */
+export interface KersorClassicWorkflowDesign {
+    readonly name?: string;
+    readonly technique?: string;
+    readonly methodCategory?: string;
+    readonly topology?: string;
+    readonly requiredArgs: readonly string[];
+    readonly languages: readonly string[];
+    readonly backends: readonly string[];
+    readonly integrationPatterns: readonly string[];
+    readonly rationale: string;
+    readonly source: string;
+}
+/** Foreground authoring state. Design content is absent until the handoff is sealed. */
+export interface KersorClassicAuthoringDetail {
+    readonly status: 'not_started' | 'in_progress' | 'sealed' | 'saved' | 'rejected';
+    readonly files: readonly KersorClassicArtifact[];
+    readonly design?: KersorClassicWorkflowDesign;
+    readonly omittedReason?: 'too_large' | 'invalid' | 'hash_mismatch';
+}
+/** One deterministic Proposal validation result. */
+export interface KersorClassicValidationCheck {
+    readonly name: string;
+    readonly passed: boolean;
+}
+/** Bounded result of the canonical Proposal save validator. */
+export interface KersorClassicValidationDetail {
+    readonly status: 'pending' | 'passed' | 'failed';
+    readonly checks: readonly KersorClassicValidationCheck[];
+}
+/** Dispatch preparation and Workflow Host lifecycle for the current round. */
+export interface KersorClassicDispatchDetail {
+    readonly status: 'pending' | 'preparing' | 'running' | 'completed' | 'failed';
+    readonly runDir?: string;
+    readonly runtimeStatus?: string;
+}
+/** On-demand inspector projection for one already-discovered classic Session. */
+export interface KersorClassicSessionDetail {
+    readonly session_id: string;
+    readonly session_dir: string;
+    readonly current_round: number;
+    readonly steps: readonly KersorClassicStep[];
+    readonly selection: KersorClassicSelectionDetail;
+    readonly authoring: KersorClassicAuthoringDetail;
+    readonly validation: KersorClassicValidationDetail;
+    readonly dispatch: KersorClassicDispatchDetail;
 }
 /** Health of the optional classic-Session bridge. */
 export interface KersorClassicSource {
@@ -53,6 +124,12 @@ export interface KersorClassicRoots {
 }
 /** Path copied by the portable preset installer. */
 export declare function installedBridge(): string;
+/**
+ * Read a sealed, bounded inspector projection for one classic Session.
+ * @param sessionDir - Exact Session directory already discovered by the Host.
+ * @returns Valid detail, or `undefined` when the bridge cannot provide it.
+ */
+export declare function readClassicSessionDetail(sessionDir: string): Promise<KersorClassicSessionDetail | undefined>;
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
 export declare function readClassicSessions(limit: number, staleAfterSeconds?: number, roots?: KersorClassicRoots): Promise<KersorClassicSnapshot>;
 //# sourceMappingURL=classic.d.ts.map

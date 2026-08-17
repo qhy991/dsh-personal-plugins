@@ -6,6 +6,7 @@
  */
 
 import type {
+  KersorClassicSessionDetail,
   KersorRunRef,
   KersorRunView,
   KersorViewerFrame,
@@ -22,6 +23,10 @@ export interface KersorViewerState {
   readonly snapshot?: KersorViewerSnapshot
   /** Folded event backlogs keyed independently from the inventory snapshot. */
   readonly views: ReadonlyMap<string, KersorRunView>
+  /** On-demand, seal-aware classic Session details keyed by Session directory. */
+  readonly classicDetails: ReadonlyMap<string, KersorClassicSessionDetail>
+  readonly classicDetailLoading?: string
+  readonly classicDetailError?: string
   readonly loading: boolean
   /** Transport failure only; Host source failures live in snapshot diagnostics. */
   readonly transportError?: string
@@ -37,9 +42,10 @@ type Listener = () => void
 
 /** Snapshot store over the Host projection and per-run folded views. */
 export class KersorViewerStore {
-  private state: KersorViewerState = { views: new Map(), loading: true }
+  private state: KersorViewerState = { views: new Map(), classicDetails: new Map(), loading: true }
   private readonly listeners = new Set<Listener>()
   private selected: string | undefined
+  private selectedClassic: string | undefined
 
   /** Stable snapshot for useSyncExternalStore. */
   getSnapshot = (): KersorViewerState => this.state
@@ -61,6 +67,20 @@ export class KersorViewerStore {
   /** Currently selected run directory (panel-local choice). */
   get selectedRunDir(): string | undefined {
     return this.selected
+  }
+
+  /** Currently expanded classic Session directory. */
+  get selectedClassicSessionDir(): string | undefined {
+    return this.selectedClassic
+  }
+
+  /**
+   * Expand or collapse one classic Session inspector.
+   * @param sessionDir - Selected Session directory, or `undefined` to collapse.
+   */
+  selectClassic(sessionDir: string | undefined): void {
+    this.selectedClassic = sessionDir
+    this.emit()
   }
 
   /** Select a run for the detail view; persists across Host snapshots. */
@@ -87,16 +107,58 @@ export class KersorViewerStore {
     const views = new Map(
       [...this.state.views].filter(([runDir]) => live.has(runDir)),
     )
+    const liveClassic = new Set(snapshot.classic.sessions.map(session => session.session_dir))
+    const classicDetails = new Map(
+      [...this.state.classicDetails].filter(([sessionDir]) => liveClassic.has(sessionDir)),
+    )
+    if (this.selectedClassic !== undefined && !liveClassic.has(this.selectedClassic)) {
+      this.selectedClassic = undefined
+    }
     const { transportError: _, ...state } = this.state
     const loading = snapshot.diagnostics.scan.state === 'never'
       || snapshot.diagnostics.scan.state === 'running'
-    this.state = { ...state, snapshot, views, loading }
+    this.state = { ...state, snapshot, views, classicDetails, loading }
     this.emit()
   }
 
   /** Record a Remote/connection failure without overwriting Host diagnostics. */
   setTransportError(message: string): void {
     this.state = { ...this.state, loading: false, transportError: message }
+    this.emit()
+  }
+
+  /**
+   * Mark one selected classic Session detail as loading.
+   * @param sessionDir - Session whose on-demand detail is loading.
+   */
+  setClassicDetailLoading(sessionDir: string): void {
+    const { classicDetailError: _, ...state } = this.state
+    this.state = { ...state, classicDetailLoading: sessionDir }
+    this.emit()
+  }
+
+  /**
+   * Store one successful classic Session detail answer.
+   * @param sessionDir - Session owning the answer.
+   * @param detail - Valid inspector detail, or `undefined` when unavailable.
+   */
+  setClassicDetail(sessionDir: string, detail: KersorClassicSessionDetail | undefined): void {
+    const { classicDetailLoading: _, classicDetailError: __, ...state } = this.state
+    const classicDetails = new Map(state.classicDetails)
+    if (detail === undefined) classicDetails.delete(sessionDir)
+    else classicDetails.set(sessionDir, detail)
+    this.state = { ...state, classicDetails }
+    this.emit()
+  }
+
+  /**
+   * Record a bounded detail-read failure without replacing the summary snapshot.
+   * @param sessionDir - Session whose detail failed.
+   * @param message - Remote transport diagnostic.
+   */
+  setClassicDetailError(sessionDir: string, message: string): void {
+    const { classicDetailLoading: _, ...state } = this.state
+    this.state = { ...state, classicDetailError: `${sessionDir}: ${message}` }
     this.emit()
   }
 
@@ -151,8 +213,9 @@ export class KersorViewerStore {
 
   /** Drop connection-scoped state. */
   reset(): void {
-    this.state = { views: new Map(), loading: true }
+    this.state = { views: new Map(), classicDetails: new Map(), loading: true }
     this.selected = undefined
+    this.selectedClassic = undefined
     this.emit()
   }
 

@@ -47,6 +47,25 @@ const CLASSIC_HEALTH_KEYS = {
     terminal: 'session.health.terminal',
     unknown: 'session.health.unknown',
 };
+const CLASSIC_STEP_KEYS = {
+    setup: 'detail.step.setup',
+    baseline: 'detail.step.baseline',
+    profile: 'detail.step.profile',
+    selection: 'detail.step.selection',
+    authoring: 'detail.step.authoring',
+    validation: 'detail.step.validation',
+    dispatch: 'detail.step.dispatch',
+    measurement: 'detail.step.measurement',
+    decision: 'detail.step.decision',
+};
+function classicStepDotState(status) {
+    switch (status) {
+        case 'pending': return 'warning';
+        case 'active': return 'ongoing';
+        case 'completed': return 'done';
+        case 'failed': return 'error';
+    }
+}
 function classicDotState(health, lifecycle) {
     if (health === 'active')
         return 'ongoing';
@@ -71,7 +90,29 @@ function displayTime(value) {
         timeStyle: 'short',
     }).format(date);
 }
-function ClassicSessionRow({ session, t }) {
+function ClassicSessionDetail({ detail, t }) {
+    const design = detail.authoring.design;
+    return (_jsxs("div", { className: css.classicDetail, children: [_jsx("ol", { className: css.timeline, "aria-label": t('detail.timeline'), children: detail.steps.map(step => (_jsxs("li", { className: css.timelineStep, "data-step-status": step.status, children: [_jsx(StateDot, { state: classicStepDotState(step.status) }), _jsx("span", { children: t(CLASSIC_STEP_KEYS[step.id]) })] }, step.id))) }), _jsxs("div", { className: css.detailGrid, children: [_jsxs("section", { className: css.detailSection, children: [_jsx("span", { className: css.detailTitle, children: t('detail.selection') }), _jsx("span", { children: t(`detail.selection.${detail.selection.status}`) }), detail.selection.workflow !== undefined
+                                ? _jsx("span", { className: css.mono, children: detail.selection.workflow })
+                                : null, detail.selection.reason !== undefined
+                                ? _jsx("span", { className: css.detailReason, children: detail.selection.reason })
+                                : null, _jsx("span", { children: t('detail.rejected', { count: detail.selection.rejectedCount }) })] }), _jsxs("section", { className: css.detailSection, children: [_jsx("span", { className: css.detailTitle, children: t('detail.authoring') }), _jsx("span", { children: t(`detail.authoring.${detail.authoring.status}`) }), detail.authoring.omittedReason !== undefined
+                                ? _jsx("span", { className: css.detailError, children: t('detail.omitted', { reason: detail.authoring.omittedReason }) })
+                                : null] }), _jsxs("section", { className: css.detailSection, children: [_jsx("span", { className: css.detailTitle, children: t('detail.validation') }), _jsx("span", { children: t(`detail.validation.${detail.validation.status}`) }), detail.validation.checks.length > 0
+                                ? (_jsx("ul", { className: css.checks, children: detail.validation.checks.map(check => (_jsxs("li", { "data-check-passed": check.passed, children: [check.passed ? '✓' : '×', " ", check.name] }, check.name))) }))
+                                : null] }), _jsxs("section", { className: css.detailSection, children: [_jsx("span", { className: css.detailTitle, children: t('detail.dispatch') }), _jsx("span", { children: t(`detail.dispatch.${detail.dispatch.status}`) }), detail.dispatch.runtimeStatus !== undefined
+                                ? _jsx("span", { className: css.mono, children: detail.dispatch.runtimeStatus })
+                                : null, detail.dispatch.runDir !== undefined
+                                ? _jsx("span", { className: css.detailPath, title: detail.dispatch.runDir, children: detail.dispatch.runDir })
+                                : null] })] }), detail.authoring.files.length > 0
+                ? (_jsx("div", { className: css.artifacts, children: detail.authoring.files.map(file => (_jsxs("span", { title: file.sha256, children: [_jsx("span", { className: css.mono, children: file.name }), " \u00B7 ", file.bytes, " B \u00B7 ", file.sha256.slice(0, 18), "\u2026"] }, file.name))) }))
+                : null, design !== undefined
+                ? (_jsxs("div", { className: css.design, children: [_jsxs("div", { className: css.designMeta, children: [design.name !== undefined ? _jsx("span", { className: css.mono, children: design.name }) : null, design.technique !== undefined ? _jsx("span", { children: design.technique }) : null, design.methodCategory !== undefined ? _jsx("span", { children: design.methodCategory }) : null, design.topology !== undefined ? _jsx("span", { children: design.topology }) : null, design.languages.map(value => _jsx("span", { children: value }, `language:${value}`)), design.backends.map(value => _jsx("span", { children: value }, `backend:${value}`)), design.integrationPatterns.map(value => _jsx("span", { children: value }, `integration:${value}`))] }), design.requiredArgs.length > 0
+                            ? _jsxs("div", { className: css.requiredArgs, children: [t('detail.requiredArgs'), ": ", _jsx("span", { className: css.mono, children: design.requiredArgs.join(', ') })] })
+                            : null, _jsxs("details", { className: css.designDisclosure, children: [_jsx("summary", { children: t('detail.rationale') }), _jsx("pre", { children: design.rationale })] }), _jsxs("details", { className: css.designDisclosure, children: [_jsx("summary", { children: t('detail.source') }), _jsx("pre", { children: design.source })] })] }))
+                : _jsx("div", { className: css.detailNote, children: t('detail.sealRequired') })] }));
+}
+function ClassicSessionRow({ session, selected, detail, loading, error, onToggle, t }) {
     const round = session.current_round !== null && session.current_round !== undefined
         ? session.max_workflows !== null && session.max_workflows !== undefined
             ? t('session.round', { current: session.current_round, maximum: session.max_workflows })
@@ -87,7 +128,7 @@ function ClassicSessionRow({ session, t }) {
         ? displayTime(session.last_activity_at)
         : undefined;
     const fitConfidence = visibleFitConfidence(session);
-    return (_jsxs("li", { className: css.classicRow, "data-session-health": session.health, "data-session-lifecycle": session.lifecycle, children: [_jsxs("div", { className: css.classicHead, children: [_jsx(StateDot, { state: classicDotState(session.health, session.lifecycle) }), _jsx("span", { className: css.sessionId, title: session.session_dir, children: session.session_id }), _jsx("span", { className: css.phaseBadge, children: t(CLASSIC_HEALTH_KEYS[session.health]) })] }), _jsxs("div", { className: css.classicMetrics, children: [round !== undefined ? _jsx("span", { children: round }) : null, session.best_speedup !== null && session.best_speedup !== undefined
+    return (_jsxs("li", { className: css.classicRow, "data-session-health": session.health, "data-session-lifecycle": session.lifecycle, "data-expanded": selected, children: [_jsxs("div", { className: css.classicHead, children: [_jsx(StateDot, { state: classicDotState(session.health, session.lifecycle) }), _jsx("span", { className: css.sessionId, title: session.session_dir, children: session.session_id }), _jsx("span", { className: css.phaseBadge, children: t(CLASSIC_HEALTH_KEYS[session.health]) }), _jsx("button", { type: "button", className: css.classicExpand, "aria-expanded": selected, "aria-label": selected ? t('detail.collapse') : t('detail.expand'), onClick: onToggle, children: _jsx(IconChevronRightOutline14, {}) })] }), _jsxs("div", { className: css.classicMetrics, children: [round !== undefined ? _jsx("span", { children: round }) : null, session.best_speedup !== null && session.best_speedup !== undefined
                         ? _jsx("span", { "data-target-met": session.target_met ?? undefined, children: t('session.best', { speedup: speedup(session.best_speedup) }) })
                         : null, session.target_speedup !== null && session.target_speedup !== undefined
                         ? _jsx("span", { children: t('session.target', { speedup: speedup(session.target_speedup) }) })
@@ -97,15 +138,17 @@ function ClassicSessionRow({ session, t }) {
                         ? _jsx("span", { className: css.authoringBadge, children: t('session.authoring', {
                                 budget: session.workflow_authoring_budget ?? '—',
                             }) })
-                        : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
-                            ? t('session.workflow', { workflow: session.workflow })
-                            : t('session.noWorkflow') }), fitConfidence !== undefined
+                        : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.selection_status === 'stalled'
+                            ? t('session.selectorStalled')
+                            : session.workflow !== null && session.workflow !== undefined
+                                ? t('session.workflow', { workflow: session.workflow })
+                                : t('session.noWorkflow') }), fitConfidence !== undefined
                         ? _jsx("span", { className: css.fitBadge, "data-fit-confidence": fitConfidence, children: t('session.fit', { confidence: fitConfidence }) })
                         : null, session.warningCount > 0
                         ? _jsx("span", { className: css.warningCount, children: t('session.warnings', { count: session.warningCount }) })
                         : null] }), session.decision !== null && session.decision !== undefined
                 ? _jsx("div", { className: css.decisionReason, title: session.decision, children: session.decision })
-                : null] }));
+                : null, selected && loading ? _jsx("div", { className: css.detailNote, children: t('detail.loading') }) : null, selected && error !== undefined ? _jsx("div", { className: css.detailError, children: error }) : null, selected && !loading && detail !== undefined ? _jsx(ClassicSessionDetail, { detail: detail, t: t }) : null] }));
 }
 function durationSeconds(startedTs, endedTs) {
     if (startedTs === undefined || endedTs === undefined)
@@ -166,7 +209,7 @@ function viewerHealth(snapshot) {
     };
 }
 /** Sidebar footer panel: trigger row plus the fixed inventory popup. */
-export function KersorPanel({ t, store, refresh, start, stop }) {
+export function KersorPanel({ t, store, refresh, loadClassic, start, stop }) {
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState();
     const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -191,6 +234,14 @@ export function KersorPanel({ t, store, refresh, start, stop }) {
         finally {
             setBusy(undefined);
         }
+    };
+    const toggleClassic = (sessionDir) => {
+        if (store.selectedClassicSessionDir === sessionDir) {
+            store.selectClassic(undefined);
+            return;
+        }
+        store.selectClassic(sessionDir);
+        void loadClassic(sessionDir);
     };
     return (_jsxs("div", { className: css.layer, children: [_jsxs("button", { type: "button", className: css.trigger, "aria-expanded": open, "aria-label": t('panel.trigger'), onClick: () => {
                     setOpen(!open);
@@ -223,7 +274,11 @@ export function KersorPanel({ t, store, refresh, start, stop }) {
                                     ? (_jsxs("section", { className: css.activitySection, "aria-label": t('session.title'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('session.title') }), _jsx("span", { className: css.sectionSummary, children: t('session.summary', {
                                                             count: classicSessions.length,
                                                             active: classicSessions.filter(session => session.health === 'active').length,
-                                                        }) })] }), _jsx("ul", { className: css.classicRows, children: classicSessions.map(session => _jsx(ClassicSessionRow, { session: session, t: t }, session.session_dir)) })] }))
+                                                        }) })] }), _jsx("ul", { className: css.classicRows, children: classicSessions.map(session => (_jsx(ClassicSessionRow, { session: session, selected: store.selectedClassicSessionDir === session.session_dir, loading: state.classicDetailLoading === session.session_dir, ...(state.classicDetails.get(session.session_dir) === undefined
+                                                        ? {}
+                                                        : { detail: state.classicDetails.get(session.session_dir) }), ...(state.classicDetailError?.startsWith(`${session.session_dir}: `) === true
+                                                        ? { error: state.classicDetailError.slice(session.session_dir.length + 2) }
+                                                        : {}), onToggle: () => { toggleClassic(session.session_dir); }, t: t }, session.session_dir))) })] }))
                                     : null, rows.length > 0
                                     ? (_jsxs("section", { className: css.activitySection, "aria-label": t('run.sectionTitle'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('run.sectionTitle') }), _jsx("span", { className: css.sectionSummary, children: rows.length })] }), _jsx("ul", { className: css.rows, children: rows.map(row => (_jsxs("li", { className: css.row, "data-run-status": row.discovery, children: [_jsxs("button", { type: "button", className: css.rowHead, "aria-pressed": store.selectedRunDir === row.runDir, onClick: () => { store.select(store.selectedRunDir === row.runDir ? undefined : row.runDir); }, children: [_jsx(StateDot, { state: row.discovery === 'active' ? 'ongoing' : row.discovery === 'failed' ? 'error' : 'done' }), _jsx("span", { className: css.runId, children: row.runId }), _jsx("span", { className: css.rowPath, title: row.runDir, children: row.sessionDir })] }), store.selectedRunDir === row.runDir && row.view !== undefined
                                                             ? _jsx(RunDetail, { view: row.view, t: t })

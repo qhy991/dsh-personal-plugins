@@ -7,6 +7,8 @@ export interface KersorPanelFace {
     readonly store: KersorViewerStore;
     /** Re-read the run inventory over the remote. */
     readonly refresh: () => Promise<void>;
+    /** Load or refresh the sealed inspector projection for one classic Session. */
+    readonly loadClassic: (sessionDir: string) => Promise<void>;
     /** Start one Host-configured Mission task. */
     readonly start: (taskId: KersorTaskId) => Promise<void>;
     /** Stop one launcher process owned by dsh. */

@@ -4,7 +4,7 @@
  * ownership remain orthogonal client-side accounts.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
-import type { KersorRunRef, KersorRunView, KersorViewerFrame, KersorViewerSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types';
+import type { KersorClassicSessionDetail, KersorRunRef, KersorRunView, KersorViewerFrame, KersorViewerSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types';
 import type { KersorActiveFrame, KersorActiveLaunch, KersorTaskRef } from '@deepseek-ai/dsh-kersor/types';
 export interface KersorRunRow extends KersorRunRef {
     readonly view?: KersorRunView | undefined;
@@ -14,6 +14,10 @@ export interface KersorViewerState {
     readonly snapshot?: KersorViewerSnapshot;
     /** Folded event backlogs keyed independently from the inventory snapshot. */
     readonly views: ReadonlyMap<string, KersorRunView>;
+    /** On-demand, seal-aware classic Session details keyed by Session directory. */
+    readonly classicDetails: ReadonlyMap<string, KersorClassicSessionDetail>;
+    readonly classicDetailLoading?: string;
+    readonly classicDetailError?: string;
     readonly loading: boolean;
     /** Transport failure only; Host source failures live in snapshot diagnostics. */
     readonly transportError?: string;
@@ -30,6 +34,7 @@ export declare class KersorViewerStore {
     private state;
     private readonly listeners;
     private selected;
+    private selectedClassic;
     /** Stable snapshot for useSyncExternalStore. */
     getSnapshot: () => KersorViewerState;
     /** Subscribe to snapshot replacements. */
@@ -38,6 +43,13 @@ export declare class KersorViewerStore {
     get rows(): readonly KersorRunRow[];
     /** Currently selected run directory (panel-local choice). */
     get selectedRunDir(): string | undefined;
+    /** Currently expanded classic Session directory. */
+    get selectedClassicSessionDir(): string | undefined;
+    /**
+     * Expand or collapse one classic Session inspector.
+     * @param sessionDir - Selected Session directory, or `undefined` to collapse.
+     */
+    selectClassic(sessionDir: string | undefined): void;
     /** Select a run for the detail view; persists across Host snapshots. */
     select(runDir: string | undefined): void;
     /** Selected folded view, falling back to a real available run view. */
@@ -46,6 +58,23 @@ export declare class KersorViewerStore {
     setSnapshot(snapshot: KersorViewerSnapshot): void;
     /** Record a Remote/connection failure without overwriting Host diagnostics. */
     setTransportError(message: string): void;
+    /**
+     * Mark one selected classic Session detail as loading.
+     * @param sessionDir - Session whose on-demand detail is loading.
+     */
+    setClassicDetailLoading(sessionDir: string): void;
+    /**
+     * Store one successful classic Session detail answer.
+     * @param sessionDir - Session owning the answer.
+     * @param detail - Valid inspector detail, or `undefined` when unavailable.
+     */
+    setClassicDetail(sessionDir: string, detail: KersorClassicSessionDetail | undefined): void;
+    /**
+     * Record a bounded detail-read failure without replacing the summary snapshot.
+     * @param sessionDir - Session whose detail failed.
+     * @param message - Remote transport diagnostic.
+     */
+    setClassicDetailError(sessionDir: string, message: string): void;
     /** Replace the optional launcher's configured-task and owned-process inventory. */
     setLauncher(tasks: readonly KersorTaskRef[], active: readonly KersorActiveLaunch[]): void;
     /** Hide controls when the Host launcher plugin is not loaded. */

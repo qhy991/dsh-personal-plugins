@@ -868,10 +868,87 @@ function optionalBoolean(value) {
 function optionalNumber(value) {
 	return value === void 0 || value === null || typeof value === "number";
 }
+function stringArray(value) {
+	return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+function isClassicArtifact(value) {
+	if (value === null || typeof value !== "object") return false;
+	const artifact = value;
+	return typeof artifact.name === "string" && typeof artifact.sha256 === "string" && typeof artifact.bytes === "number" && Number.isInteger(artifact.bytes) && artifact.bytes >= 0;
+}
+function isClassicValidationCheck(value) {
+	if (value === null || typeof value !== "object") return false;
+	const check = value;
+	return typeof check.name === "string" && typeof check.passed === "boolean";
+}
+function isClassicSessionDetail(value) {
+	if (value === null || typeof value !== "object") return false;
+	const detail = value;
+	if (typeof detail.session_id !== "string" || typeof detail.session_dir !== "string" || typeof detail.current_round !== "number" || !Number.isInteger(detail.current_round) || detail.current_round < 1 || !Array.isArray(detail.steps)) return false;
+	const validStepIds = new Set([
+		"setup",
+		"baseline",
+		"profile",
+		"selection",
+		"authoring",
+		"validation",
+		"dispatch",
+		"measurement",
+		"decision"
+	]);
+	const validStepStatuses = new Set([
+		"pending",
+		"active",
+		"completed",
+		"failed"
+	]);
+	if (!detail.steps.every((step) => step !== null && typeof step === "object" && validStepIds.has(step.id) && validStepStatuses.has(step.status))) return false;
+	const selection = detail.selection;
+	if (selection === void 0 || ![
+		"pending",
+		"stalled",
+		"selected"
+	].includes(selection.status) || typeof selection.rejectedCount !== "number" || !Number.isInteger(selection.rejectedCount) || selection.rejectedCount < 0 || !optionalString(selection.workflow) || !optionalString(selection.reason)) return false;
+	const authoring = detail.authoring;
+	if (authoring === void 0 || ![
+		"not_started",
+		"in_progress",
+		"sealed",
+		"saved",
+		"rejected"
+	].includes(authoring.status) || !Array.isArray(authoring.files) || !authoring.files.every(isClassicArtifact)) return false;
+	if (authoring.omittedReason !== void 0 && ![
+		"too_large",
+		"invalid",
+		"hash_mismatch"
+	].includes(authoring.omittedReason)) return false;
+	if (authoring.design !== void 0) {
+		const design = authoring.design;
+		if (!optionalString(design.name) || !optionalString(design.technique) || !optionalString(design.methodCategory) || !optionalString(design.topology) || !stringArray(design.requiredArgs) || !stringArray(design.languages) || !stringArray(design.backends) || !stringArray(design.integrationPatterns) || typeof design.rationale !== "string" || typeof design.source !== "string") return false;
+	}
+	const validation = detail.validation;
+	if (validation === void 0 || ![
+		"pending",
+		"passed",
+		"failed"
+	].includes(validation.status) || !Array.isArray(validation.checks) || !validation.checks.every(isClassicValidationCheck)) return false;
+	const dispatch = detail.dispatch;
+	return dispatch !== void 0 && [
+		"pending",
+		"preparing",
+		"running",
+		"completed",
+		"failed"
+	].includes(dispatch.status) && optionalString(dispatch.runDir) && optionalString(dispatch.runtimeStatus);
+}
 function isClassicSession(value) {
 	if (value === null || typeof value !== "object") return false;
 	const row = value;
-	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && optionalString(row.kernel_language) && optionalString(row.backend) && optionalString(row.integration_pattern) && optionalBoolean(row.allow_workflow_authoring) && optionalNumber(row.workflow_authoring_budget) && optionalString(row.decision) && optionalString(row.fit_confidence) && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
+	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && optionalString(row.kernel_language) && optionalString(row.backend) && optionalString(row.integration_pattern) && optionalBoolean(row.allow_workflow_authoring) && optionalNumber(row.workflow_authoring_budget) && (row.selection_status === void 0 || row.selection_status === null || [
+		"pending",
+		"stalled",
+		"selected"
+	].includes(row.selection_status)) && optionalString(row.decision) && optionalString(row.fit_confidence) && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
 }
 function projectSession(row) {
 	return {
@@ -896,11 +973,35 @@ function projectSession(row) {
 		workflow_authoring_budget: row.workflow_authoring_budget ?? null,
 		kernel_name: row.kernel_name ?? null,
 		workflow: row.workflow ?? null,
+		selection_status: row.selection_status ?? null,
 		decision: row.decision ?? null,
 		fit_confidence: row.fit_confidence ?? null,
 		best_speedup: row.best_speedup ?? null,
 		warningCount: row.warnings.length
 	};
+}
+/**
+* Read a sealed, bounded inspector projection for one classic Session.
+* @param sessionDir - Exact Session directory already discovered by the Host.
+* @returns Valid detail, or `undefined` when the bridge cannot provide it.
+*/
+async function readClassicSessionDetail(sessionDir) {
+	try {
+		const { stdout } = await execFileAsync(kersorPython(), [
+			installedBridge(),
+			"session-detail",
+			"--session",
+			path.resolve(sessionDir)
+		], {
+			encoding: "utf8",
+			maxBuffer: 2 * 1024 * 1024,
+			timeout: 1e4
+		});
+		const decoded = JSON.parse(stdout);
+		return isClassicSessionDetail(decoded) ? decoded : void 0;
+	} catch {
+		return;
+	}
 }
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
 async function readClassicSessions(limit, staleAfterSeconds = 1800, roots = {}) {
@@ -1532,11 +1633,13 @@ let KersorViewerService = (() => {
 	let _instanceExtraInitializers = [];
 	let _snapshot_decorators;
 	let _runBacklog_decorators;
+	let _classicSessionDetail_decorators;
 	return class KersorViewerService extends _classSuper {
 		static {
 			const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
 			_snapshot_decorators = [Remote("snapshot")];
 			_runBacklog_decorators = [Remote("runBacklog")];
+			_classicSessionDetail_decorators = [Remote("classicSessionDetail")];
 			__esDecorate(this, null, _snapshot_decorators, {
 				kind: "method",
 				name: "snapshot",
@@ -1556,6 +1659,17 @@ let KersorViewerService = (() => {
 				access: {
 					has: (obj) => "runBacklog" in obj,
 					get: (obj) => obj.runBacklog
+				},
+				metadata: _metadata
+			}, null, _instanceExtraInitializers);
+			__esDecorate(this, null, _classicSessionDetail_decorators, {
+				kind: "method",
+				name: "classicSessionDetail",
+				static: false,
+				private: false,
+				access: {
+					has: (obj) => "classicSessionDetail" in obj,
+					get: (obj) => obj.classicSessionDetail
 				},
 				metadata: _metadata
 			}, null, _instanceExtraInitializers);
@@ -1646,6 +1760,15 @@ let KersorViewerService = (() => {
 		/** Full folded view of one run (panel open / reconnect backlog). */
 		runBacklog(runDir) {
 			return this.tracked.get(runDir)?.view;
+		}
+		/**
+		* Read sealed, bounded detail for one classic Session present in the snapshot.
+		* @param sessionDir - Exact discovered Session directory.
+		* @returns Inspector detail, or `undefined` for an unknown or unreadable Session.
+		*/
+		async classicSessionDetail(sessionDir) {
+			if (!this.classicSnapshot.sessions.some((session) => session.session_dir === sessionDir)) return void 0;
+			return readClassicSessionDetail(sessionDir);
 		}
 		/** Rescan roots once; concurrent callers share the in-flight scan. */
 		async rescan() {

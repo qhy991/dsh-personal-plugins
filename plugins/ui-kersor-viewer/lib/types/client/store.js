@@ -6,9 +6,10 @@
  */
 /** Snapshot store over the Host projection and per-run folded views. */
 export class KersorViewerStore {
-    state = { views: new Map(), loading: true };
+    state = { views: new Map(), classicDetails: new Map(), loading: true };
     listeners = new Set();
     selected;
+    selectedClassic;
     /** Stable snapshot for useSyncExternalStore. */
     getSnapshot = () => this.state;
     /** Subscribe to snapshot replacements. */
@@ -26,6 +27,18 @@ export class KersorViewerStore {
     /** Currently selected run directory (panel-local choice). */
     get selectedRunDir() {
         return this.selected;
+    }
+    /** Currently expanded classic Session directory. */
+    get selectedClassicSessionDir() {
+        return this.selectedClassic;
+    }
+    /**
+     * Expand or collapse one classic Session inspector.
+     * @param sessionDir - Selected Session directory, or `undefined` to collapse.
+     */
+    selectClassic(sessionDir) {
+        this.selectedClassic = sessionDir;
+        this.emit();
     }
     /** Select a run for the detail view; persists across Host snapshots. */
     select(runDir) {
@@ -50,15 +63,54 @@ export class KersorViewerStore {
     setSnapshot(snapshot) {
         const live = new Set(snapshot.runs.map(ref => ref.runDir));
         const views = new Map([...this.state.views].filter(([runDir]) => live.has(runDir)));
+        const liveClassic = new Set(snapshot.classic.sessions.map(session => session.session_dir));
+        const classicDetails = new Map([...this.state.classicDetails].filter(([sessionDir]) => liveClassic.has(sessionDir)));
+        if (this.selectedClassic !== undefined && !liveClassic.has(this.selectedClassic)) {
+            this.selectedClassic = undefined;
+        }
         const { transportError: _, ...state } = this.state;
         const loading = snapshot.diagnostics.scan.state === 'never'
             || snapshot.diagnostics.scan.state === 'running';
-        this.state = { ...state, snapshot, views, loading };
+        this.state = { ...state, snapshot, views, classicDetails, loading };
         this.emit();
     }
     /** Record a Remote/connection failure without overwriting Host diagnostics. */
     setTransportError(message) {
         this.state = { ...this.state, loading: false, transportError: message };
+        this.emit();
+    }
+    /**
+     * Mark one selected classic Session detail as loading.
+     * @param sessionDir - Session whose on-demand detail is loading.
+     */
+    setClassicDetailLoading(sessionDir) {
+        const { classicDetailError: _, ...state } = this.state;
+        this.state = { ...state, classicDetailLoading: sessionDir };
+        this.emit();
+    }
+    /**
+     * Store one successful classic Session detail answer.
+     * @param sessionDir - Session owning the answer.
+     * @param detail - Valid inspector detail, or `undefined` when unavailable.
+     */
+    setClassicDetail(sessionDir, detail) {
+        const { classicDetailLoading: _, classicDetailError: __, ...state } = this.state;
+        const classicDetails = new Map(state.classicDetails);
+        if (detail === undefined)
+            classicDetails.delete(sessionDir);
+        else
+            classicDetails.set(sessionDir, detail);
+        this.state = { ...state, classicDetails };
+        this.emit();
+    }
+    /**
+     * Record a bounded detail-read failure without replacing the summary snapshot.
+     * @param sessionDir - Session whose detail failed.
+     * @param message - Remote transport diagnostic.
+     */
+    setClassicDetailError(sessionDir, message) {
+        const { classicDetailLoading: _, ...state } = this.state;
+        this.state = { ...state, classicDetailError: `${sessionDir}: ${message}` };
         this.emit();
     }
     /** Replace the optional launcher's configured-task and owned-process inventory. */
@@ -110,8 +162,9 @@ export class KersorViewerStore {
     }
     /** Drop connection-scoped state. */
     reset() {
-        this.state = { views: new Map(), loading: true };
+        this.state = { views: new Map(), classicDetails: new Map(), loading: true };
         this.selected = undefined;
+        this.selectedClassic = undefined;
         this.emit();
     }
     emit() {

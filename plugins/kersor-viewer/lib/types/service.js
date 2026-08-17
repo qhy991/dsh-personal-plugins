@@ -40,7 +40,7 @@ var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, 
 import { Service } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
-import { readClassicSessions } from "./classic.js";
+import { readClassicSessionDetail, readClassicSessions } from "./classic.js";
 import { createIssue, issueFromError, mergeIssue } from "./diagnostics.js";
 import { createRunView, foldEvent } from "./fold.js";
 import { scanRoots } from "./scanner.js";
@@ -48,20 +48,23 @@ import { EventsTailer } from "./tailer.js";
 export { EventsTailer } from "./tailer.js";
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from "./scanner.js";
 export { createRunView, foldEvent } from "./fold.js";
-export { installedBridge, readClassicSessions } from "./classic.js";
+export { installedBridge, readClassicSessionDetail, readClassicSessions } from "./classic.js";
 /** Host service owning the viewer's single snapshot and folded run views. */
 let KersorViewerService = (() => {
     let _classSuper = TypertRemoteService;
     let _instanceExtraInitializers = [];
     let _snapshot_decorators;
     let _runBacklog_decorators;
+    let _classicSessionDetail_decorators;
     return class KersorViewerService extends _classSuper {
         static {
             const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
             _snapshot_decorators = [Remote('snapshot')];
             _runBacklog_decorators = [Remote('runBacklog')];
+            _classicSessionDetail_decorators = [Remote('classicSessionDetail')];
             __esDecorate(this, null, _snapshot_decorators, { kind: "method", name: "snapshot", static: false, private: false, access: { has: obj => "snapshot" in obj, get: obj => obj.snapshot }, metadata: _metadata }, null, _instanceExtraInitializers);
             __esDecorate(this, null, _runBacklog_decorators, { kind: "method", name: "runBacklog", static: false, private: false, access: { has: obj => "runBacklog" in obj, get: obj => obj.runBacklog }, metadata: _metadata }, null, _instanceExtraInitializers);
+            __esDecorate(this, null, _classicSessionDetail_decorators, { kind: "method", name: "classicSessionDetail", static: false, private: false, access: { has: obj => "classicSessionDetail" in obj, get: obj => obj.classicSessionDetail }, metadata: _metadata }, null, _instanceExtraInitializers);
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
         static inject = ['workspaceRegistry'];
@@ -142,6 +145,16 @@ let KersorViewerService = (() => {
         /** Full folded view of one run (panel open / reconnect backlog). */
         runBacklog(runDir) {
             return this.tracked.get(runDir)?.view;
+        }
+        /**
+         * Read sealed, bounded detail for one classic Session present in the snapshot.
+         * @param sessionDir - Exact discovered Session directory.
+         * @returns Inspector detail, or `undefined` for an unknown or unreadable Session.
+         */
+        async classicSessionDetail(sessionDir) {
+            if (!this.classicSnapshot.sessions.some(session => session.session_dir === sessionDir))
+                return undefined;
+            return readClassicSessionDetail(sessionDir);
         }
         /** Rescan roots once; concurrent callers share the in-flight scan. */
         async rescan() {

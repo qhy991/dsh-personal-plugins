@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { installedBridge, readClassicSessions } from '../src/classic.ts'
+import { installedBridge, readClassicSessionDetail, readClassicSessions } from '../src/classic.ts'
 
 const dirs: string[] = []
 const originalDshHome = process.env.DSH_HOME
@@ -97,13 +97,49 @@ print(json.dumps({"sessions": [{
 `)
 
     const snapshot = await readClassicSessions(1)
-    expect(snapshot).toEqual({
-      sessions: [],
-      source: {
-        state: 'failed',
-        lastIssue: expect.objectContaining({ stage: 'classic_bridge', code: 'invalid_payload' }),
-      },
+    expect(snapshot.sessions).toEqual([])
+    expect(snapshot.source.state).toBe('failed')
+    expect(snapshot.source.lastIssue).toMatchObject({
+      stage: 'classic_bridge', code: 'invalid_payload',
     })
     expect(JSON.stringify(snapshot)).not.toContain('SECRET')
+  })
+
+  it('reads a sealed bounded Session inspector projection on demand', async () => {
+    process.env.DSH_HOME = await tempDshHome()
+    process.env.KERSOR_PYTHON = 'python3'
+    const bridge = installedBridge()
+    await mkdir(path.dirname(bridge), { recursive: true })
+    await writeFile(bridge, `
+import json
+print(json.dumps({
+  "session_id": "s1", "session_dir": "/sessions/s1", "current_round": 1,
+  "steps": [{"id": "authoring", "status": "completed"}],
+  "selection": {"status": "stalled", "reason": "no fit", "rejectedCount": 4},
+  "authoring": {
+    "status": "sealed",
+    "files": [{"name": "workflow.js", "sha256": "sha256:abc", "bytes": 42}],
+    "design": {
+      "name": "vliw-author", "technique": "instruction_scheduling",
+      "methodCategory": "vliw_optimization", "topology": "pipeline",
+      "requiredArgs": ["kernel_path"], "languages": ["python_reference"],
+      "backends": ["python"], "integrationPatterns": ["custom_simulator"],
+      "rationale": "sealed rationale", "source": "export const meta = {}"
+    }
+  },
+  "validation": {"status": "pending", "checks": []},
+  "dispatch": {"status": "pending"}
+}))
+`)
+
+    const detail = await readClassicSessionDetail('/sessions/s1')
+    expect(detail).toMatchObject({
+      session_id: 's1',
+      selection: { status: 'stalled', rejectedCount: 4 },
+      authoring: {
+        status: 'sealed',
+        design: { name: 'vliw-author', rationale: 'sealed rationale' },
+      },
+    })
   })
 })

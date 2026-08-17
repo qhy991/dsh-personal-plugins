@@ -47,6 +47,9 @@ export function apply(ctx) {
                 }
                 store.setBacklog(selected, backlog.value);
             }
+            const selectedClassic = store.selectedClassicSessionDir;
+            if (selectedClassic !== undefined)
+                await loadClassic(selectedClassic);
         }
         catch (error) {
             store.setTransportError(error instanceof Error ? error.message : String(error));
@@ -72,6 +75,20 @@ export function apply(ctx) {
         catch {
             // Optional launcher discovery must not disable the read-only viewer.
             store.setLauncherUnavailable();
+        }
+    };
+    const loadClassic = async (sessionDir) => {
+        store.setClassicDetailLoading(sessionDir);
+        try {
+            const answered = await viewerRemote().classicSessionDetail(sessionDir);
+            if (!answered.ok) {
+                store.setClassicDetailError(sessionDir, `${answered.error.code}: ${answered.error.message}`);
+                return;
+            }
+            store.setClassicDetail(sessionDir, answered.value);
+        }
+        catch (error) {
+            store.setClassicDetailError(sessionDir, error instanceof Error ? error.message : String(error));
         }
     };
     const refresh = async () => {
@@ -121,12 +138,15 @@ export function apply(ctx) {
     });
     ctx.remote.$on('kersor/event', (frame) => {
         store.applyFrame(frame);
+        if (frame.kind === 'snapshot' && store.selectedClassicSessionDir !== undefined) {
+            void loadClassic(store.selectedClassicSessionDir);
+        }
     });
     ctx.remote.$on('kersor/active', (frame) => {
         store.applyActiveFrame(frame);
     });
     void refresh();
-    const face = { store, refresh, start, stop };
+    const face = { store, refresh, loadClassic, start, stop };
     ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
         name: 'sidebar.footer.action',
         id: 'kersor-panel',

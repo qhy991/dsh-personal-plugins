@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type {
+  KersorClassicSessionDetail,
   KersorRunView,
   KersorViewerFrame,
   KersorViewerSnapshot,
@@ -13,6 +14,17 @@ import { KersorViewerStore } from '../src/client/store.ts'
 const REF = {
   runId: 'r1', runDir: '/runs/r1', sessionDir: '/sessions/s1', root: '/root', discovery: 'active',
 } as const
+
+const CLASSIC_DETAIL: KersorClassicSessionDetail = {
+  session_id: 's1',
+  session_dir: '/sessions/s1',
+  current_round: 1,
+  steps: [{ id: 'authoring', status: 'active' }],
+  selection: { status: 'stalled', rejectedCount: 4 },
+  authoring: { status: 'in_progress', files: [] },
+  validation: { status: 'pending', checks: [] },
+  dispatch: { status: 'pending' },
+}
 
 function snapshot(overrides: Partial<KersorViewerSnapshot> = {}): KersorViewerSnapshot {
   return {
@@ -116,6 +128,46 @@ describe('folded run views', () => {
   })
 })
 
+describe('classic Session details', () => {
+  it('keeps a selected detail separate from the atomic summary snapshot', () => {
+    const store = new KersorViewerStore()
+    store.setSnapshot(snapshot({
+      classic: {
+        source: { state: 'healthy' },
+        sessions: [{
+          session_id: 's1', session_dir: '/sessions/s1', storage_kind: 'v2',
+          lifecycle: 'active', status: 'in-progress', health: 'active', warningCount: 0,
+        }],
+      },
+    }))
+    store.selectClassic('/sessions/s1')
+    store.setClassicDetailLoading('/sessions/s1')
+    expect(store.getSnapshot().classicDetailLoading).toBe('/sessions/s1')
+    store.setClassicDetail('/sessions/s1', CLASSIC_DETAIL)
+    expect(store.selectedClassicSessionDir).toBe('/sessions/s1')
+    expect(store.getSnapshot().classicDetails.get('/sessions/s1')?.authoring.status).toBe('in_progress')
+    expect(store.getSnapshot().snapshot?.classic.sessions[0]?.health).toBe('active')
+  })
+
+  it('prunes details and selection when a Session leaves the snapshot', () => {
+    const store = new KersorViewerStore()
+    store.setSnapshot(snapshot({
+      classic: {
+        source: { state: 'healthy' },
+        sessions: [{
+          session_id: 's1', session_dir: '/sessions/s1', storage_kind: 'v2',
+          lifecycle: 'active', status: 'in-progress', health: 'active', warningCount: 0,
+        }],
+      },
+    }))
+    store.selectClassic('/sessions/s1')
+    store.setClassicDetail('/sessions/s1', CLASSIC_DETAIL)
+    store.setSnapshot(snapshot())
+    expect(store.selectedClassicSessionDir).toBeUndefined()
+    expect(store.getSnapshot().classicDetails.size).toBe(0)
+  })
+})
+
 describe('transport and reset', () => {
   it('a successful Host snapshot clears an older transport failure', () => {
     const store = new KersorViewerStore()
@@ -154,6 +206,7 @@ describe('transport and reset', () => {
     store.reset()
     expect(store.getSnapshot().loading).toBe(true)
     expect(store.selectedRunDir).toBeUndefined()
+    expect(store.selectedClassicSessionDir).toBeUndefined()
   })
 })
 
