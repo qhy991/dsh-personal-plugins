@@ -96,7 +96,7 @@ python3 scripts/install.py \
 
 `kersor_status` 工具默认读取当前 DSH task 的工作区，展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence 和最近决策。结果使用 DSH 原生可回放卡片；传入子路径时只允许当前工作区内部，避免 host-side bridge 越过 DSH 会话边界。
 
-Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以及 autonomous run 的实时进度。经典状态由 KerSor 自己的 `SessionStore`／`AttemptResultStore` 解析；侧栏不复制 legacy frontmatter 规则。run 视图每两秒读取 `summary.json`／`events.jsonl` 折叠快照，显示 phase、agent/evaluation call、耗时、token、回滚和终态。`waiting` 按本次 invocation 的终态处理；短暂断连或漏帧会由下一次快照自动恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`，路径只有一个机器侧权威来源。
+Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以及 autonomous run 的实时进度。经典状态由 KerSor 自己的 `SessionStore`／`AttemptResultStore` 解析；侧栏不复制 legacy frontmatter 规则，并把规范 phase 与建议性 health 分开：只有阈值内有稳定 artifact 活动的 Session 才算 active，旧的 `optimizing` 会显示为“已陈旧”而不再点亮全局蓝点。run 视图每两秒读取 `summary.json`／`events.jsonl` 折叠快照，显示 phase、agent/evaluation call、耗时、token、回滚和终态。`waiting` 按本次 invocation 的终态处理；短暂断连或漏帧会由下一次快照自动恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`，路径只有一个机器侧权威来源。
 
 环境变量 `KERSOR_ROOT` 可以临时覆盖安装时记录的 checkout：
 

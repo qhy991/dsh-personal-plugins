@@ -21,16 +21,18 @@ The plugin row accepts config in `cordis.patch.yml`:
     noDefaultRoots: false
     scanIntervalMs: 5000
     classicSessionLimit: 20
+    classicStaleAfterSeconds: 1800
 ```
 
 - `roots` — extra KerSor session roots scanned in addition to the defaults.
 - `noDefaultRoots` — disable all automatic roots: `~/.local/share/kersor`, `~/Agent4Kernel/KerSor/.kersor`, and the checkout recorded by the installed `kersor` preset (or `KERSOR_ROOT`) with `/.kersor` appended.
 - `scanIntervalMs` — run-discovery rescan interval (minimum 500 ms).
 - `classicSessionLimit` — recent optimization Sessions returned by the installed preset bridge (`0` disables, maximum `100`, default `20`).
+- `classicStaleAfterSeconds` — advisory inactivity threshold for unfinished Sessions (default `1800`, maximum one day), matching the KerSor TUI/doctor default.
 
 A summary with `workflow_status: "waiting"` is terminal for discovery: the KerSor controller has stopped and written its summary, even though the workflow is awaiting external input rather than semantically completed.
 
-Classic Session cards use KerSor's canonical phase. `complete`, `stalled`, `cancelled`, and `single_run` are terminal; other phases remain active. A missing absolute kernel path is surfaced as a path-free status warning rather than leaking the old local path to the browser.
+Classic Session cards keep KerSor's canonical phase separate from advisory health. Stable-artifact activity within the threshold is `active`; an old clean `CONTINUE` boundary is `needs_resume`; other unfinished old work is `stale`; terminal phases are `terminal`. Elapsed time never mutates phase. The projection includes the last stable-artifact timestamp, and a missing absolute kernel path becomes a path-free warning rather than leaking the old local path to the browser.
 
 ## Layout
 

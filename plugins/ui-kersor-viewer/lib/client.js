@@ -4211,6 +4211,23 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					literal("completed"),
 					literal("stalled")
 				]).readonly(),
+				"status": union([
+					literal("terminal-complete"),
+					literal("terminal-stalled"),
+					literal("terminal-cancelled"),
+					literal("resumable"),
+					literal("in-progress"),
+					literal("pre-round-1")
+				]).readonly(),
+				"health": union([
+					literal("active"),
+					literal("stale"),
+					literal("needs_resume"),
+					literal("terminal"),
+					literal("unknown")
+				]).readonly(),
+				"started_at": union([literal(null), string()]).readonly().optional(),
+				"last_activity_at": union([literal(null), string()]).readonly().optional(),
 				"current_round": union([literal(null), number()]).readonly().optional(),
 				"max_workflows": union([literal(null), number()]).readonly().optional(),
 				"target_speedup": union([literal(null), number()]).readonly().optional(),
@@ -4310,7 +4327,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					},
 					sourceLocation: {
 						"file": "packages/extensions/kersor-viewer/src/service.ts",
-						"line": 121,
+						"line": 126,
 						"column": 3
 					}
 				},
@@ -4328,7 +4345,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					},
 					sourceLocation: {
 						"file": "packages/extensions/kersor-viewer/src/service.ts",
-						"line": 114,
+						"line": 119,
 						"column": 3
 					}
 				},
@@ -4355,7 +4372,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					},
 					sourceLocation: {
 						"file": "packages/extensions/kersor-viewer/src/service.ts",
-						"line": 127,
+						"line": 132,
 						"column": 3
 					}
 				}
@@ -4363,7 +4380,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		};
 		//#endregion
 		//#region \0dsh-css:packages/extensions/ui-kersor-viewer/src/client/KersorPanel.module.css.mjs
-		const css = ".t0J8zq_layer{flex:none;align-items:center;width:100%;height:49px;margin:8px 0 0;display:flex;position:relative}.t0J8zq_trigger{width:100%;height:49px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:12px;align-items:center;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:13px;display:flex}.t0J8zq_trigger:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_trigger[aria-expanded=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_triggerIcon{width:16px;height:16px;color:var(--dsw-alias-label-tertiary);flex:none;justify-content:center;align-items:center;display:inline-flex}.t0J8zq_triggerLabel{text-align:left;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_triggerBadge{flex:none;align-items:center;display:inline-flex}.t0J8zq_panel{z-index:30;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);width:460px;max-width:calc(100vw - 24px);max-height:60vh;box-shadow:var(--dsw-shadow-lv2);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px;flex-direction:column;display:flex;position:fixed;bottom:128px;left:12px;overflow:hidden}.t0J8zq_header{box-sizing:border-box;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);flex:none;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:10px 12px;display:flex}.t0J8zq_title{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:20px}.t0J8zq_note,.t0J8zq_readError{color:var(--dsw-alias-label-tertiary);margin:4px 0;font-size:12px;line-height:18px}.t0J8zq_note{text-align:right;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_readError{color:var(--dsw-alias-state-error-primary)}.t0J8zq_body{flex:1;min-height:0;padding:4px 12px 12px;overflow-y:auto}.t0J8zq_launcher{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:8px;margin:4px 0 10px;padding:10px 12px;display:flex}.t0J8zq_launcherHead,.t0J8zq_taskRow,.t0J8zq_activeRow{align-items:center;gap:8px;display:flex}.t0J8zq_launcherHead{justify-content:space-between}.t0J8zq_launcherTitle,.t0J8zq_taskLabel{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_launcherSummary,.t0J8zq_activeRunId{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_taskList,.t0J8zq_activeList{flex-direction:column;gap:4px;display:flex}.t0J8zq_taskRow,.t0J8zq_activeRow{min-height:28px}.t0J8zq_taskLabel,.t0J8zq_activeLabel{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_activeLabel{color:var(--dsw-alias-label-secondary);flex-direction:column;font-size:12px;line-height:16px;display:flex}.t0J8zq_activeRunId{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_controlButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);min-width:52px;height:26px;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:7px;flex:none;padding:0 10px;font-family:inherit;font-size:11px}.t0J8zq_controlButton:hover:not(:disabled){background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_controlButton:disabled{cursor:default;opacity:.55}.t0J8zq_controlButton[data-busy=true]{color:var(--dsw-alias-state-business-primary)}.t0J8zq_activitySection{flex-direction:column;gap:6px;margin-top:8px;display:flex}.t0J8zq_sectionHead,.t0J8zq_classicHead,.t0J8zq_classicFoot{align-items:center;gap:8px;display:flex}.t0J8zq_sectionHead{justify-content:space-between;min-height:24px;padding:0 2px}.t0J8zq_sectionTitle{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_sectionSummary{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_classicRows{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none;display:grid}.t0J8zq_classicRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:10px;flex-direction:column;gap:6px;min-width:0;padding:10px;display:flex}.t0J8zq_classicRow[data-session-lifecycle=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_classicHead{min-width:0}.t0J8zq_sessionId{min-width:0;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:510;line-height:16px;overflow:hidden}.t0J8zq_phaseBadge{background:var(--dsw-alias-bg-base);max-width:42%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;border-radius:5px;flex:none;padding:1px 5px;font-size:10px;line-height:15px;overflow:hidden}.t0J8zq_classicMetrics{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:2px 8px;font-size:10px;line-height:15px;display:flex}.t0J8zq_classicMetrics [data-target-met=true]{color:var(--dsw-alias-state-success-primary)}.t0J8zq_classicFoot{min-width:0;color:var(--dsw-alias-label-secondary);justify-content:space-between;font-size:10px;line-height:15px}.t0J8zq_workflowName{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_warningCount{color:var(--dsw-alias-state-warn-label);cursor:help;flex:none}@media (width<=520px){.t0J8zq_classicRows{grid-template-columns:1fr}}.t0J8zq_rows{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.t0J8zq_row{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);border-radius:12px;flex-direction:column;gap:6px;padding:10px 12px;display:flex}.t0J8zq_row[data-run-status=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_rowHead{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:8px;padding:2px;font-family:inherit;display:flex}.t0J8zq_rowHead:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_rowHead[aria-pressed=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_runId{max-width:45%;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:20px;overflow:hidden}.t0J8zq_rowPath{min-width:0;color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;direction:rtl;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_runDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:4px;padding:4px 2px 2px;display:flex}.t0J8zq_runHead{justify-content:space-between;align-items:center;gap:8px;display:flex}.t0J8zq_statusTail{height:20px;color:var(--dsw-alias-label-secondary);white-space:nowrap;flex:none;align-items:center;gap:4px;font-size:11px;font-weight:510;line-height:16px;display:inline-flex;overflow:hidden}.t0J8zq_runMeta{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:4px 12px;font-size:11px;line-height:16px;display:flex}.t0J8zq_runError{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.t0J8zq_phaseSection{flex-direction:column;margin-top:4px;display:flex}.t0J8zq_phaseHeader{box-sizing:border-box;background:var(--dsw-alias-bg-module-platform);border-radius:8px;align-items:center;gap:6px;width:100%;min-width:0;height:28px;padding:0 8px;display:flex}.t0J8zq_dotSlot{flex:none;justify-content:center;align-items:center;width:16px;display:inline-flex}.t0J8zq_phaseTitle{max-width:55%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:22px;overflow:hidden}.t0J8zq_phaseSummary{min-width:0;color:var(--dsw-alias-label-tertiary);text-align:right;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_callRow{align-items:center;gap:6px;min-height:24px;padding:0 0 0 8px;display:flex}.t0J8zq_callLabel{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:18px;overflow:hidden}.t0J8zq_callMeta{color:var(--dsw-alias-label-tertiary);flex:none;align-items:center;gap:6px;font-size:11px;line-height:16px;display:inline-flex}.t0J8zq_badge{border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.t0J8zq_callStatus{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;font-weight:510;line-height:16px}.t0J8zq_callRow[data-call-status=failed] .t0J8zq_callStatus{color:var(--dsw-alias-state-error-primary)}";
+		const css = ".t0J8zq_layer{flex:none;align-items:center;width:100%;height:49px;margin:8px 0 0;display:flex;position:relative}.t0J8zq_trigger{width:100%;height:49px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:12px;align-items:center;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:13px;display:flex}.t0J8zq_trigger:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_trigger[aria-expanded=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_triggerIcon{width:16px;height:16px;color:var(--dsw-alias-label-tertiary);flex:none;justify-content:center;align-items:center;display:inline-flex}.t0J8zq_triggerLabel{text-align:left;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_triggerBadge{flex:none;align-items:center;display:inline-flex}.t0J8zq_panel{z-index:30;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);width:460px;max-width:calc(100vw - 24px);max-height:60vh;box-shadow:var(--dsw-shadow-lv2);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px;flex-direction:column;display:flex;position:fixed;bottom:128px;left:12px;overflow:hidden}.t0J8zq_header{box-sizing:border-box;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);flex:none;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:10px 12px;display:flex}.t0J8zq_title{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:20px}.t0J8zq_note,.t0J8zq_readError{color:var(--dsw-alias-label-tertiary);margin:4px 0;font-size:12px;line-height:18px}.t0J8zq_note{text-align:right;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_readError{color:var(--dsw-alias-state-error-primary)}.t0J8zq_body{flex:1;min-height:0;padding:4px 12px 12px;overflow-y:auto}.t0J8zq_launcher{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:8px;margin:4px 0 10px;padding:10px 12px;display:flex}.t0J8zq_launcherHead,.t0J8zq_taskRow,.t0J8zq_activeRow{align-items:center;gap:8px;display:flex}.t0J8zq_launcherHead{justify-content:space-between}.t0J8zq_launcherTitle,.t0J8zq_taskLabel{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_launcherSummary,.t0J8zq_activeRunId{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_taskList,.t0J8zq_activeList{flex-direction:column;gap:4px;display:flex}.t0J8zq_taskRow,.t0J8zq_activeRow{min-height:28px}.t0J8zq_taskLabel,.t0J8zq_activeLabel{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_activeLabel{color:var(--dsw-alias-label-secondary);flex-direction:column;font-size:12px;line-height:16px;display:flex}.t0J8zq_activeRunId{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.t0J8zq_controlButton{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);min-width:52px;height:26px;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:7px;flex:none;padding:0 10px;font-family:inherit;font-size:11px}.t0J8zq_controlButton:hover:not(:disabled){background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_controlButton:disabled{cursor:default;opacity:.55}.t0J8zq_controlButton[data-busy=true]{color:var(--dsw-alias-state-business-primary)}.t0J8zq_activitySection{flex-direction:column;gap:6px;margin-top:8px;display:flex}.t0J8zq_sectionHead,.t0J8zq_classicHead,.t0J8zq_classicFoot{align-items:center;gap:8px;display:flex}.t0J8zq_sectionHead{justify-content:space-between;min-height:24px;padding:0 2px}.t0J8zq_sectionTitle{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:510;line-height:18px}.t0J8zq_sectionSummary{color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px}.t0J8zq_classicRows{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none;display:grid}.t0J8zq_classicRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);border-radius:10px;flex-direction:column;gap:6px;min-width:0;padding:10px;display:flex}.t0J8zq_classicRow[data-session-health=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_classicRow[data-session-health=stale],.t0J8zq_classicRow[data-session-health=needs_resume],.t0J8zq_classicRow[data-session-health=unknown]{border-color:var(--dsw-alias-state-warn-secondary)}.t0J8zq_classicHead{min-width:0}.t0J8zq_sessionId{min-width:0;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:510;line-height:16px;overflow:hidden}.t0J8zq_phaseBadge{background:var(--dsw-alias-bg-base);max-width:42%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;border-radius:5px;flex:none;padding:1px 5px;font-size:10px;line-height:15px;overflow:hidden}.t0J8zq_classicMetrics{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:2px 8px;font-size:10px;line-height:15px;display:flex}.t0J8zq_classicMetrics [data-target-met=true]{color:var(--dsw-alias-state-success-primary)}.t0J8zq_classicFoot{min-width:0;color:var(--dsw-alias-label-secondary);justify-content:space-between;font-size:10px;line-height:15px}.t0J8zq_workflowName{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;overflow:hidden}.t0J8zq_warningCount{color:var(--dsw-alias-state-warn-label);cursor:help;flex:none}@media (width<=520px){.t0J8zq_classicRows{grid-template-columns:1fr}}.t0J8zq_rows{flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;display:flex}.t0J8zq_row{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);border-radius:12px;flex-direction:column;gap:6px;padding:10px 12px;display:flex}.t0J8zq_row[data-run-status=active]{border-color:var(--dsw-alias-state-business-primary)}.t0J8zq_rowHead{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:8px;padding:2px;font-family:inherit;display:flex}.t0J8zq_rowHead:hover{background:var(--dsw-alias-bg-hover-secondary)}.t0J8zq_rowHead[aria-pressed=true]{background:var(--dsw-alias-bg-active-secondary)}.t0J8zq_runId{max-width:45%;color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:20px;overflow:hidden}.t0J8zq_rowPath{min-width:0;color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;direction:rtl;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_runDetail{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:4px;padding:4px 2px 2px;display:flex}.t0J8zq_runHead{justify-content:space-between;align-items:center;gap:8px;display:flex}.t0J8zq_statusTail{height:20px;color:var(--dsw-alias-label-secondary);white-space:nowrap;flex:none;align-items:center;gap:4px;font-size:11px;font-weight:510;line-height:16px;display:inline-flex;overflow:hidden}.t0J8zq_runMeta{color:var(--dsw-alias-label-tertiary);flex-wrap:wrap;gap:4px 12px;font-size:11px;line-height:16px;display:flex}.t0J8zq_runError{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.t0J8zq_phaseSection{flex-direction:column;margin-top:4px;display:flex}.t0J8zq_phaseHeader{box-sizing:border-box;background:var(--dsw-alias-bg-module-platform);border-radius:8px;align-items:center;gap:6px;width:100%;min-width:0;height:28px;padding:0 8px;display:flex}.t0J8zq_dotSlot{flex:none;justify-content:center;align-items:center;width:16px;display:inline-flex}.t0J8zq_phaseTitle{max-width:55%;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:none;font-size:13px;font-weight:510;line-height:22px;overflow:hidden}.t0J8zq_phaseSummary{min-width:0;color:var(--dsw-alias-label-tertiary);text-align:right;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:11px;line-height:16px;overflow:hidden}.t0J8zq_callRow{align-items:center;gap:6px;min-height:24px;padding:0 0 0 8px;display:flex}.t0J8zq_callLabel{min-width:0;color:var(--dsw-alias-label-secondary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:18px;overflow:hidden}.t0J8zq_callMeta{color:var(--dsw-alias-label-tertiary);flex:none;align-items:center;gap:6px;font-size:11px;line-height:16px;display:inline-flex}.t0J8zq_badge{border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:0 4px}.t0J8zq_callStatus{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;font-weight:510;line-height:16px}.t0J8zq_callRow[data-call-status=failed] .t0J8zq_callStatus{color:var(--dsw-alias-state-error-primary)}";
 		const tagId = "@deepseek-ai/dsh-client-ui-kersor-viewer/KersorPanel.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -4373,62 +4390,62 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			document.head.appendChild(tag);
 		}
 		var KersorPanel_module_css_default = {
+			"runMeta": "t0J8zq_runMeta",
+			"activitySection": "t0J8zq_activitySection",
+			"classicMetrics": "t0J8zq_classicMetrics",
+			"triggerLabel": "t0J8zq_triggerLabel",
+			"title": "t0J8zq_title",
+			"taskList": "t0J8zq_taskList",
+			"rows": "t0J8zq_rows",
+			"header": "t0J8zq_header",
+			"rowHead": "t0J8zq_rowHead",
+			"statusTail": "t0J8zq_statusTail",
+			"activeRunId": "t0J8zq_activeRunId",
+			"launcher": "t0J8zq_launcher",
+			"readError": "t0J8zq_readError",
+			"phaseTitle": "t0J8zq_phaseTitle",
+			"runError": "t0J8zq_runError",
+			"phaseSection": "t0J8zq_phaseSection",
+			"phaseSummary": "t0J8zq_phaseSummary",
+			"sectionSummary": "t0J8zq_sectionSummary",
+			"classicRow": "t0J8zq_classicRow",
+			"runId": "t0J8zq_runId",
+			"callLabel": "t0J8zq_callLabel",
+			"phaseHeader": "t0J8zq_phaseHeader",
+			"sectionHead": "t0J8zq_sectionHead",
+			"classicFoot": "t0J8zq_classicFoot",
+			"taskRow": "t0J8zq_taskRow",
+			"workflowName": "t0J8zq_workflowName",
+			"warningCount": "t0J8zq_warningCount",
+			"runHead": "t0J8zq_runHead",
+			"badge": "t0J8zq_badge",
+			"launcherTitle": "t0J8zq_launcherTitle",
+			"dotSlot": "t0J8zq_dotSlot",
+			"launcherSummary": "t0J8zq_launcherSummary",
+			"callRow": "t0J8zq_callRow",
+			"triggerIcon": "t0J8zq_triggerIcon",
+			"callMeta": "t0J8zq_callMeta",
+			"trigger": "t0J8zq_trigger",
+			"activeLabel": "t0J8zq_activeLabel",
+			"callStatus": "t0J8zq_callStatus",
+			"launcherHead": "t0J8zq_launcherHead",
+			"activeList": "t0J8zq_activeList",
+			"classicRows": "t0J8zq_classicRows",
+			"triggerBadge": "t0J8zq_triggerBadge",
+			"panel": "t0J8zq_panel",
+			"taskLabel": "t0J8zq_taskLabel",
+			"phaseBadge": "t0J8zq_phaseBadge",
+			"classicHead": "t0J8zq_classicHead",
+			"sessionId": "t0J8zq_sessionId",
 			"layer": "t0J8zq_layer",
 			"rowPath": "t0J8zq_rowPath",
-			"trigger": "t0J8zq_trigger",
-			"statusTail": "t0J8zq_statusTail",
-			"readError": "t0J8zq_readError",
-			"runMeta": "t0J8zq_runMeta",
-			"runError": "t0J8zq_runError",
-			"phaseTitle": "t0J8zq_phaseTitle",
-			"activitySection": "t0J8zq_activitySection",
-			"sectionSummary": "t0J8zq_sectionSummary",
-			"sessionId": "t0J8zq_sessionId",
-			"row": "t0J8zq_row",
-			"rowHead": "t0J8zq_rowHead",
-			"launcherHead": "t0J8zq_launcherHead",
-			"launcherSummary": "t0J8zq_launcherSummary",
-			"warningCount": "t0J8zq_warningCount",
-			"callMeta": "t0J8zq_callMeta",
-			"triggerLabel": "t0J8zq_triggerLabel",
-			"callLabel": "t0J8zq_callLabel",
-			"rows": "t0J8zq_rows",
-			"callStatus": "t0J8zq_callStatus",
-			"panel": "t0J8zq_panel",
-			"header": "t0J8zq_header",
-			"launcherTitle": "t0J8zq_launcherTitle",
-			"phaseHeader": "t0J8zq_phaseHeader",
-			"controlButton": "t0J8zq_controlButton",
-			"workflowName": "t0J8zq_workflowName",
-			"sectionHead": "t0J8zq_sectionHead",
-			"triggerBadge": "t0J8zq_triggerBadge",
-			"launcher": "t0J8zq_launcher",
-			"taskRow": "t0J8zq_taskRow",
-			"classicRow": "t0J8zq_classicRow",
-			"taskLabel": "t0J8zq_taskLabel",
-			"phaseSection": "t0J8zq_phaseSection",
-			"activeRow": "t0J8zq_activeRow",
-			"dotSlot": "t0J8zq_dotSlot",
-			"phaseSummary": "t0J8zq_phaseSummary",
-			"classicRows": "t0J8zq_classicRows",
-			"triggerIcon": "t0J8zq_triggerIcon",
-			"callRow": "t0J8zq_callRow",
-			"badge": "t0J8zq_badge",
-			"activeLabel": "t0J8zq_activeLabel",
-			"runHead": "t0J8zq_runHead",
 			"sectionTitle": "t0J8zq_sectionTitle",
-			"classicFoot": "t0J8zq_classicFoot",
-			"title": "t0J8zq_title",
+			"activeRow": "t0J8zq_activeRow",
 			"note": "t0J8zq_note",
-			"activeRunId": "t0J8zq_activeRunId",
-			"activeList": "t0J8zq_activeList",
-			"classicHead": "t0J8zq_classicHead",
 			"body": "t0J8zq_body",
-			"taskList": "t0J8zq_taskList",
-			"phaseBadge": "t0J8zq_phaseBadge",
-			"classicMetrics": "t0J8zq_classicMetrics",
-			"runId": "t0J8zq_runId",
-			"runDetail": "t0J8zq_runDetail"
+			"runDetail": "t0J8zq_runDetail",
+			"controlButton": "t0J8zq_controlButton",
+			"row": "t0J8zq_row"
 		};
 		//#endregion
 		//#region lib/types/client/KersorPanel.js
@@ -4469,16 +4486,33 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				case "failed": return "error";
 			}
 		}
-		function classicDotState(lifecycle) {
+		const CLASSIC_HEALTH_KEYS = {
+			active: "session.health.active",
+			stale: "session.health.stale",
+			needs_resume: "session.health.needsResume",
+			terminal: "session.health.terminal",
+			unknown: "session.health.unknown"
+		};
+		function classicDotState(health, lifecycle) {
+			if (health === "active") return "ongoing";
+			if (health !== "terminal") return "warning";
 			switch (lifecycle) {
-				case "active": return "ongoing";
 				case "completed": return "done";
 				case "stalled": return "error";
 				case "cancelled": return "warning";
+				case "active": return "warning";
 			}
 		}
 		function speedup(value) {
 			return Number.isInteger(value) ? value.toFixed(1) : value.toFixed(2);
+		}
+		function displayTime(value) {
+			const date = new Date(value);
+			if (Number.isNaN(date.getTime())) return void 0;
+			return new Intl.DateTimeFormat(void 0, {
+				dateStyle: "medium",
+				timeStyle: "short"
+			}).format(date);
 		}
 		function ClassicSessionRow({ session, t }) {
 			const round = session.current_round !== null && session.current_round !== void 0 ? session.max_workflows !== null && session.max_workflows !== void 0 ? t("session.round", {
@@ -4490,14 +4524,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				session.mode,
 				session.storage_kind
 			].filter(Boolean).join(" · ");
+			const activity = session.last_activity_at !== null && session.last_activity_at !== void 0 ? displayTime(session.last_activity_at) : void 0;
 			return (0, react_jsx_runtime.jsxs)("li", {
 				className: KersorPanel_module_css_default.classicRow,
+				"data-session-health": session.health,
 				"data-session-lifecycle": session.lifecycle,
 				children: [
 					(0, react_jsx_runtime.jsxs)("div", {
 						className: KersorPanel_module_css_default.classicHead,
 						children: [
-							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicDotState(session.lifecycle) }),
+							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: classicDotState(session.health, session.lifecycle) }),
 							(0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.sessionId,
 								title: session.session_dir,
@@ -4505,7 +4541,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							}),
 							(0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.phaseBadge,
-								children: session.phase ?? t("session.unknownPhase")
+								children: t(CLASSIC_HEALTH_KEYS[session.health])
 							})
 						]
 					}),
@@ -4518,7 +4554,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								children: t("session.best", { speedup: speedup(session.best_speedup) })
 							}) : null,
 							session.target_speedup !== null && session.target_speedup !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("session.target", { speedup: speedup(session.target_speedup) }) }) : null,
-							details.length > 0 ? (0, react_jsx_runtime.jsx)("span", { children: details }) : null
+							(0, react_jsx_runtime.jsx)("span", { children: session.phase ?? t("session.unknownPhase") }),
+							details.length > 0 ? (0, react_jsx_runtime.jsx)("span", { children: details }) : null,
+							activity !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("session.lastActivity", { time: activity }) }) : null
 						]
 					}),
 					(0, react_jsx_runtime.jsxs)("div", {
@@ -4751,7 +4789,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							className: KersorPanel_module_css_default.triggerLabel,
 							children: t("panel.trigger")
 						}),
-						state.rows.some((row) => row.discovery === "active") || state.classicSessions.some((session) => session.lifecycle === "active") ? (0, react_jsx_runtime.jsx)("span", {
+						state.rows.some((row) => row.discovery === "active") || state.classicSessions.some((session) => session.health === "active") ? (0, react_jsx_runtime.jsx)("span", {
 							className: KersorPanel_module_css_default.triggerBadge,
 							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: "ongoing" })
 						}) : null
@@ -4805,7 +4843,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 										children: t("session.title")
 									}), (0, react_jsx_runtime.jsx)("span", {
 										className: KersorPanel_module_css_default.sectionSummary,
-										children: t("session.count", { count: state.classicSessions.length })
+										children: t("session.summary", {
+											count: state.classicSessions.length,
+											active: state.classicSessions.filter((session) => session.health === "active").length
+										})
 									})]
 								}), (0, react_jsx_runtime.jsx)("ul", {
 									className: KersorPanel_module_css_default.classicRows,
@@ -5085,7 +5126,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"panel.readFailed": "读取运行清单失败：{message}",
 			"panel.hint": "优化会话摘要与 Workflow 实时进度",
 			"session.title": "优化会话",
-			"session.count": "最近 {count} 个",
+			"session.summary": "最近 {count} 个 · {active} 个活跃",
 			"session.round": "第 {current}/{maximum} 轮",
 			"session.roundOpen": "第 {current} 轮",
 			"session.best": "最佳 {speedup}x",
@@ -5093,6 +5134,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.workflow": "Workflow：{workflow}",
 			"session.noWorkflow": "尚未选择 Workflow",
 			"session.unknownPhase": "未知阶段",
+			"session.lastActivity": "活动于 {time}",
+			"session.health.active": "活跃",
+			"session.health.stale": "已陈旧",
+			"session.health.needsResume": "可恢复",
+			"session.health.terminal": "已结束",
+			"session.health.unknown": "状态未知",
 			"session.warnings": "{count} 个状态提醒",
 			"run.sectionTitle": "Autonomous Workflow",
 			"launcher.title": "任务控制",
@@ -5128,7 +5175,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"panel.readFailed": "Reading the run inventory failed: {message}",
 			"panel.hint": "Optimization summaries and live Workflow progress",
 			"session.title": "Optimization Sessions",
-			"session.count": "Latest {count}",
+			"session.summary": "Latest {count} · {active} active",
 			"session.round": "Round {current}/{maximum}",
 			"session.roundOpen": "Round {current}",
 			"session.best": "Best {speedup}x",
@@ -5136,6 +5183,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.workflow": "Workflow: {workflow}",
 			"session.noWorkflow": "No Workflow selected yet",
 			"session.unknownPhase": "Unknown phase",
+			"session.lastActivity": "Active {time}",
+			"session.health.active": "Active",
+			"session.health.stale": "Stale",
+			"session.health.needsResume": "Needs resume",
+			"session.health.terminal": "Terminal",
+			"session.health.unknown": "Unknown",
 			"session.warnings": "{count} status warning(s)",
 			"run.sectionTitle": "Autonomous Workflows",
 			"launcher.title": "Task controls",

@@ -76,12 +76,14 @@ let KersorViewerService = (() => {
             noDefaultRoots: z.boolean().default(false),
             scanIntervalMs: z.number().min(500).default(5000),
             classicSessionLimit: z.number().step(1).min(0).max(100).default(20),
+            classicStaleAfterSeconds: z.number().step(1).min(1).max(86_400).default(1800),
         });
         rootCtx = __runInitializers(this, _instanceExtraInitializers);
         configuredRoots;
         includeDefaults;
         scanIntervalMs;
         classicSessionLimit;
+        classicStaleAfterSeconds;
         tracked = new Map();
         group;
         scanTimer;
@@ -96,6 +98,7 @@ let KersorViewerService = (() => {
             this.includeDefaults = !(config.noDefaultRoots ?? false);
             this.scanIntervalMs = config.scanIntervalMs ?? 5000;
             this.classicSessionLimit = config.classicSessionLimit ?? 20;
+            this.classicStaleAfterSeconds = config.classicStaleAfterSeconds ?? 1800;
         }
         /** Start discovery and tailing under the plugin's fiber once ready. */
         *[Service.init]() {
@@ -159,7 +162,7 @@ let KersorViewerService = (() => {
                 scanRoots(this.configuredRoots, this.includeDefaults),
                 this.classicSessionLimit === 0
                     ? Promise.resolve({ sessions: [] })
-                    : readClassicSessions(this.classicSessionLimit),
+                    : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds),
             ]);
             this.classicSnapshot = classicSnapshot;
             const byRunDir = new Map(found.map(ref => [ref.runDir, ref]));

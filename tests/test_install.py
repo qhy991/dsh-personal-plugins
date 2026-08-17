@@ -183,6 +183,7 @@ class InstallTests(unittest.TestCase):
                     "max_workflows": 4,
                     "mode": "auto",
                     "kernel_path": "kernel.cu",
+                    "started_at": "2026-08-17T12:00:00+08:00",
                 }
             ),
             encoding="utf-8",
@@ -271,9 +272,42 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["session_id"], session.name)
         self.assertEqual(row["storage_kind"], "v2")
         self.assertEqual(row["lifecycle"], "active")
+        self.assertEqual(row["health"], "active")
+        self.assertEqual(row["status"], "resumable")
+        self.assertEqual(row["started_at"], "2026-08-17T12:00:00+08:00")
+        self.assertIsNotNone(row["last_activity_at"])
         self.assertEqual(row["best_speedup"], 1.25)
         self.assertEqual(row["kernel_name"], "kernel.cu")
         self.assertNotIn("kernel_path", row)
+
+    def test_sessions_bridge_marks_old_continuable_session_needs_resume(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        source = project / ".kersor" / "20260817-120000"
+        session = self.kersor / ".kersor" / source.name
+        session.parent.mkdir()
+        shutil.copytree(source, session)
+        for path in session.rglob("*"):
+            if path.is_file():
+                os.utime(path, (1, 1))
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "sessions",
+                "--limit",
+                "1",
+                "--stale-after",
+                "1",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        row = json.loads(completed.stdout)["sessions"][0]
+        self.assertEqual(row["status"], "resumable")
+        self.assertEqual(row["health"], "needs_resume")
 
     @unittest.skipIf(shutil.which("node") is None, "Node.js is required by DSH")
     def test_status_tool_executes_and_rejects_workspace_escape(self) -> None:

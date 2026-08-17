@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-KerSor 活动界面的 browser 半：同一个侧栏面板先展示 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 提供的最近经典／Session-v2 优化摘要，再列出 autonomous-workflow run，并渲染选中 run 的实时阶段／调用进度。紧凑的双列 Session 卡片展示 phase、轮次预算、最佳／目标加速比、backend/mode、选中 Workflow、存储格式与状态提醒数。
+KerSor 活动界面的 browser 半：同一个侧栏面板先展示 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 提供的最近经典／Session-v2 优化摘要，再列出 autonomous-workflow run，并渲染选中 run 的实时阶段／调用进度。紧凑的双列 Session 卡片展示建议性 health、规范 phase、最后活动时间、轮次预算、最佳／目标加速比、backend/mode、选中 Workflow、存储格式与状态提醒数。区段标题同时显示最近清单数和真正 active 数，陈旧的 `optimizing` projection 不再点亮全局活动状态点。
 
 加载可选 Host 启动器 [`@deepseek-ai/dsh-kersor`](../kersor/README.zh.md) 后，同一面板还会列出部署配置中的任务和 dsh 当前持有的 launcher 进程，并提供启动／停止操作。launcher remote 被刻意排除在注入依赖之外；它的 namespace 不可用时，面板仍会挂载，只是不显示控制区。
 

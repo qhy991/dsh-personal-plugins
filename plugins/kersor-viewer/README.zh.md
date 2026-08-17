@@ -21,16 +21,18 @@ KerSor 始终是唯一状态所有者。bridge 导入 KerSor 规范的 `SessionS
     noDefaultRoots: false
     scanIntervalMs: 5000
     classicSessionLimit: 20
+    classicStaleAfterSeconds: 1800
 ```
 
 - `roots` — 在默认根之外额外扫描的 KerSor session 根。
 - `noDefaultRoots` — 关闭全部自动根：`~/.local/share/kersor`、`~/Agent4Kernel/KerSor/.kersor`，以及已安装 `kersor` preset 记录的 checkout（或 `KERSOR_ROOT`）追加 `/.kersor` 后的路径。
 - `scanIntervalMs` — run 发现重扫间隔（最小 500 ms）。
 - `classicSessionLimit` — 通过已安装 preset bridge 返回的最近优化 Session 数（`0` 关闭，最大 `100`，默认 `20`）。
+- `classicStaleAfterSeconds` — 未结束 Session 的建议性无活动阈值（默认 `1800`，最大一天），与 KerSor TUI/doctor 默认值一致。
 
 带 `workflow_status: "waiting"` 的 summary 在发现层属于终态：KerSor controller 已停止并写入 summary，只是 workflow 正在等待外部输入，而非语义完成。
 
-经典 Session 卡片采用 KerSor 的规范 phase。`complete`、`stalled`、`cancelled` 与 `single_run` 是终态，其余阶段仍为活跃态。若绝对内核路径已失效，面板只显示不含路径的状态提醒，不把旧本地路径泄漏到浏览器。
+经典 Session 卡片把 KerSor 的规范 phase 与建议性 health 分开：阈值内存在稳定 artifact 活动是 `active`；陈旧的干净 `CONTINUE` 边界是 `needs_resume`；其他未结束的陈旧工作是 `stale`；终态是 `terminal`。经过时间绝不改写 phase。投影同时携带最后稳定 artifact 时间；若绝对内核路径已失效，面板只显示不含路径的状态提醒，不把旧本地路径泄漏到浏览器。
 
 ## 结构
 

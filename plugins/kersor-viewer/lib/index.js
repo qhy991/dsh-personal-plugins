@@ -982,10 +982,10 @@ function installedBridge() {
 function isClassicSession(value) {
 	if (value === null || typeof value !== "object") return false;
 	const row = value;
-	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
+	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
 }
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
-async function readClassicSessions(limit) {
+async function readClassicSessions(limit, staleAfterSeconds = 1800) {
 	const bridge = installedBridge();
 	try {
 		await access(bridge);
@@ -997,7 +997,9 @@ async function readClassicSessions(limit) {
 			bridge,
 			"sessions",
 			"--limit",
-			String(limit)
+			String(limit),
+			"--stale-after",
+			String(staleAfterSeconds)
 		], {
 			encoding: "utf8",
 			maxBuffer: 2 * 1024 * 1024,
@@ -1319,13 +1321,15 @@ let KersorViewerService = (() => {
 			roots: Schema.array(Schema.string()).default([]),
 			noDefaultRoots: Schema.boolean().default(false),
 			scanIntervalMs: Schema.number().min(500).default(5e3),
-			classicSessionLimit: Schema.number().step(1).min(0).max(100).default(20)
+			classicSessionLimit: Schema.number().step(1).min(0).max(100).default(20),
+			classicStaleAfterSeconds: Schema.number().step(1).min(1).max(86400).default(1800)
 		});
 		rootCtx = __runInitializers(this, _instanceExtraInitializers);
 		configuredRoots;
 		includeDefaults;
 		scanIntervalMs;
 		classicSessionLimit;
+		classicStaleAfterSeconds;
 		tracked = /* @__PURE__ */ new Map();
 		group;
 		scanTimer;
@@ -1340,6 +1344,7 @@ let KersorViewerService = (() => {
 			this.includeDefaults = !(config.noDefaultRoots ?? false);
 			this.scanIntervalMs = config.scanIntervalMs ?? 5e3;
 			this.classicSessionLimit = config.classicSessionLimit ?? 20;
+			this.classicStaleAfterSeconds = config.classicStaleAfterSeconds ?? 1800;
 		}
 		/** Start discovery and tailing under the plugin's fiber once ready. */
 		*[Service.init]() {
@@ -1394,7 +1399,7 @@ let KersorViewerService = (() => {
 			}
 		}
 		async performRescan() {
-			const [found, classicSnapshot] = await Promise.all([scanRoots(this.configuredRoots, this.includeDefaults), this.classicSessionLimit === 0 ? Promise.resolve({ sessions: [] }) : readClassicSessions(this.classicSessionLimit)]);
+			const [found, classicSnapshot] = await Promise.all([scanRoots(this.configuredRoots, this.includeDefaults), this.classicSessionLimit === 0 ? Promise.resolve({ sessions: [] }) : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds)]);
 			this.classicSnapshot = classicSnapshot;
 			const byRunDir = new Map(found.map((ref) => [ref.runDir, ref]));
 			for (const [runDir, tracked] of this.tracked) {

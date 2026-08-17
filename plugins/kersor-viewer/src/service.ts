@@ -21,7 +21,7 @@ import type { KersorViewerFrame } from './types.ts'
 
 export type { KersorEvent, KersorRunView } from './fold.ts'
 export type { KersorRunRef } from './scanner.ts'
-export type { KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot } from './classic.ts'
+export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts'
 export type { KersorViewerFrame } from './types.ts'
 export { EventsTailer } from './tailer.ts'
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from './scanner.ts'
@@ -38,6 +38,8 @@ export interface Config {
   scanIntervalMs?: number
   /** Number of recent classic optimization Sessions shown; zero disables it. */
   classicSessionLimit?: number
+  /** Seconds without stable artifact activity before an unfinished Session is stale. */
+  classicStaleAfterSeconds?: number
 }
 
 interface TrackedRun {
@@ -56,6 +58,7 @@ export class KersorViewerService extends TypertRemoteService {
     noDefaultRoots: z.boolean().default(false),
     scanIntervalMs: z.number().min(500).default(5000),
     classicSessionLimit: z.number().step(1).min(0).max(100).default(20),
+    classicStaleAfterSeconds: z.number().step(1).min(1).max(86_400).default(1800),
   })
 
   private readonly rootCtx: Context
@@ -63,6 +66,7 @@ export class KersorViewerService extends TypertRemoteService {
   private readonly includeDefaults: boolean
   private readonly scanIntervalMs: number
   private readonly classicSessionLimit: number
+  private readonly classicStaleAfterSeconds: number
   private readonly tracked = new Map<string, TrackedRun>()
   private group: Fiber | undefined
   private scanTimer: NodeJS.Timeout | undefined
@@ -78,6 +82,7 @@ export class KersorViewerService extends TypertRemoteService {
     this.includeDefaults = !(config.noDefaultRoots ?? false)
     this.scanIntervalMs = config.scanIntervalMs ?? 5000
     this.classicSessionLimit = config.classicSessionLimit ?? 20
+    this.classicStaleAfterSeconds = config.classicStaleAfterSeconds ?? 1800
   }
 
   /** Start discovery and tailing under the plugin's fiber once ready. */
@@ -145,7 +150,7 @@ export class KersorViewerService extends TypertRemoteService {
       scanRoots(this.configuredRoots, this.includeDefaults),
       this.classicSessionLimit === 0
         ? Promise.resolve({ sessions: [] } satisfies KersorClassicSnapshot)
-        : readClassicSessions(this.classicSessionLimit),
+        : readClassicSessions(this.classicSessionLimit, this.classicStaleAfterSeconds),
     ])
     this.classicSnapshot = classicSnapshot
     const byRunDir = new Map(found.map(ref => [ref.runDir, ref]))

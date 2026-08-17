@@ -33,14 +33,17 @@ describe('classic Session bridge', () => {
 import json
 print(json.dumps({"sessions": [{
   "session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "legacy",
-  "phase": "optimizing", "lifecycle": "active", "current_round": 1,
+  "phase": "optimizing", "lifecycle": "active", "status": "pre-round-1",
+  "health": "active", "current_round": 1,
   "warnings": []
 }]}))
 `)
     await chmod(bridge, 0o755)
     const snapshot = await readClassicSessions(1)
     expect(snapshot.sessions).toHaveLength(1)
-    expect(snapshot.sessions[0]).toMatchObject({ session_id: 's1', lifecycle: 'active' })
+    expect(snapshot.sessions[0]).toMatchObject({
+      session_id: 's1', lifecycle: 'active', status: 'pre-round-1', health: 'active',
+    })
   })
 
   it('rejects malformed bridge projections', async () => {

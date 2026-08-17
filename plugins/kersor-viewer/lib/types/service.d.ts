@@ -13,7 +13,7 @@ import type { KersorClassicSnapshot } from './classic.ts';
 import type { KersorRunRef } from './scanner.ts';
 export type { KersorEvent, KersorRunView } from './fold.ts';
 export type { KersorRunRef } from './scanner.ts';
-export type { KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot } from './classic.ts';
+export type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession, KersorClassicSnapshot, KersorClassicStatus } from './classic.ts';
 export type { KersorViewerFrame } from './types.ts';
 export { EventsTailer } from './tailer.ts';
 export { DEFAULT_KERSOR_ROOTS, scanRoots } from './scanner.ts';
@@ -29,6 +29,8 @@ export interface Config {
     scanIntervalMs?: number;
     /** Number of recent classic optimization Sessions shown; zero disables it. */
     classicSessionLimit?: number;
+    /** Seconds without stable artifact activity before an unfinished Session is stale. */
+    classicStaleAfterSeconds?: number;
 }
 /**
  * Host service: run inventory, live event folding, and browser push. Exposes
@@ -41,6 +43,7 @@ export declare class KersorViewerService extends TypertRemoteService {
     private readonly includeDefaults;
     private readonly scanIntervalMs;
     private readonly classicSessionLimit;
+    private readonly classicStaleAfterSeconds;
     private readonly tracked;
     private group;
     private scanTimer;

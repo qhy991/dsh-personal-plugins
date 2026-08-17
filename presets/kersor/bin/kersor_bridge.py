@@ -9,6 +9,8 @@ import os
 import re
 import shutil
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -173,6 +175,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "backend": None,
             "kernel_language": None,
             "kernel_path": None,
+            "started_at": None,
             "workflow": None,
             "fit_confidence": None,
             "best_speedup": None,
@@ -251,6 +254,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "backend": optional_string("backend"),
         "kernel_language": optional_string("kernel_language"),
         "kernel_path": kernel_path,
+        "started_at": optional_string("started_at"),
         "workflow": selected_workflow(session_dir, round_number),
         "fit_confidence": fit_confidence,
         "best_speedup": best_speedup,
@@ -270,10 +274,80 @@ def lifecycle(phase: object) -> str:
     return "active"
 
 
-def session_summary(value: dict[str, Any]) -> dict[str, Any]:
+def last_activity(session_dir: Path) -> tuple[float | None, str | None]:
+    """Return the newest stable artifact mtime using KerSor TUI exclusions."""
+    latest: float | None = None
+    for current, directories, files in os.walk(session_dir):
+        directories[:] = [name for name in directories if not name.startswith(".")]
+        current_dir = Path(current)
+        for name in files:
+            if name == ".session-v2.lock" or ".pending" in name or name.endswith(".tmp"):
+                continue
+            try:
+                stamp = (current_dir / name).stat().st_mtime
+            except OSError:
+                continue
+            latest = stamp if latest is None else max(latest, stamp)
+    if latest is None:
+        return None, None
+    rendered = datetime.fromtimestamp(latest, timezone.utc).isoformat().replace(
+        "+00:00", "Z"
+    )
+    return latest, rendered
+
+
+def session_health(
+    value: dict[str, Any], activity_epoch: float | None, stale_after: int
+) -> tuple[str, str]:
+    """Mirror KerSor TUI/doctor advisory health without changing canonical phase."""
+    phase = value.get("phase")
+    if phase == "complete" or phase == "single_run":
+        return "terminal-complete", "terminal"
+    if phase == "stalled":
+        return "terminal-stalled", "terminal"
+    if phase == "cancelled":
+        return "terminal-cancelled", "terminal"
+
+    decided = [
+        row
+        for row in value.get("rounds", [])
+        if isinstance(row, dict)
+        and isinstance(row.get("round"), int)
+        and isinstance(row.get("decision"), str)
+    ]
+    last = max(decided, key=lambda row: row["round"], default=None)
+    current_round = value.get("current_round")
+    if last is None:
+        status = "pre-round-1"
+    elif last["decision"].startswith("COMPLETE:"):
+        status = "terminal-complete"
+    elif last["decision"].startswith("STALLED:"):
+        status = "terminal-stalled"
+    elif (
+        last["decision"].startswith("CONTINUE:")
+        and isinstance(current_round, int)
+        and current_round > last["round"]
+    ):
+        status = "resumable"
+    else:
+        status = "in-progress"
+
+    if status.startswith("terminal-"):
+        return status, "terminal"
+    if activity_epoch is None:
+        return status, "unknown"
+    age = max(0.0, time.time() - activity_epoch)
+    if age <= stale_after:
+        return status, "active"
+    return status, "needs_resume" if status == "resumable" else "stale"
+
+
+def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
     """Return the bounded, path-light projection consumed by the DSH viewer."""
     session_dir = Path(str(value["session_dir"]))
     kernel_path = value.get("kernel_path")
+    activity_epoch, last_activity_at = last_activity(session_dir)
+    status, health = session_health(value, activity_epoch, stale_after)
     warnings: list[str] = []
     for warning in value.get("warnings", []):
         if not isinstance(warning, str):
@@ -292,6 +366,10 @@ def session_summary(value: dict[str, Any]) -> dict[str, Any]:
         "storage_kind": value.get("storage_kind"),
         "phase": value.get("phase"),
         "lifecycle": lifecycle(value.get("phase")),
+        "status": status,
+        "health": health,
+        "started_at": value.get("started_at"),
+        "last_activity_at": last_activity_at,
         "current_round": value.get("current_round"),
         "max_workflows": value.get("max_workflows"),
         "target_speedup": value.get("target_speedup"),
@@ -311,7 +389,7 @@ def session_summary(value: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def sessions(root: Path, limit: int) -> dict[str, Any]:
+def sessions(root: Path, limit: int, stale_after: int) -> dict[str, Any]:
     """List recent readable sessions from the configured KerSor checkout."""
     sessions_root = root / ".kersor"
     try:
@@ -340,7 +418,7 @@ def sessions(root: Path, limit: int) -> dict[str, Any]:
             continue
         if not value["found"]:
             continue
-        result.append(session_summary(value))
+        result.append(session_summary(value, stale_after))
     return {"sessions": result, "warnings": warnings}
 
 
@@ -355,6 +433,7 @@ def sessions_parser() -> argparse.ArgumentParser:
     """Build the parser for the recent-session inventory action."""
     result = argparse.ArgumentParser(prog="kersor_bridge.py sessions")
     result.add_argument("--limit", type=int, choices=range(1, 101), default=20)
+    result.add_argument("--stale-after", type=int, choices=range(1, 86401), default=1800)
     return result
 
 
@@ -388,7 +467,12 @@ def main(argv: list[str] | None = None) -> int:
             sessions_options = sessions_parser().parse_args(options.args)
             print(
                 json.dumps(
-                    sessions(root, sessions_options.limit), ensure_ascii=False
+                    sessions(
+                        root,
+                        sessions_options.limit,
+                        sessions_options.stale_after,
+                    ),
+                    ensure_ascii=False,
                 )
             )
             return 0

@@ -12,3 +12,4 @@
 | 迭代 | 案例 | 主问题 | 结果 |
 |---|---|---|---|
 | [01](2026-08-17-vliw-from-scratch-01.md) | VLIW Take-Home 官方 starter | KerSor preset skill 是否真实可发现 | 缺陷复现并修复；live probe 通过 |
+| [02](2026-08-17-vliw-from-scratch-02.md) | VLIW Take-Home 持续运行 | `optimizing` phase 是否等于真正 active | 接入 advisory health；真实页面 20 recent / 0 active |

@@ -279,8 +279,14 @@
   background: var(--dsw-alias-bg-module-platform);
 }
 
-.classicRow[data-session-lifecycle='active'] {
+.classicRow[data-session-health='active'] {
   border-color: var(--dsw-alias-state-business-primary);
+}
+
+.classicRow[data-session-health='stale'],
+.classicRow[data-session-health='needs_resume'],
+.classicRow[data-session-health='unknown'] {
+  border-color: var(--dsw-alias-state-warn-secondary);
 }
 
 .classicHead {

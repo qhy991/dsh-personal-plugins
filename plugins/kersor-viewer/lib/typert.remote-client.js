@@ -8,6 +8,10 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_listClassicSessions_result$sch
   'storage_kind': z.union([z.literal("v2"), z.literal("legacy")]).readonly(),
   'phase': z.union([z.literal(null), z.string()]).readonly().optional(),
   'lifecycle': z.union([z.literal("cancelled"), z.literal("active"), z.literal("completed"), z.literal("stalled")]).readonly(),
+  'status': z.union([z.literal("terminal-complete"), z.literal("terminal-stalled"), z.literal("terminal-cancelled"), z.literal("resumable"), z.literal("in-progress"), z.literal("pre-round-1")]).readonly(),
+  'health': z.union([z.literal("active"), z.literal("stale"), z.literal("needs_resume"), z.literal("terminal"), z.literal("unknown")]).readonly(),
+  'started_at': z.union([z.literal(null), z.string()]).readonly().optional(),
+  'last_activity_at': z.union([z.literal(null), z.string()]).readonly().optional(),
   'current_round': z.union([z.literal(null), z.number()]).readonly().optional(),
   'max_workflows': z.union([z.literal(null), z.number()]).readonly().optional(),
   'target_speedup': z.union([z.literal(null), z.number()]).readonly().optional(),
@@ -81,7 +85,7 @@ export const TYPERT_REMOTE = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer/types#KersorClassicSnapshot',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_listClassicSessions_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":121,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":126,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/listRuns',
@@ -96,7 +100,7 @@ export const TYPERT_REMOTE = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/listRuns:result',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_listRuns_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":114,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":119,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runBacklog',
@@ -121,7 +125,7 @@ export const TYPERT_REMOTE = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runBacklog:result',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":127,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":132,"column":3},
     },
   ],
 }

@@ -15,6 +15,14 @@ import { promisify } from 'node:util'
 const execFileAsync = promisify(execFile)
 
 export type KersorClassicLifecycle = 'active' | 'completed' | 'stalled' | 'cancelled'
+export type KersorClassicHealth = 'active' | 'stale' | 'needs_resume' | 'terminal' | 'unknown'
+export type KersorClassicStatus =
+  | 'terminal-complete'
+  | 'terminal-stalled'
+  | 'terminal-cancelled'
+  | 'resumable'
+  | 'in-progress'
+  | 'pre-round-1'
 
 /** One recent optimization Session projected by the canonical KerSor stores. */
 export interface KersorClassicSession {
@@ -23,6 +31,10 @@ export interface KersorClassicSession {
   readonly storage_kind: 'v2' | 'legacy'
   readonly phase?: string | null
   readonly lifecycle: KersorClassicLifecycle
+  readonly status: KersorClassicStatus
+  readonly health: KersorClassicHealth
+  readonly started_at?: string | null
+  readonly last_activity_at?: string | null
   readonly current_round?: number | null
   readonly max_workflows?: number | null
   readonly target_speedup?: number | null
@@ -65,12 +77,20 @@ function isClassicSession(value: unknown): value is KersorClassicSession {
     && (row.storage_kind === 'v2' || row.storage_kind === 'legacy')
     && (row.lifecycle === 'active' || row.lifecycle === 'completed'
       || row.lifecycle === 'stalled' || row.lifecycle === 'cancelled')
+    && (row.health === 'active' || row.health === 'stale' || row.health === 'needs_resume'
+      || row.health === 'terminal' || row.health === 'unknown')
+    && (row.status === 'terminal-complete' || row.status === 'terminal-stalled'
+      || row.status === 'terminal-cancelled' || row.status === 'resumable'
+      || row.status === 'in-progress' || row.status === 'pre-round-1')
     && Array.isArray(row.warnings)
     && row.warnings.every(item => typeof item === 'string')
 }
 
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
-export async function readClassicSessions(limit: number): Promise<KersorClassicSnapshot> {
+export async function readClassicSessions(
+  limit: number,
+  staleAfterSeconds = 1800,
+): Promise<KersorClassicSnapshot> {
   const bridge = installedBridge()
   try {
     await access(bridge)
@@ -78,7 +98,12 @@ export async function readClassicSessions(limit: number): Promise<KersorClassicS
     return { sessions: [] } // autonomous-only installs do not require the preset
   }
   try {
-    const { stdout } = await execFileAsync('python3', [bridge, 'sessions', '--limit', String(limit)], {
+    const { stdout } = await execFileAsync('python3', [
+      bridge,
+      'sessions',
+      '--limit', String(limit),
+      '--stale-after', String(staleAfterSeconds),
+    ], {
       encoding: 'utf8',
       maxBuffer: 2 * 1024 * 1024,
       timeout: 10_000,

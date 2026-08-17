@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from 'react'
 import { IconChevronRightOutline14, StateDot, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { KersorCallView, KersorPhaseView, KersorRunStatus, KersorRunView } from '@deepseek-ai/dsh-kersor-viewer/types'
-import type { KersorClassicLifecycle, KersorClassicSession } from '@deepseek-ai/dsh-kersor-viewer/types'
+import type { KersorClassicHealth, KersorClassicLifecycle, KersorClassicSession } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorTaskId } from '@deepseek-ai/dsh-kersor/types'
 import type { KersorViewerState } from './store.ts'
 import type { KersorViewerKey } from './locales.ts'
@@ -56,17 +56,36 @@ function phaseDotState(status: KersorPhaseView['status']): StateDotState {
   }
 }
 
-function classicDotState(lifecycle: KersorClassicLifecycle): StateDotState {
+const CLASSIC_HEALTH_KEYS = {
+  active: 'session.health.active',
+  stale: 'session.health.stale',
+  needs_resume: 'session.health.needsResume',
+  terminal: 'session.health.terminal',
+  unknown: 'session.health.unknown',
+} as const satisfies Record<KersorClassicHealth, KersorViewerKey>
+
+function classicDotState(health: KersorClassicHealth, lifecycle: KersorClassicLifecycle): StateDotState {
+  if (health === 'active') return 'ongoing'
+  if (health !== 'terminal') return 'warning'
   switch (lifecycle) {
-    case 'active': return 'ongoing'
     case 'completed': return 'done'
     case 'stalled': return 'error'
     case 'cancelled': return 'warning'
+    case 'active': return 'warning'
   }
 }
 
 function speedup(value: number): string {
   return Number.isInteger(value) ? value.toFixed(1) : value.toFixed(2)
+}
+
+function displayTime(value: string): string | undefined {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
 }
 
 function ClassicSessionRow({ session, t }: {
@@ -79,12 +98,15 @@ function ClassicSessionRow({ session, t }: {
       : t('session.roundOpen', { current: session.current_round })
     : undefined
   const details = [session.backend, session.mode, session.storage_kind].filter(Boolean).join(' · ')
+  const activity = session.last_activity_at !== null && session.last_activity_at !== undefined
+    ? displayTime(session.last_activity_at)
+    : undefined
   return (
-    <li className={css.classicRow} data-session-lifecycle={session.lifecycle}>
+    <li className={css.classicRow} data-session-health={session.health} data-session-lifecycle={session.lifecycle}>
       <div className={css.classicHead}>
-        <StateDot state={classicDotState(session.lifecycle)} />
+        <StateDot state={classicDotState(session.health, session.lifecycle)} />
         <span className={css.sessionId} title={session.session_dir}>{session.session_id}</span>
-        <span className={css.phaseBadge}>{session.phase ?? t('session.unknownPhase')}</span>
+        <span className={css.phaseBadge}>{t(CLASSIC_HEALTH_KEYS[session.health])}</span>
       </div>
       <div className={css.classicMetrics}>
         {round !== undefined ? <span>{round}</span> : null}
@@ -94,7 +116,9 @@ function ClassicSessionRow({ session, t }: {
         {session.target_speedup !== null && session.target_speedup !== undefined
           ? <span>{t('session.target', { speedup: speedup(session.target_speedup) })}</span>
           : null}
+        <span>{session.phase ?? t('session.unknownPhase')}</span>
         {details.length > 0 ? <span>{details}</span> : null}
+        {activity !== undefined ? <span>{t('session.lastActivity', { time: activity })}</span> : null}
       </div>
       <div className={css.classicFoot}>
         <span className={css.workflowName}>
@@ -285,7 +309,7 @@ export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps
         <span className={css.triggerIcon}><IconChevronRightOutline14 /></span>
         <span className={css.triggerLabel}>{t('panel.trigger')}</span>
         {state.rows.some(row => row.discovery === 'active')
-          || state.classicSessions.some(session => session.lifecycle === 'active')
+          || state.classicSessions.some(session => session.health === 'active')
           ? <span className={css.triggerBadge}><StateDot state="ongoing" /></span>
           : null}
       </button>
@@ -311,7 +335,10 @@ export function KersorPanel({ t, store, refresh, start, stop }: KersorPanelProps
                   <section className={css.activitySection} aria-label={t('session.title')}>
                     <div className={css.sectionHead}>
                       <span className={css.sectionTitle}>{t('session.title')}</span>
-                      <span className={css.sectionSummary}>{t('session.count', { count: state.classicSessions.length })}</span>
+                      <span className={css.sectionSummary}>{t('session.summary', {
+                        count: state.classicSessions.length,
+                        active: state.classicSessions.filter(session => session.health === 'active').length,
+                      })}</span>
                     </div>
                     <ul className={css.classicRows}>
                       {state.classicSessions.map(session => <ClassicSessionRow key={session.session_dir} session={session} t={t} />)}

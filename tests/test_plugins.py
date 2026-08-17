@@ -198,7 +198,7 @@ console.log(JSON.stringify(await scanner.scanRoots([], true)))
             bridge.parent.mkdir(parents=True)
             bridge.write_text(
                 """import json
-print(json.dumps({"sessions": [{"session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "legacy", "phase": "optimizing", "lifecycle": "active", "warnings": []}]}))
+print(json.dumps({"sessions": [{"session_id": "s1", "session_dir": "/sessions/s1", "storage_kind": "legacy", "phase": "optimizing", "lifecycle": "active", "status": "pre-round-1", "health": "active", "warnings": []}]}))
 """,
                 encoding="utf-8",
             )

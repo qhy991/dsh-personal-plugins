@@ -9,7 +9,7 @@ export declare const zh: {
     readonly 'panel.readFailed': "读取运行清单失败：{message}";
     readonly 'panel.hint': "优化会话摘要与 Workflow 实时进度";
     readonly 'session.title': "优化会话";
-    readonly 'session.count': "最近 {count} 个";
+    readonly 'session.summary': "最近 {count} 个 · {active} 个活跃";
     readonly 'session.round': "第 {current}/{maximum} 轮";
     readonly 'session.roundOpen': "第 {current} 轮";
     readonly 'session.best': "最佳 {speedup}x";
@@ -17,6 +17,12 @@ export declare const zh: {
     readonly 'session.workflow': "Workflow：{workflow}";
     readonly 'session.noWorkflow': "尚未选择 Workflow";
     readonly 'session.unknownPhase': "未知阶段";
+    readonly 'session.lastActivity': "活动于 {time}";
+    readonly 'session.health.active': "活跃";
+    readonly 'session.health.stale': "已陈旧";
+    readonly 'session.health.needsResume': "可恢复";
+    readonly 'session.health.terminal': "已结束";
+    readonly 'session.health.unknown': "状态未知";
     readonly 'session.warnings': "{count} 个状态提醒";
     readonly 'run.sectionTitle': "Autonomous Workflow";
     readonly 'launcher.title': "任务控制";
@@ -52,7 +58,7 @@ export declare const en: {
     readonly 'panel.readFailed': "Reading the run inventory failed: {message}";
     readonly 'panel.hint': "Optimization summaries and live Workflow progress";
     readonly 'session.title': "Optimization Sessions";
-    readonly 'session.count': "Latest {count}";
+    readonly 'session.summary': "Latest {count} · {active} active";
     readonly 'session.round': "Round {current}/{maximum}";
     readonly 'session.roundOpen': "Round {current}";
     readonly 'session.best': "Best {speedup}x";
@@ -60,6 +66,12 @@ export declare const en: {
     readonly 'session.workflow': "Workflow: {workflow}";
     readonly 'session.noWorkflow': "No Workflow selected yet";
     readonly 'session.unknownPhase': "Unknown phase";
+    readonly 'session.lastActivity': "Active {time}";
+    readonly 'session.health.active': "Active";
+    readonly 'session.health.stale': "Stale";
+    readonly 'session.health.needsResume': "Needs resume";
+    readonly 'session.health.terminal': "Terminal";
+    readonly 'session.health.unknown': "Unknown";
     readonly 'session.warnings': "{count} status warning(s)";
     readonly 'run.sectionTitle': "Autonomous Workflows";
     readonly 'launcher.title': "Task controls";

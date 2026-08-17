@@ -42,6 +42,8 @@ describe('inventory', () => {
         storage_kind: 'legacy',
         phase: 'optimizing',
         lifecycle: 'active',
+        status: 'in-progress',
+        health: 'active',
         current_round: 2,
         max_workflows: 4,
         best_speedup: 1.25,
@@ -49,7 +51,7 @@ describe('inventory', () => {
       }],
     })
     expect(store.getSnapshot().classicSessions[0]).toMatchObject({
-      session_id: '20260817-120000', lifecycle: 'active', best_speedup: 1.25,
+      session_id: '20260817-120000', lifecycle: 'active', health: 'active', best_speedup: 1.25,
     })
     expect(store.getSnapshot().rows).toEqual([])
   })

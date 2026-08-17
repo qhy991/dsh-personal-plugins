@@ -39,16 +39,36 @@ function phaseDotState(status) {
         case 'failed': return 'error';
     }
 }
-function classicDotState(lifecycle) {
+const CLASSIC_HEALTH_KEYS = {
+    active: 'session.health.active',
+    stale: 'session.health.stale',
+    needs_resume: 'session.health.needsResume',
+    terminal: 'session.health.terminal',
+    unknown: 'session.health.unknown',
+};
+function classicDotState(health, lifecycle) {
+    if (health === 'active')
+        return 'ongoing';
+    if (health !== 'terminal')
+        return 'warning';
     switch (lifecycle) {
-        case 'active': return 'ongoing';
         case 'completed': return 'done';
         case 'stalled': return 'error';
         case 'cancelled': return 'warning';
+        case 'active': return 'warning';
     }
 }
 function speedup(value) {
     return Number.isInteger(value) ? value.toFixed(1) : value.toFixed(2);
+}
+function displayTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime()))
+        return undefined;
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(date);
 }
 function ClassicSessionRow({ session, t }) {
     const round = session.current_round !== null && session.current_round !== undefined
@@ -57,11 +77,14 @@ function ClassicSessionRow({ session, t }) {
             : t('session.roundOpen', { current: session.current_round })
         : undefined;
     const details = [session.backend, session.mode, session.storage_kind].filter(Boolean).join(' · ');
-    return (_jsxs("li", { className: css.classicRow, "data-session-lifecycle": session.lifecycle, children: [_jsxs("div", { className: css.classicHead, children: [_jsx(StateDot, { state: classicDotState(session.lifecycle) }), _jsx("span", { className: css.sessionId, title: session.session_dir, children: session.session_id }), _jsx("span", { className: css.phaseBadge, children: session.phase ?? t('session.unknownPhase') })] }), _jsxs("div", { className: css.classicMetrics, children: [round !== undefined ? _jsx("span", { children: round }) : null, session.best_speedup !== null && session.best_speedup !== undefined
+    const activity = session.last_activity_at !== null && session.last_activity_at !== undefined
+        ? displayTime(session.last_activity_at)
+        : undefined;
+    return (_jsxs("li", { className: css.classicRow, "data-session-health": session.health, "data-session-lifecycle": session.lifecycle, children: [_jsxs("div", { className: css.classicHead, children: [_jsx(StateDot, { state: classicDotState(session.health, session.lifecycle) }), _jsx("span", { className: css.sessionId, title: session.session_dir, children: session.session_id }), _jsx("span", { className: css.phaseBadge, children: t(CLASSIC_HEALTH_KEYS[session.health]) })] }), _jsxs("div", { className: css.classicMetrics, children: [round !== undefined ? _jsx("span", { children: round }) : null, session.best_speedup !== null && session.best_speedup !== undefined
                         ? _jsx("span", { "data-target-met": session.target_met ?? undefined, children: t('session.best', { speedup: speedup(session.best_speedup) }) })
                         : null, session.target_speedup !== null && session.target_speedup !== undefined
                         ? _jsx("span", { children: t('session.target', { speedup: speedup(session.target_speedup) }) })
-                        : null, details.length > 0 ? _jsx("span", { children: details }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
+                        : null, _jsx("span", { children: session.phase ?? t('session.unknownPhase') }), details.length > 0 ? _jsx("span", { children: details }) : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
                             ? t('session.workflow', { workflow: session.workflow })
                             : t('session.noWorkflow') }), session.warnings.length > 0
                         ? _jsx("span", { className: css.warningCount, title: session.warnings.join('\n'), children: t('session.warnings', { count: session.warnings.length }) })
@@ -129,7 +152,7 @@ export function KersorPanel({ t, store, refresh, start, stop }) {
                     if (!open)
                         void refresh();
                 }, children: [_jsx("span", { className: css.triggerIcon, children: _jsx(IconChevronRightOutline14, {}) }), _jsx("span", { className: css.triggerLabel, children: t('panel.trigger') }), state.rows.some(row => row.discovery === 'active')
-                        || state.classicSessions.some(session => session.lifecycle === 'active')
+                        || state.classicSessions.some(session => session.health === 'active')
                         ? _jsx("span", { className: css.triggerBadge, children: _jsx(StateDot, { state: "ongoing" }) })
                         : null] }), open
                 ? (_jsxs("div", { className: css.panel, role: "dialog", "aria-label": t('panel.title'), children: [_jsxs("div", { className: css.header, children: [_jsx("span", { className: css.title, children: t('panel.title') }), _jsx("span", { className: css.note, children: t('panel.hint') })] }), _jsxs("div", { className: css.body, children: [state.launcher !== undefined
@@ -137,7 +160,10 @@ export function KersorPanel({ t, store, refresh, start, stop }) {
                                     : null, state.error !== undefined ? _jsx("div", { className: css.readError, children: t('panel.readFailed', { message: state.error }) }) : null, state.classicWarning !== undefined ? _jsx("div", { className: css.readError, children: state.classicWarning }) : null, state.loading ? _jsx("div", { className: css.note, children: t('panel.loading') }) : null, !state.loading && state.rows.length === 0 && state.classicSessions.length === 0
                                     ? _jsx("div", { className: css.note, children: t('panel.empty') })
                                     : null, state.classicSessions.length > 0
-                                    ? (_jsxs("section", { className: css.activitySection, "aria-label": t('session.title'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('session.title') }), _jsx("span", { className: css.sectionSummary, children: t('session.count', { count: state.classicSessions.length }) })] }), _jsx("ul", { className: css.classicRows, children: state.classicSessions.map(session => _jsx(ClassicSessionRow, { session: session, t: t }, session.session_dir)) })] }))
+                                    ? (_jsxs("section", { className: css.activitySection, "aria-label": t('session.title'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('session.title') }), _jsx("span", { className: css.sectionSummary, children: t('session.summary', {
+                                                            count: state.classicSessions.length,
+                                                            active: state.classicSessions.filter(session => session.health === 'active').length,
+                                                        }) })] }), _jsx("ul", { className: css.classicRows, children: state.classicSessions.map(session => _jsx(ClassicSessionRow, { session: session, t: t }, session.session_dir)) })] }))
                                     : null, state.rows.length > 0
                                     ? (_jsxs("section", { className: css.activitySection, "aria-label": t('run.sectionTitle'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('run.sectionTitle') }), _jsx("span", { className: css.sectionSummary, children: state.rows.length })] }), _jsx("ul", { className: css.rows, children: state.rows.map(row => (_jsxs("li", { className: css.row, "data-run-status": row.discovery, children: [_jsxs("button", { type: "button", className: css.rowHead, "aria-pressed": store.selectedRunDir === row.runDir, onClick: () => { store.select(store.selectedRunDir === row.runDir ? undefined : row.runDir); }, children: [_jsx(StateDot, { state: row.discovery === 'active' ? 'ongoing' : row.discovery === 'failed' ? 'error' : 'done' }), _jsx("span", { className: css.runId, children: row.runId }), _jsx("span", { className: css.rowPath, title: row.runDir, children: row.sessionDir })] }), store.selectedRunDir === row.runDir && row.view !== undefined
                                                             ? _jsx(RunDetail, { view: row.view, t: t })

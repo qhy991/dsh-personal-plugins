@@ -34,11 +34,16 @@ function isClassicSession(value) {
         && (row.storage_kind === 'v2' || row.storage_kind === 'legacy')
         && (row.lifecycle === 'active' || row.lifecycle === 'completed'
             || row.lifecycle === 'stalled' || row.lifecycle === 'cancelled')
+        && (row.health === 'active' || row.health === 'stale' || row.health === 'needs_resume'
+            || row.health === 'terminal' || row.health === 'unknown')
+        && (row.status === 'terminal-complete' || row.status === 'terminal-stalled'
+            || row.status === 'terminal-cancelled' || row.status === 'resumable'
+            || row.status === 'in-progress' || row.status === 'pre-round-1')
         && Array.isArray(row.warnings)
         && row.warnings.every(item => typeof item === 'string');
 }
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
-export async function readClassicSessions(limit) {
+export async function readClassicSessions(limit, staleAfterSeconds = 1800) {
     const bridge = installedBridge();
     try {
         await access(bridge);
@@ -47,7 +52,12 @@ export async function readClassicSessions(limit) {
         return { sessions: [] }; // autonomous-only installs do not require the preset
     }
     try {
-        const { stdout } = await execFileAsync('python3', [bridge, 'sessions', '--limit', String(limit)], {
+        const { stdout } = await execFileAsync('python3', [
+            bridge,
+            'sessions',
+            '--limit', String(limit),
+            '--stale-after', String(staleAfterSeconds),
+        ], {
             encoding: 'utf8',
             maxBuffer: 2 * 1024 * 1024,
             timeout: 10_000,

@@ -6,6 +6,8 @@
  * @module @deepseek-ai/dsh-kersor-viewer
  */
 export type KersorClassicLifecycle = 'active' | 'completed' | 'stalled' | 'cancelled';
+export type KersorClassicHealth = 'active' | 'stale' | 'needs_resume' | 'terminal' | 'unknown';
+export type KersorClassicStatus = 'terminal-complete' | 'terminal-stalled' | 'terminal-cancelled' | 'resumable' | 'in-progress' | 'pre-round-1';
 /** One recent optimization Session projected by the canonical KerSor stores. */
 export interface KersorClassicSession {
     readonly session_id: string;
@@ -13,6 +15,10 @@ export interface KersorClassicSession {
     readonly storage_kind: 'v2' | 'legacy';
     readonly phase?: string | null;
     readonly lifecycle: KersorClassicLifecycle;
+    readonly status: KersorClassicStatus;
+    readonly health: KersorClassicHealth;
+    readonly started_at?: string | null;
+    readonly last_activity_at?: string | null;
     readonly current_round?: number | null;
     readonly max_workflows?: number | null;
     readonly target_speedup?: number | null;
@@ -34,5 +40,5 @@ export interface KersorClassicSnapshot {
 /** Path copied by the portable preset installer. */
 export declare function installedBridge(): string;
 /** Invoke the installed bridge without a shell and return a bounded snapshot. */
-export declare function readClassicSessions(limit: number): Promise<KersorClassicSnapshot>;
+export declare function readClassicSessions(limit: number, staleAfterSeconds?: number): Promise<KersorClassicSnapshot>;
 //# sourceMappingURL=classic.d.ts.map
