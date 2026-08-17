@@ -59,6 +59,26 @@ remain `STALLED` until Phase 3.6 validates and re-catalogs a Proposal. Do not
 bypass KerSor by editing the candidate first, and do not request research-only
 workflow evolution through the stable `/kersor:optimize` path.
 
+Never parse `session-config.json` directly to verify the setup contract. Its
+immutable storage groups compatibility fields under `extensions`, while the
+supported state adapter owns the stable projected names. Read each fact through
+that adapter and compare the exact value before baseline initialization:
+
+```bash
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get fresh_session_required
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get baseline_witness_required
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get candidate_ownership_required
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get integration_pattern
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get retrieval_mode
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get experience_mode
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get transfer_mode
+bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get kernelwiki_experience_export_mode
+```
+
+For a fresh task-native authoring run the expected values are respectively
+`true`, `true`, `true`, the grounded integration pattern, then four `off`
+values. A mismatch is a hard stop; do not repair raw Session JSON.
+
 In DSH Workspace Write, Phase 3.6 must keep the Proposal Registry below the
 Session: save with `--store "$SESSION_DIR/workflow-authoring/proposals"` and
 regenerate the Catalog with the same path in `KERSOR_PROPOSALS_DIR`. Do not fall

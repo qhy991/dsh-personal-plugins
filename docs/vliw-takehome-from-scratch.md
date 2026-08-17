@@ -58,6 +58,8 @@ python tests/submission_tests.py
 partial Session 时拒绝继续；不得读取旧 Session 的 test-method、baseline 或策略。
 Session 创建后，用 baseline-witness.py init 原子写入当前两条权威命令，再依次执行
 record 与 verify；不要手写最小 test-method.md，也不要用 Markdown code span 包命令。
+setup 字段必须通过 kersor-state.sh get 的稳定投影读取，不得猜
+session-config.json 的 extensions 内部布局。
 baseline gate 未通过前不得进入 selection、authoring 或候选修改。
 这是 Python VLIW 模拟器，不是 CUDA；Session 必须冻结为
 python_reference/python/custom_simulator。已发布 Workflow 均不适配时应先

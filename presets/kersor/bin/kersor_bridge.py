@@ -348,7 +348,11 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
     baseline_witness, baseline_next_action, baseline_reason = baseline_projection(
         root, session_dir, round_number
     )
-    if fresh_session == "fail":
+    terminal_before_baseline = (
+        snapshot.get("phase") in {"complete", "stalled", "cancelled", "single_run"}
+        and baseline_witness == "pending"
+    )
+    if fresh_session == "fail" or terminal_before_baseline:
         baseline_next_action = None
     return {
         "found": True,

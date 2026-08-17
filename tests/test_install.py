@@ -204,6 +204,9 @@ class InstallTests(unittest.TestCase):
         self.assertIn("baseline-witness.py\" record", skill)
         self.assertIn('--session "$SESSION_DIR" --project-root "$TASK_DIR"', skill)
         self.assertIn("Output produced before Session creation", skill)
+        self.assertIn("Never parse `session-config.json` directly", skill)
+        self.assertIn('kersor-state.sh" "$SESSION_DIR" get fresh_session_required', skill)
+        self.assertIn('get kernelwiki_experience_export_mode', skill)
         self.assertIn("scripts/prepare-dsh-workflow.mjs", skill)
         self.assertIn('--out "$RUN_DIR/dsh-workflow.json"', skill)
         self.assertIn('--report "$RUN_DIR/dsh-compatibility.json"', skill)
@@ -393,6 +396,31 @@ class InstallTests(unittest.TestCase):
             failed["baseline_reason"],
             "Baseline Status must be present before recording, found unknown",
         )
+
+    def test_status_bridge_suppresses_pending_baseline_action_after_terminal_stop(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        state = project / ".kersor" / "20260817-120000" / "state.json"
+        payload = json.loads(state.read_text(encoding="utf-8"))
+        payload["phase"] = "stalled"
+        state.write_text(json.dumps(payload), encoding="utf-8")
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "status",
+                "--path",
+                str(project),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        value = json.loads(completed.stdout)
+        self.assertEqual(value["phase"], "stalled")
+        self.assertEqual(value["baseline_witness"], "pending")
+        self.assertIsNone(value["baseline_next_action"])
 
     def test_sessions_bridge_lists_bounded_recent_store_snapshots(self) -> None:
         destination, _, _ = self.run_install()

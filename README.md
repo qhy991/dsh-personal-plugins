@@ -94,6 +94,13 @@ compose optimize --path <task-dir> \
 
 “从头开始”还必须使用 `--fresh-session` 与全新 worktree；只有任务工作区没有 `.kersor` 历史时，外置空 `KERSOR_SESSION_ROOT` 才是有效替代。setup 会同时检查存储根和任务工作区，关闭 retrieval、experience、transfer 与 seed analysis，并拒绝先前或 partial Session。基线也必须由当前 Session 亲自见证：已经知道 task-native 命令时，Session 创建后先用 `baseline-witness.py init` 原子创建 `test-method.md`，再运行 `record` 与 `verify` 校验命令、Session config 与 kernel hash；不要手写最小 Markdown，也不要用代码 span 包住命令。创建 Session 前跑出的数字或复制进 Markdown 的历史数值不算证据。dispatch 前还要用 `prepare-dsh-workflow.mjs` 生成 `dsh-workflow.json` 与 `dsh-compatibility.json`，通过后用 `candidate-ownership.py seal` 锁定规范 kernel、tests、problem、既有 diff 与非 Session 文件。只以 `meta/script/args` 调用一次 DSH Workflow，返回后的第一步必须执行 ownership `verify`；子 Agent 只能返回源码或分析，由 host 在 Session 内落盘和评测。任一门禁或 Workflow 调用失败时，不得由 parent 修补、重试或直接接管优化，必须把 Session 转成 `stalled`。侧栏会分别显示“从零隔离”“基线见证”“DSH 兼容”和“候选所有权”徽标，并在 baseline 未完成时显示 `init`、`record + verify` 或“新建 Session”下一步及规范失败原因，因此执行边界无需翻文件即可确认。
 
+验证 setup 合同时不要直接解析 `session-config.json` 的内部层级。使用
+`bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get <field>` 读取稳定投影；
+fresh task-native 路径应依次确认 `fresh_session_required`、
+`baseline_witness_required`、`candidate_ownership_required` 为 `true`，integration pattern
+与任务合同一致，retrieval／experience／transfer／KernelWiki experience export 四个 mode
+为 `off`。raw JSON 形状不是 DSH 调用合同。
+
 ## 在 DSH 中使用
 
 在 DSH 中新建 task 并选择 `KerSor` preset。遇到 kernel 优化、通用本地任务演化、KerSor 状态或恢复请求时，加载 `kersor` skill。skill 会读取 KerSor checkout 中当前的 `AGENTS.md` 与 command protocol；KerSor 仓库仍是行为和参数的唯一权威来源。
