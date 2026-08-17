@@ -84,14 +84,15 @@ python3 scripts/install.py \
 ```text
 compose optimize --path <task-dir> \
   --integration-pattern custom_simulator \
-  --allow-workflow-authoring --workflow-authoring-budget 1
+  --allow-workflow-authoring --workflow-authoring-budget 1 \
+  --fresh-session
 ```
 
 `custom_simulator` 必须来自任务事实或用户明确合同，不能按 `.py` 后缀猜测。进入文件修改前，Session 应显示真实的 `language/backend/integration pattern`；无兼容 Workflow 时先显示 `STALLED`，直到 Phase 3.6 验证并重新 catalog 一个 Proposal。
 
 在 DSH Workspace Write 中，Phase 3.6 的 Proposal 必须保存在 Session 内的 `workflow-authoring/proposals/`，Catalog 也从同一 store 生成；不要要求写 KerSor checkout。`author-context.json.dispatch` 是唯一 subagent envelope，必须原样传入而不是由 parent 重写 metadata 模板；其中 `run_in_background:false` 会让工具阻塞到作者完成。不要用 `list_agents` 轮询，也不要检查或写 staging 进度。author 返回后的第一步是把三个文件封存在 `author-handoff.json`；save 必须携带该 seal，任何 parent 修补都会因 hash 不匹配而被拒绝。结构校验通过后仍要做语义安全审查：Workflow 只能返回候选或评测 Session-local 副本，不能在证明正确且更快之前覆盖规范 checkpoint。任务的 tests、reference、problem 与 benchmark harness 都是不可改写的 oracle。
 
-基线也必须由当前 Session 亲自见证：Session 创建后运行 `baseline-witness.py record`，再用 `verify` 校验命令、Session config 与 kernel hash；创建 Session 前跑出的数字或复制进 Markdown 的历史数值不算证据。dispatch 前还要用 `prepare-dsh-workflow.mjs` 生成 `dsh-workflow.json` 与 `dsh-compatibility.json`，通过后用 `candidate-ownership.py seal` 锁定规范 kernel、tests、problem、既有 diff 与非 Session 文件。只以 `meta/script/args` 调用一次 DSH Workflow，返回后的第一步必须执行 ownership `verify`；子 Agent 只能返回源码或分析，由 host 在 Session 内落盘和评测。任一门禁或 Workflow 调用失败时，不得由 parent 修补、重试或直接接管优化，必须把 Session 转成 `stalled`。侧栏会分别显示“基线见证”“DSH 兼容”和“候选所有权”徽标，因此执行边界无需翻文件即可确认。
+“从头开始”还必须使用 `--fresh-session` 与全新 worktree；只有任务工作区没有 `.kersor` 历史时，外置空 `KERSOR_SESSION_ROOT` 才是有效替代。setup 会同时检查存储根和任务工作区，关闭 retrieval、experience、transfer 与 seed analysis，并拒绝先前或 partial Session。基线也必须由当前 Session 亲自见证：Session 创建后运行 `baseline-witness.py record`，再用 `verify` 校验命令、Session config 与 kernel hash；创建 Session 前跑出的数字或复制进 Markdown 的历史数值不算证据。dispatch 前还要用 `prepare-dsh-workflow.mjs` 生成 `dsh-workflow.json` 与 `dsh-compatibility.json`，通过后用 `candidate-ownership.py seal` 锁定规范 kernel、tests、problem、既有 diff 与非 Session 文件。只以 `meta/script/args` 调用一次 DSH Workflow，返回后的第一步必须执行 ownership `verify`；子 Agent 只能返回源码或分析，由 host 在 Session 内落盘和评测。任一门禁或 Workflow 调用失败时，不得由 parent 修补、重试或直接接管优化，必须把 Session 转成 `stalled`。侧栏会分别显示“从零隔离”“基线见证”“DSH 兼容”和“候选所有权”徽标，因此执行边界无需翻文件即可确认。
 
 ## 在 DSH 中使用
 
@@ -108,7 +109,7 @@ compose optimize --path <task-dir> \
 停止条件：<成功门槛、预算、可复现 NO-GO>
 ```
 
-`kersor_status` 工具只读取当前 DSH task 的工作区，调用时使用空参数 `{}`，不要传 KerSor checkout 或其他路径。它展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence、`language/backend`、integration pattern、authoring gate／预算、基线见证、DSH 兼容性、候选所有权和最近决策，并使用 DSH 原生可回放卡片呈现。单一工作区入口同时消除了路径猜测和 host-side bridge 越界面。
+`kersor_status` 工具只读取当前 DSH task 的工作区，调用时使用空参数 `{}`，不要传 KerSor checkout 或其他路径。它展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence、`language/backend`、integration pattern、authoring gate／预算、从零隔离、基线见证、DSH 兼容性、候选所有权和最近决策，并使用 DSH 原生可回放卡片呈现。单一工作区入口同时消除了路径猜测和 host-side bridge 越界面。
 
 Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以及 autonomous run 的实时进度。它自动读取 DSH 已登记工作区，并扫描各工作区的 `.kersor/`，无需为当前项目重复配置路径；额外的集中式 Session 根仍可通过 viewer `roots` 配置。Session 卡会直接显示 `language/backend`、integration pattern 与 workflow authoring 预算，让 Python/VLIW 被误路由成 Triton、或缺少 task-native 逃生路径的问题无需打开状态文件即可发现。经典状态由 KerSor 自己的 `SessionStore`／`AttemptResultStore` 解析；侧栏不复制 legacy frontmatter 规则，并把规范 phase 与建议性 health 分开：只有阈值内有稳定 artifact 活动的 Session 才算 active，旧的 `optimizing` 会显示为“已陈旧”而不再点亮全局蓝点。run 视图每两秒读取 `summary.json`／`events.jsonl` 折叠快照，显示 phase、agent/evaluation call、耗时、token、回滚和终态。`waiting` 按本次 invocation 的终态处理；短暂断连或漏帧会由下一次快照自动恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`，路径只有一个机器侧权威来源。
 

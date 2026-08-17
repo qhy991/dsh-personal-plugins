@@ -101,6 +101,10 @@ function ClassicSessionRow({ session, t }) {
                         ? _jsx("span", { className: css.authoringBadge, children: t('session.authoring', {
                                 budget: session.workflow_authoring_budget ?? '—',
                             }) })
+                        : null, session.fresh_session != null
+                        ? _jsx("span", { className: css.gateBadge, "data-gate": session.fresh_session, children: t('session.freshGate', {
+                                status: t(GATE_KEYS[session.fresh_session]),
+                            }) })
                         : null, session.allow_workflow_authoring === true && session.baseline_witness != null
                         ? _jsx("span", { className: css.gateBadge, "data-gate": session.baseline_witness, children: t('session.baselineGate', {
                                 status: t(GATE_KEYS[session.baseline_witness]),

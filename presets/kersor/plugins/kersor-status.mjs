@@ -40,6 +40,7 @@ const STATUS_SCHEMA = {
     baseline_witness: nullable({ type: 'string' }),
     dsh_compatibility: nullable({ type: 'string' }),
     candidate_ownership: nullable({ type: 'string' }),
+    fresh_session: nullable({ type: 'string' }),
     best_speedup: nullable({ type: 'number' }),
     rounds: {
       type: 'array',
@@ -64,6 +65,7 @@ const STATUS_SCHEMA = {
     'allow_workflow_authoring', 'workflow_authoring_budget',
     'kernel_path', 'started_at', 'workflow',
     'fit_confidence', 'baseline_witness', 'dsh_compatibility', 'candidate_ownership',
+    'fresh_session',
     'best_speedup', 'rounds', 'warnings',
   ],
 }
@@ -123,9 +125,9 @@ export function renderStatus(value) {
     '| --- | --- | --- |',
     `| ${display(value.kernel_language)} / ${display(value.backend)} | ${display(value.integration_pattern)} | ${authoring(value)} |`,
     '',
-    '| Baseline witness | DSH compatibility | Candidate ownership |',
-    '| --- | --- | --- |',
-    `| ${gate(value.baseline_witness)} | ${gate(value.dsh_compatibility)} | ${gate(value.candidate_ownership)} |`,
+    '| Fresh isolation | Baseline witness | DSH compatibility | Candidate ownership |',
+    '| --- | --- | --- | --- |',
+    `| ${gate(value.fresh_session)} | ${gate(value.baseline_witness)} | ${gate(value.dsh_compatibility)} | ${gate(value.candidate_ownership)} |`,
   )
 
   const recent = value.rounds.slice(-5)
@@ -166,7 +168,7 @@ async function workspaceTarget(exec) {
 export function createTool() {
   return {
     name: 'kersor_status',
-    description: 'Read the current KerSor session phase, routing contract, baseline/DSH/candidate-ownership gates, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
+    description: 'Read the current KerSor session phase, routing contract, fresh-isolation/baseline/DSH/candidate-ownership gates, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -190,6 +192,7 @@ export function createTool() {
         baseline_witness: value.baseline_witness,
         dsh_compatibility: value.dsh_compatibility,
         candidate_ownership: value.candidate_ownership,
+        fresh_session: value.fresh_session,
         session_dir: value.session_dir,
         started_at: value.started_at,
       }),

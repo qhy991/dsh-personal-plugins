@@ -29,6 +29,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_listClassicSessions_result$sch
   'baseline_witness': z.union([z.literal(null), z.literal("pass"), z.literal("fail"), z.literal("pending"), z.literal("not_required")]).readonly().optional(),
   'dsh_compatibility': z.union([z.literal(null), z.literal("pass"), z.literal("fail"), z.literal("pending"), z.literal("not_required")]).readonly().optional(),
   'candidate_ownership': z.union([z.literal(null), z.literal("pass"), z.literal("fail"), z.literal("pending"), z.literal("not_required")]).readonly().optional(),
+  'fresh_session': z.union([z.literal(null), z.literal("pass"), z.literal("fail"), z.literal("pending"), z.literal("not_required")]).readonly().optional(),
   'best_speedup': z.union([z.literal(null), z.number()]).readonly().optional(),
   'warnings': z.array(z.string()).readonly(),
 })).readonly(),

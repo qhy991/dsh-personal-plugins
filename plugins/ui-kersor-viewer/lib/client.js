@@ -4271,6 +4271,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					literal("pending"),
 					literal("not_required")
 				]).readonly().optional(),
+				"fresh_session": union([
+					literal(null),
+					literal("pass"),
+					literal("fail"),
+					literal("pending"),
+					literal("not_required")
+				]).readonly().optional(),
 				"best_speedup": union([literal(null), number()]).readonly().optional(),
 				"warnings": array(string()).readonly()
 			})).readonly(),
@@ -4603,6 +4610,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							session.allow_workflow_authoring === true ? (0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.authoringBadge,
 								children: t("session.authoring", { budget: session.workflow_authoring_budget ?? "—" })
+							}) : null,
+							session.fresh_session != null ? (0, react_jsx_runtime.jsx)("span", {
+								className: KersorPanel_module_css_default.gateBadge,
+								"data-gate": session.fresh_session,
+								children: t("session.freshGate", { status: t(GATE_KEYS[session.fresh_session]) })
 							}) : null,
 							session.allow_workflow_authoring === true && session.baseline_witness != null ? (0, react_jsx_runtime.jsx)("span", {
 								className: KersorPanel_module_css_default.gateBadge,
@@ -5208,6 +5220,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.best": "最佳 {speedup}x",
 			"session.target": "目标 {speedup}x",
 			"session.authoring": "可创作 · 预算 {budget}",
+			"session.freshGate": "从零隔离：{status}",
 			"session.baselineGate": "基线见证：{status}",
 			"session.dshGate": "DSH 兼容：{status}",
 			"session.ownershipGate": "候选所有权：{status}",
@@ -5266,6 +5279,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.best": "Best {speedup}x",
 			"session.target": "Target {speedup}x",
 			"session.authoring": "Authoring · budget {budget}",
+			"session.freshGate": "Fresh isolation: {status}",
 			"session.baselineGate": "Baseline witness: {status}",
 			"session.dshGate": "DSH compatibility: {status}",
 			"session.ownershipGate": "Candidate ownership: {status}",

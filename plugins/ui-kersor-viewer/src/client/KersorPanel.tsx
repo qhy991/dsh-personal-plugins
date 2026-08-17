@@ -138,6 +138,11 @@ function ClassicSessionRow({ session, t }: {
               budget: session.workflow_authoring_budget ?? '—',
             })}</span>
           : null}
+        {session.fresh_session != null
+          ? <span className={css.gateBadge} data-gate={session.fresh_session}>{t('session.freshGate', {
+              status: t(GATE_KEYS[session.fresh_session]),
+            })}</span>
+          : null}
         {session.allow_workflow_authoring === true && session.baseline_witness != null
           ? <span className={css.gateBadge} data-gate={session.baseline_witness}>{t('session.baselineGate', {
               status: t(GATE_KEYS[session.baseline_witness]),

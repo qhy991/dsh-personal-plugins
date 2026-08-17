@@ -233,6 +233,7 @@ class InstallTests(unittest.TestCase):
                     "extensions": {
                         "baseline_witness_required": True,
                         "candidate_ownership_required": True,
+                        "fresh_session_required": True,
                     },
                 }
             ),
@@ -309,7 +310,31 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(value["baseline_witness"], "pending")
         self.assertEqual(value["dsh_compatibility"], "pass")
         self.assertEqual(value["candidate_ownership"], "pass")
+        self.assertEqual(value["fresh_session"], "pass")
         self.assertEqual(value["rounds"][0]["decision"].split(":", 1)[0], "CONTINUE")
+
+    def test_status_bridge_projects_a_fresh_boundary_failure(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        report = project / ".kersor" / "20260817-120000" / "run-2" / "fresh-session-boundary.json"
+        report.write_text(
+            json.dumps({"schema_version": 1, "verdict": "fail"}),
+            encoding="utf-8",
+        )
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "status",
+                "--path",
+                str(project),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout)["fresh_session"], "fail")
 
     def test_sessions_bridge_lists_bounded_recent_store_snapshots(self) -> None:
         destination, _, _ = self.run_install()
@@ -353,6 +378,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["baseline_witness"], "pending")
         self.assertEqual(row["dsh_compatibility"], "pass")
         self.assertEqual(row["candidate_ownership"], "pass")
+        self.assertEqual(row["fresh_session"], "pass")
         self.assertEqual(row["decision"], "CONTINUE: measure another workflow.")
         self.assertNotIn("kernel_path", row)
 

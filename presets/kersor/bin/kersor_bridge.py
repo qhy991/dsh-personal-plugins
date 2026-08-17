@@ -162,6 +162,21 @@ def candidate_ownership_gate(session_dir: Path, round_number: int) -> str:
     return "pending" if required else "not_required"
 
 
+def fresh_session_gate(session_dir: Path, round_number: int) -> str | None:
+    """Project strict Session-history isolation and any runtime violation."""
+    report_path = session_dir / f"run-{round_number}" / "fresh-session-boundary.json"
+    if report_path.is_file():
+        verdict = read_json_object(report_path).get("verdict")
+        return verdict if verdict in {"pass", "fail"} else "fail"
+    config = read_json_object(session_dir / "session-config.json")
+    extensions = config.get("extensions")
+    required = (
+        isinstance(extensions, dict)
+        and extensions.get("fresh_session_required") is True
+    )
+    return "pass" if required else None
+
+
 def candidate_rounds(session_dir: Path) -> list[int]:
     """List rounds that have an Attempt directory or a completed summary."""
     rounds: set[int] = set()
@@ -243,6 +258,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "baseline_witness": None,
             "dsh_compatibility": None,
             "candidate_ownership": None,
+            "fresh_session": None,
             "best_speedup": None,
             "rounds": [],
             "warnings": warnings,
@@ -339,6 +355,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "baseline_witness": baseline_gate(root, session_dir),
         "dsh_compatibility": dsh_compatibility_gate(session_dir, round_number),
         "candidate_ownership": candidate_ownership_gate(session_dir, round_number),
+        "fresh_session": fresh_session_gate(session_dir, round_number),
         "best_speedup": best_speedup,
         "rounds": rounds,
         "warnings": warnings,
@@ -485,6 +502,7 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "baseline_witness": value.get("baseline_witness"),
         "dsh_compatibility": value.get("dsh_compatibility"),
         "candidate_ownership": value.get("candidate_ownership"),
+        "fresh_session": value.get("fresh_session"),
         "best_speedup": value.get("best_speedup"),
         "warnings": warnings,
     }

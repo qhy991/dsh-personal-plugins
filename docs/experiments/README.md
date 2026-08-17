@@ -22,3 +22,4 @@
 | [09](2026-08-17-vliw-from-scratch-09.md) | VLIW Take-Home immutable author handoff | foreground 返回后 parent 会不会修补失败 Proposal | barrier 成立；影子 metadata 合同与 parent repair 复现；唯一 dispatch envelope + hash seal 实现 |
 | [10](2026-08-17-vliw-from-scratch-10.md) | VLIW Take-Home DSH dispatch | 合法 handoff 能否以当前 Session baseline 安全进入 DSH Workflow | handoff 全链首次通过；pre-Session baseline 与 DSH schema drift 复现；因果 witness、兼容门禁与可视化实现 |
 | [11](2026-08-17-vliw-from-scratch-11.md) | VLIW Take-Home DSH child ownership | 一次合法 DSH Workflow 调用能否把所有候选限制在 Session 内 | baseline、handoff、兼容与单次 dispatch 全部通过；Generate 越权修改规范文件；host 所有权门禁与红色徽标实现 |
+| [12](2026-08-17-vliw-from-scratch-12.md) | VLIW Take-Home fresh Session isolation | “从头开始”是否真的禁止读取旧 Session | baseline 前历史读取被停止；`--fresh-session` 物理 preflight 与红色隔离徽标实现 |

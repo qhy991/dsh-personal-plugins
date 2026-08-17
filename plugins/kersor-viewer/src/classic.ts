@@ -54,6 +54,7 @@ export interface KersorClassicSession {
   readonly baseline_witness?: KersorClassicGate | null
   readonly dsh_compatibility?: KersorClassicGate | null
   readonly candidate_ownership?: KersorClassicGate | null
+  readonly fresh_session?: KersorClassicGate | null
   readonly best_speedup?: number | null
   readonly warnings: readonly string[]
 }

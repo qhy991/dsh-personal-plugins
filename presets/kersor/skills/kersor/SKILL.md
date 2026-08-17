@@ -30,6 +30,15 @@ Before changing a KerSor checkout, read `$kersor_root/AGENTS.md`. Before running
 
 The composer emits a `/kersor:<command>` string as validated parameter binding. It is not a shell command. Execute the matching command protocol with the tools available in DSH, preserving its gates, evidence files, confirmation points, budgets, and stop semantics.
 
+When the user asks for a “from scratch”, “fresh”, or “从头开始” evaluation,
+the route must include `--fresh-session`. Run it in a fresh worktree. A new
+empty `KERSOR_SESSION_ROOT` is valid only when the task workspace itself has no
+`.kersor` history. Never inspect, search, or read an older
+`.kersor/<session-id>` to obtain a baseline, test method, strategy, candidate,
+or measurement. If setup finds prior Session history, stop and create the
+physical isolation before continuing. Prompt instructions alone are not an
+acceptable freshness boundary.
+
 ### Task-native authoring
 
 When the task uses a custom simulator/build system and the user asks KerSor to

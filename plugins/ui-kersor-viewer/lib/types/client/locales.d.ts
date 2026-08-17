@@ -15,6 +15,7 @@ export declare const zh: {
     readonly 'session.best': "最佳 {speedup}x";
     readonly 'session.target': "目标 {speedup}x";
     readonly 'session.authoring': "可创作 · 预算 {budget}";
+    readonly 'session.freshGate': "从零隔离：{status}";
     readonly 'session.baselineGate': "基线见证：{status}";
     readonly 'session.dshGate': "DSH 兼容：{status}";
     readonly 'session.ownershipGate': "候选所有权：{status}";
@@ -73,6 +74,7 @@ export declare const en: {
     readonly 'session.best': "Best {speedup}x";
     readonly 'session.target': "Target {speedup}x";
     readonly 'session.authoring': "Authoring · budget {budget}";
+    readonly 'session.freshGate': "Fresh isolation: {status}";
     readonly 'session.baselineGate': "Baseline witness: {status}";
     readonly 'session.dshGate': "DSH compatibility: {status}";
     readonly 'session.ownershipGate': "Candidate ownership: {status}";
