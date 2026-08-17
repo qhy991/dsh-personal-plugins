@@ -154,6 +154,11 @@ function ClassicSessionRow({ session, t }: {
               status: t(GATE_KEYS[session.baseline_witness]),
             })}</span>
           : null}
+        {session.allow_workflow_authoring === true && session.profile_evidence != null
+          ? <span className={css.gateBadge} data-gate={session.profile_evidence}>{t('session.profileGate', {
+              status: t(GATE_KEYS[session.profile_evidence]),
+            })}</span>
+          : null}
         {session.allow_workflow_authoring === true && session.dsh_compatibility != null
           ? <span className={css.gateBadge} data-gate={session.dsh_compatibility}>{t('session.dshGate', {
               status: t(GATE_KEYS[session.dsh_compatibility]),
@@ -176,6 +181,13 @@ function ClassicSessionRow({ session, t }: {
             {session.baseline_reason != null
               ? <span className={css.baselineActionReason}>{session.baseline_reason}</span>
               : null}
+          </div>
+        : null}
+      {session.allow_workflow_authoring === true && session.profile_evidence === 'fail'
+        && session.profile_reason != null
+        ? <div className={css.profileBlock} data-profile-gate="fail" title={session.profile_reason}>
+            <span className={css.profileBlockLabel}>{t('session.profileBlocked')}</span>
+            <span className={css.profileBlockReason}>{session.profile_reason}</span>
           </div>
         : null}
       <div className={css.classicFoot}>

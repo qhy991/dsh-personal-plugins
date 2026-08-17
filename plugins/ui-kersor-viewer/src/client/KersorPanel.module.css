@@ -396,6 +396,32 @@
   -webkit-line-clamp: 2;
 }
 
+.profileBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 7px;
+  border-left: 2px solid var(--dsw-alias-state-error-primary);
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.profileBlockLabel {
+  color: var(--dsw-alias-state-error-primary);
+  font-weight: 510;
+}
+
+.profileBlockReason {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .classicFoot {
   justify-content: space-between;
   min-width: 0;

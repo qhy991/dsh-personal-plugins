@@ -114,6 +114,10 @@ function ClassicSessionRow({ session, t }) {
                         ? _jsx("span", { className: css.gateBadge, "data-gate": session.baseline_witness, children: t('session.baselineGate', {
                                 status: t(GATE_KEYS[session.baseline_witness]),
                             }) })
+                        : null, session.allow_workflow_authoring === true && session.profile_evidence != null
+                        ? _jsx("span", { className: css.gateBadge, "data-gate": session.profile_evidence, children: t('session.profileGate', {
+                                status: t(GATE_KEYS[session.profile_evidence]),
+                            }) })
                         : null, session.allow_workflow_authoring === true && session.dsh_compatibility != null
                         ? _jsx("span", { className: css.gateBadge, "data-gate": session.dsh_compatibility, children: t('session.dshGate', {
                                 status: t(GATE_KEYS[session.dsh_compatibility]),
@@ -126,6 +130,9 @@ function ClassicSessionRow({ session, t }) {
                 ? _jsxs("div", { className: css.baselineAction, "data-baseline-action": session.baseline_next_action, title: session.baseline_reason ?? undefined, children: [_jsx("span", { className: css.baselineActionLabel, children: t(BASELINE_ACTION_KEYS[session.baseline_next_action]) }), session.baseline_reason != null
                             ? _jsx("span", { className: css.baselineActionReason, children: session.baseline_reason })
                             : null] })
+                : null, session.allow_workflow_authoring === true && session.profile_evidence === 'fail'
+                && session.profile_reason != null
+                ? _jsxs("div", { className: css.profileBlock, "data-profile-gate": "fail", title: session.profile_reason, children: [_jsx("span", { className: css.profileBlockLabel, children: t('session.profileBlocked') }), _jsx("span", { className: css.profileBlockReason, children: session.profile_reason })] })
                 : null, _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
                             ? t('session.workflow', { workflow: session.workflow })
                             : t('session.noWorkflow') }), session.lifecycle !== 'stalled' && session.lifecycle !== 'cancelled'

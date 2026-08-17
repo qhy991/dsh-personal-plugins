@@ -157,6 +157,24 @@ def baseline_projection(
     return "fail", "new_session", reason
 
 
+def profile_projection(
+    session_dir: Path, round_number: int
+) -> tuple[str, str | None]:
+    """Project the Session-owned Phase 2 profile and its hard-gate failure."""
+    failure = read_json_object(
+        session_dir / f"run-{round_number}" / "profile-gate.json"
+    )
+    if failure.get("verdict") == "fail":
+        return "fail", bounded_reason(failure.get("reason"))
+    profile = session_dir / "kernel-profile.md"
+    try:
+        if profile.is_file() and profile.read_text(encoding="utf-8").strip():
+            return "pass", None
+    except OSError:
+        return "fail", "kernel profile could not be read"
+    return "pending", None
+
+
 def dsh_compatibility_gate(session_dir: Path, round_number: int) -> str:
     """Read the DSH adapter's canonical per-round compatibility report."""
     report = read_json_object(
@@ -277,6 +295,8 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "baseline_witness": None,
             "baseline_next_action": None,
             "baseline_reason": None,
+            "profile_evidence": None,
+            "profile_reason": None,
             "dsh_compatibility": None,
             "candidate_ownership": None,
             "fresh_session": None,
@@ -348,6 +368,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
     baseline_witness, baseline_next_action, baseline_reason = baseline_projection(
         root, session_dir, round_number
     )
+    profile_evidence, profile_reason = profile_projection(session_dir, round_number)
     terminal_before_baseline = (
         snapshot.get("phase") in {"complete", "stalled", "cancelled", "single_run"}
         and baseline_witness == "pending"
@@ -386,6 +407,8 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "baseline_witness": baseline_witness,
         "baseline_next_action": baseline_next_action,
         "baseline_reason": baseline_reason,
+        "profile_evidence": profile_evidence,
+        "profile_reason": profile_reason,
         "dsh_compatibility": dsh_compatibility_gate(session_dir, round_number),
         "candidate_ownership": candidate_ownership_gate(session_dir, round_number),
         "fresh_session": fresh_session,
@@ -535,6 +558,8 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "baseline_witness": value.get("baseline_witness"),
         "baseline_next_action": value.get("baseline_next_action"),
         "baseline_reason": value.get("baseline_reason"),
+        "profile_evidence": value.get("profile_evidence"),
+        "profile_reason": value.get("profile_reason"),
         "dsh_compatibility": value.get("dsh_compatibility"),
         "candidate_ownership": value.get("candidate_ownership"),
         "fresh_session": value.get("fresh_session"),

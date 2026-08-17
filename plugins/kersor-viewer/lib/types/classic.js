@@ -42,6 +42,7 @@ function isClassicSession(value) {
         && (row.baseline_next_action == null || row.baseline_next_action === 'init'
             || row.baseline_next_action === 'record_verify' || row.baseline_next_action === 'new_session')
         && (row.baseline_reason == null || typeof row.baseline_reason === 'string')
+        && (row.profile_reason == null || typeof row.profile_reason === 'string')
         && Array.isArray(row.warnings)
         && row.warnings.every(item => typeof item === 'string');
 }

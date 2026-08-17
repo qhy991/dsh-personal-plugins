@@ -86,11 +86,15 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn("baseline_witness", client)
         self.assertIn("baseline_next_action", client)
         self.assertIn("baseline_reason", client)
+        self.assertIn("profile_evidence", client)
+        self.assertIn("profile_reason", client)
         self.assertIn("dsh_compatibility", client)
         self.assertIn("candidate_ownership", client)
         self.assertIn("fresh_session", client)
         self.assertIn("gateBadge", client)
         self.assertIn("Baseline witness: {status}", client)
+        self.assertIn("Profile evidence: {status}", client)
+        self.assertIn("Profile blocked", client)
         self.assertIn("Initialize the baseline method", client)
         self.assertIn("Start a new Session before retrying", client)
         self.assertIn("DSH compatibility: {status}", client)
@@ -113,6 +117,8 @@ class BuiltPluginTests(unittest.TestCase):
             "baseline_witness",
             "baseline_next_action",
             "baseline_reason",
+            "profile_evidence",
+            "profile_reason",
             "dsh_compatibility",
             "candidate_ownership",
             "fresh_session",

@@ -55,6 +55,8 @@ export interface KersorClassicSession {
   readonly baseline_witness?: KersorClassicGate | null
   readonly baseline_next_action?: KersorBaselineAction | null
   readonly baseline_reason?: string | null
+  readonly profile_evidence?: KersorClassicGate | null
+  readonly profile_reason?: string | null
   readonly dsh_compatibility?: KersorClassicGate | null
   readonly candidate_ownership?: KersorClassicGate | null
   readonly fresh_session?: KersorClassicGate | null
@@ -108,6 +110,7 @@ function isClassicSession(value: unknown): value is KersorClassicSession {
     && (row.baseline_next_action == null || row.baseline_next_action === 'init'
       || row.baseline_next_action === 'record_verify' || row.baseline_next_action === 'new_session')
     && (row.baseline_reason == null || typeof row.baseline_reason === 'string')
+    && (row.profile_reason == null || typeof row.profile_reason === 'string')
     && Array.isArray(row.warnings)
     && row.warnings.every(item => typeof item === 'string')
 }

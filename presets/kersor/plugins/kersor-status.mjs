@@ -40,6 +40,8 @@ const STATUS_SCHEMA = {
     baseline_witness: nullable({ type: 'string' }),
     baseline_next_action: nullable({ type: 'string' }),
     baseline_reason: nullable({ type: 'string' }),
+    profile_evidence: nullable({ type: 'string' }),
+    profile_reason: nullable({ type: 'string' }),
     dsh_compatibility: nullable({ type: 'string' }),
     candidate_ownership: nullable({ type: 'string' }),
     fresh_session: nullable({ type: 'string' }),
@@ -67,6 +69,7 @@ const STATUS_SCHEMA = {
     'allow_workflow_authoring', 'workflow_authoring_budget',
     'kernel_path', 'started_at', 'workflow',
     'fit_confidence', 'baseline_witness', 'baseline_next_action', 'baseline_reason',
+    'profile_evidence', 'profile_reason',
     'dsh_compatibility', 'candidate_ownership',
     'fresh_session',
     'best_speedup', 'rounds', 'warnings',
@@ -128,15 +131,18 @@ export function renderStatus(value) {
     '| --- | --- | --- |',
     `| ${display(value.kernel_language)} / ${display(value.backend)} | ${display(value.integration_pattern)} | ${authoring(value)} |`,
     '',
-    '| Fresh isolation | Baseline witness | DSH compatibility | Candidate ownership |',
-    '| --- | --- | --- | --- |',
-    `| ${gate(value.fresh_session)} | ${gate(value.baseline_witness)} | ${gate(value.dsh_compatibility)} | ${gate(value.candidate_ownership)} |`,
+    '| Fresh isolation | Baseline witness | Profile evidence | DSH compatibility | Candidate ownership |',
+    '| --- | --- | --- | --- | --- |',
+    `| ${gate(value.fresh_session)} | ${gate(value.baseline_witness)} | ${gate(value.profile_evidence)} | ${gate(value.dsh_compatibility)} | ${gate(value.candidate_ownership)} |`,
   )
   if (value.baseline_next_action !== null) {
     lines.push('', `Baseline next action: ${value.baseline_next_action}`)
   }
   if (value.baseline_reason !== null) {
     lines.push(`Baseline blocker: ${value.baseline_reason}`)
+  }
+  if (value.profile_reason !== null) {
+    lines.push(`Profile blocker: ${value.profile_reason}`)
   }
 
   const recent = value.rounds.slice(-5)
@@ -177,7 +183,7 @@ async function workspaceTarget(exec) {
 export function createTool() {
   return {
     name: 'kersor_status',
-    description: 'Read the current KerSor session phase, routing contract, fresh-isolation/baseline/DSH/candidate-ownership gates, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
+    description: 'Read the current KerSor session phase, routing contract, fresh-isolation/baseline/profile/DSH/candidate-ownership gates, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -201,6 +207,8 @@ export function createTool() {
         baseline_witness: value.baseline_witness,
         baseline_next_action: value.baseline_next_action,
         baseline_reason: value.baseline_reason,
+        profile_evidence: value.profile_evidence,
+        profile_reason: value.profile_reason,
         dsh_compatibility: value.dsh_compatibility,
         candidate_ownership: value.candidate_ownership,
         fresh_session: value.fresh_session,

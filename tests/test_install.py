@@ -205,6 +205,8 @@ class InstallTests(unittest.TestCase):
         self.assertIn('--session "$SESSION_DIR" --project-root "$TASK_DIR"', skill)
         self.assertIn("Output produced before Session creation", skill)
         self.assertIn("Never parse `session-config.json` directly", skill)
+        self.assertIn("non-empty `kernel-profile.md`", skill)
+        self.assertIn("author an optimizer from prompt constants", skill)
         self.assertIn('bash "$kersor_root/scripts/setup-session.sh" "$TASK_DIR"', skill)
         self.assertIn("Never call it from `commands/`", skill)
         self.assertIn('kersor-state.sh" "$SESSION_DIR" get fresh_session_required', skill)
@@ -257,6 +259,10 @@ class InstallTests(unittest.TestCase):
                     "integration_pattern": "custom_simulator",
                 }
             ),
+            encoding="utf-8",
+        )
+        (session / "kernel-profile.md").write_text(
+            "- Operation Type: vliw\n- Bottleneck Hypothesis: scalar issue width\n",
             encoding="utf-8",
         )
         (session / "round-1-selection.json").write_text(
@@ -317,10 +323,48 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(value["baseline_witness"], "pending")
         self.assertEqual(value["baseline_next_action"], "init")
         self.assertIsNone(value["baseline_reason"])
+        self.assertEqual(value["profile_evidence"], "pass")
+        self.assertIsNone(value["profile_reason"])
         self.assertEqual(value["dsh_compatibility"], "pass")
         self.assertEqual(value["candidate_ownership"], "pass")
         self.assertEqual(value["fresh_session"], "pass")
         self.assertEqual(value["rounds"][0]["decision"].split(":", 1)[0], "CONTINUE")
+
+    def test_status_bridge_projects_profile_failure_reason(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        (session / "kernel-profile.md").unlink()
+        (session / "run-2" / "profile-gate.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "verdict": "fail",
+                    "code": "missing_kernel_profile",
+                    "reason": "Phase 2 kernel-profile.md was never produced",
+                }
+            ),
+            encoding="utf-8",
+        )
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "status",
+                "--path",
+                str(project),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        value = json.loads(completed.stdout)
+        self.assertEqual(value["profile_evidence"], "fail")
+        self.assertEqual(
+            value["profile_reason"],
+            "Phase 2 kernel-profile.md was never produced",
+        )
 
     def test_status_bridge_projects_a_fresh_boundary_failure(self) -> None:
         destination, _, _ = self.run_install()
@@ -587,6 +631,8 @@ console.log(JSON.stringify({
         self.assertIs(result["meta"]["allow_workflow_authoring"], True)
         self.assertEqual(result["meta"]["baseline_witness"], "pending")
         self.assertEqual(result["meta"]["baseline_next_action"], "init")
+        self.assertEqual(result["meta"]["profile_evidence"], "pass")
+        self.assertIsNone(result["meta"]["profile_reason"])
         self.assertEqual(result["meta"]["dsh_compatibility"], "pass")
         self.assertEqual(result["meta"]["candidate_ownership"], "pass")
         self.assertIn("custom_simulator", result["content"][0]["text"])

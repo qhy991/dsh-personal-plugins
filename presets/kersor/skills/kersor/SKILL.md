@@ -100,6 +100,12 @@ For a fresh task-native authoring run the expected values are respectively
 `true`, `true`, `true`, the grounded integration pattern, then four `off`
 values. A mismatch is a hard stop; do not repair raw Session JSON.
 
+Before selection or Phase 3.6 authoring, the current Session must own a
+non-empty `kernel-profile.md` produced by the Phase 2 kernel-profiler. Never
+author an optimizer from prompt constants or an empty profile. The canonical
+`author-workflow-context.py` builder enforces this boundary and must fail
+closed; do not create or patch its JSON by hand when the profile is absent.
+
 In DSH Workspace Write, Phase 3.6 must keep the Proposal Registry below the
 Session: save with `--store "$SESSION_DIR/workflow-authoring/proposals"` and
 regenerate the Catalog with the same path in `KERSOR_PROPOSALS_DIR`. Do not fall
