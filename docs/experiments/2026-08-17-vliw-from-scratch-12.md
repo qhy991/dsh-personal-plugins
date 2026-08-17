@@ -105,8 +105,14 @@ bridge、`kersor_status`、Host Typert、browser remote、TypeScript source 与 
 - KerSor macOS Python 3.11 全量：1513 passed、7 skipped（589.41 秒）。系统 Python 3.14
   的 `unittest discover` 不是项目全量入口；无范围的 pytest 还会递归收集两个 attempts
   镜像并触发同名模块冲突，因此权威命令固定为 `python3.11 -m pytest -q tests`。
+- KerSor commit `0281ffb` 的
+  [GitHub CI 32022078721](https://github.com/qhy991/KerSor/actions/runs/32022078721)
+  在 Linux 全量通过（6 分 32 秒）。
 - 插件 Host TypeScript、Typert、Client TypeScript 与 browser bundle 重建通过。
 - `python3 scripts/check.py`：24 tests passed。
+- 插件 commit `baeea11` 的
+  [GitHub Validate 32022082372](https://github.com/qhy991/dsh-personal-plugins/actions/runs/32022082372)
+  通过。
 - 真实 3197 页面包含 `从零隔离：失败`，Session 12 为首卡且 phase 为 `stalled`。
 - DSH core 工作树保持干净；VLIW 受保护任务 diff 保持为空。
 
