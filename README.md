@@ -1,6 +1,25 @@
 # dsh-personal-plugins
 
-统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、工作区状态卡、只读 run viewer、Web 侧栏以及可选的有限 Mission 启动器；不复制 DSH 上游源码，也不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
+统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、只读 run viewer、Web 侧栏以及可选的有限 Mission 启动器；不复制 DSH 上游源码，也不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
+
+## 五分钟上手
+
+1. 安装或更新 preset：
+
+   ```bash
+   python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
+   ```
+
+2. 首次安装 Web bundle；若已经安装过，使用下文的“移除再重装”更新流程：
+
+   ```bash
+   dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
+   ```
+
+3. **重启 DSH Web 进程**。已经运行的 Host 不会自动采用新 preset composition 或新的浏览器 bundle。
+4. 在 DSH 中添加目标工作区，新建会话，把 agent preset 从“标准模式”切换为 **KerSor**。
+5. 用任务合同描述目标、基线、权威验证命令、禁止修改的文件和停止条件。Agent 应先加载 `kersor` skill，再由 skill 路由到当前 KerSor checkout 的协议。
+6. 用 `kersor_status` 查看当前 Session；用侧栏底部的“KerSor 活动”查看优化会话与 autonomous Workflow。
 
 ## 为什么安装时生成 composition
 
@@ -26,7 +45,7 @@ python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
 为 Web profile 安装 run viewer 与侧栏（建议先安装上面的 preset，让两者共享同一份 checkout 指针）：
 
 ```bash
-dsh plugin --profile web add --force "file:$PWD/bundles/kersor-web"
+dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
 ```
 
 若 `dsh` 未加入 `PATH`，可在 DSH checkout 中用 `pnpm dsh plugin --profile web add ...` 执行同一操作，并把 `file:` 后的路径写成此仓库 bundle 的绝对路径。
@@ -49,9 +68,31 @@ python3 scripts/install.py \
   --kersor-root /path/to/KerSor
 ```
 
-## 使用
+## 如何选择运行方式
 
-在 DSH 中新建 task 并选择 `KerSor` preset。遇到 GPU kernel 优化、通用本地任务演化、KerSor 状态或恢复请求时，加载 `kersor` skill。skill 会读取 KerSor checkout 中当前的 `AGENTS.md` 与 command protocol；KerSor 仓库仍是行为和参数的唯一权威来源。
+| 任务 | 建议入口 | 权威状态／证据 |
+|---|---|---|
+| GPU kernel 或带 benchmark 的本地优化 | `kersor` skill → `compose optimize` → 当前 `commands/optimize.md` | Session v2、Attempt Result、实测 benchmark |
+| 通用本地任务的固定验证循环 | `kersor-task-v1` → `commands/evolve.md` | `output.json` 与 verifier evidence |
+| 自主 Workflow / Mission | `kersor-mission-v1` → `commands/evolve.md` | `result.json`、artifact receipts、独立 verifier |
+| 状态、恢复、诊断 | 先调用 `kersor_status`，再读取相应 command protocol | 当前磁盘 Session，不依赖聊天记忆 |
+
+不要把 CUDA Workflow 硬套到 Python、VLIW、Verilog 或普通工程任务。任务类型不匹配时，应让 KerSor 选择、演化或创作 task-native Workflow，并保持任务自己的测试命令为唯一验收门。
+
+## 在 DSH 中使用
+
+在 DSH 中新建 task 并选择 `KerSor` preset。遇到 kernel 优化、通用本地任务演化、KerSor 状态或恢复请求时，加载 `kersor` skill。skill 会读取 KerSor checkout 中当前的 `AGENTS.md` 与 command protocol；KerSor 仓库仍是行为和参数的唯一权威来源。
+
+推荐提示词至少包含：
+
+```text
+目标：<可测量结果>
+基线：<命令与数值>
+权威验证：<确定性命令>
+不可变约束：<禁止修改的文件/接口/数据>
+组织要求：<主 agent、只读顾问、唯一集成者、并行边界>
+停止条件：<成功门槛、预算、可复现 NO-GO>
+```
 
 `kersor_status` 工具默认读取当前 DSH task 的工作区，展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence 和最近决策。结果使用 DSH 原生可回放卡片；传入子路径时只允许当前工作区内部，避免 host-side bridge 越过 DSH 会话边界。
 
@@ -63,13 +104,35 @@ Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以�
 KERSOR_ROOT=/another/KerSor dsh
 ```
 
+## 真实案例：VLIW Take-Home 从零优化
+
+[`docs/vliw-takehome-from-scratch.md`](docs/vliw-takehome-from-scratch.md) 给出完整案例：从 Anthropic 官方 `origin/main` 的 147734-cycle starter 创建隔离 worktree，在 DSH 中选择 KerSor preset，禁止读取任何既有优化解，组织架构分析、hazard 审计、向量化／调度和独立验证角色，依次冲击 `<18532` 与 `<2164`。
+
+这个案例同时验证五条链路：skill 发现、goal 持久化、subagent/Workflow 组织、权威 benchmark 守门、KerSor 状态与可视化。每轮实验总结收录在 [`docs/experiments/`](docs/experiments/README.md)。
+
+## 故障排查
+
+### `skill "kersor" is unknown or no longer available`
+
+旧安装会把 skill 复制到 preset 内，却没有把 preset-local `skills/` 加入 `skill-filesystem.customSkillDirs`。更新仓库后重新运行安装器并重启 DSH Web：
+
+```bash
+python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
+```
+
+新会话的初始 skill catalog 应包含 `kersor`。若仍失败，检查生成的 `${DSH_HOME:-$HOME/.dsh}/.agent-presets/kersor/agent.cordis.yml` 是否把同目录下的 `skills` 写入 `customSkillDirs`。
+
+### Web 侧栏仍是旧版本
+
+本地 `file:` 依赖可能被 pnpm 作为旧目录快照复用。执行精确移除／重装流程，然后重启 Web Host；只执行 `add --force` 不足以证明文件已刷新。
+
 ## 验证
 
 ```bash
 python3 scripts/check.py
 ```
 
-检查覆盖 metadata、安装器渲染与幂等性、强制更新备份、未解析占位符，以及仓库中意外出现的机器绝对路径。
+检查覆盖 metadata、preset-local skill 发现配置、安装器渲染与幂等性、强制更新备份、built plugin 合同，以及仓库中意外出现的机器绝对路径。
 
 ## 目录
 
@@ -86,4 +149,7 @@ presets/kersor/
 scripts/install.py           # 从当前 standard preset 生成并安装
 scripts/check.py             # 零依赖本地/CI 验证
 tests/                       # 安装合同回归测试
+docs/experiments/            # 每轮真实任务实验的假设、证据、结论与下一步
+docs/vliw-takehome-from-scratch.md
+                             # VLIW 比赛从零评测教程与反作弊边界
 ```

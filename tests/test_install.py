@@ -28,6 +28,8 @@ STANDARD = """# The `standard` agent preset.
       You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
 - id: tool-bash
   name: '@deepseek-ai/dsh-tool-bash'
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
 - id: tool-skill
   name: '@deepseek-ai/dsh-tool-skill'
 """
@@ -111,6 +113,8 @@ class InstallTests(unittest.TestCase):
         self.assertIn("The `kersor` agent preset", composition)
         self.assertIn(INSTALLER.KERSOR_LINE, composition)
         self.assertIn("name: './plugins/kersor-status.mjs'", composition)
+        self.assertIn("customSkillDirs:", composition)
+        self.assertIn(str((destination / "skills").resolve()), composition)
         self.assertNotIn(str(self.kersor), composition)
         self.assertTrue((destination / "plugins" / "kersor-status.mjs").is_file())
         self.assertEqual(
@@ -158,7 +162,14 @@ class InstallTests(unittest.TestCase):
 
     def test_renderer_fails_when_upstream_anchor_changes(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "persona anchor changed"):
-            INSTALLER.render_composition("- id: persona\n")
+            INSTALLER.render_composition(
+                "- id: persona\n", skill_dir=self.root / "skills"
+            )
+
+    def test_renderer_fails_when_skill_filesystem_anchor_changes(self) -> None:
+        source = STANDARD.replace("- id: skill-filesystem\n", "- id: skills-local\n")
+        with self.assertRaisesRegex(RuntimeError, "skill-filesystem anchor changed"):
+            INSTALLER.render_composition(source, skill_dir=self.root / "skills")
 
     def make_status_project(self) -> Path:
         """Create a small v2 project whose stores exercise the bridge contract."""

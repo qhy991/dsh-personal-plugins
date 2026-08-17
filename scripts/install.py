@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import json
 import os
 import shutil
 import sys
@@ -24,6 +25,10 @@ KERSOR_LINE = (
     "the bridge resolves the configured checkout."
 )
 TOOL_SKILL_ENTRY = "- id: tool-skill\n  name: '@deepseek-ai/dsh-tool-skill'"
+SKILL_FILESYSTEM_ENTRY = (
+    "- id: skill-filesystem\n"
+    "  name: '@deepseek-ai/dsh-skill-filesystem'"
+)
 KERSOR_STATUS_ENTRY = (
     "- id: kersor-status\n"
     "  name: './plugins/kersor-status.mjs'"
@@ -75,7 +80,7 @@ def validate_kersor_root(path: Path) -> Path:
     return root
 
 
-def render_composition(standard_source: str) -> str:
+def render_composition(standard_source: str, *, skill_dir: Path) -> str:
     """Apply the KerSor-owned persona delta to a DSH standard composition."""
     if standard_source.count(PERSONA_LINE) != 1:
         raise RuntimeError(
@@ -87,6 +92,11 @@ def render_composition(standard_source: str) -> str:
             "standard preset skill-tool anchor changed; inspect the current DSH preset "
             "before updating this renderer"
         )
+    if standard_source.count(SKILL_FILESYSTEM_ENTRY) != 1:
+        raise RuntimeError(
+            "standard preset skill-filesystem anchor changed; inspect the current "
+            "DSH preset before updating this renderer"
+        )
     lines = standard_source.splitlines()
     if not lines:
         raise RuntimeError("standard preset is empty")
@@ -94,6 +104,16 @@ def render_composition(standard_source: str) -> str:
     rendered = "\n".join(lines).replace(
         PERSONA_LINE,
         f"{PERSONA_LINE}\n{KERSOR_LINE}",
+        1,
+    )
+    rendered = rendered.replace(
+        SKILL_FILESYSTEM_ENTRY,
+        (
+            f"{SKILL_FILESYSTEM_ENTRY}\n"
+            "  config:\n"
+            "    customSkillDirs:\n"
+            f"      - {json.dumps(str(skill_dir.resolve()))}"
+        ),
         1,
     )
     rendered = rendered.replace(
@@ -162,8 +182,11 @@ def install(
     """Install the rendered preset and return destination, backup, and changed state."""
     standard = locate_standard(dsh_home, standard_preset)
     root = validate_kersor_root(kersor_root)
-    composition = render_composition(standard.read_text(encoding="utf-8"))
     destination = dsh_home.expanduser().resolve() / ".agent-presets" / "kersor"
+    composition = render_composition(
+        standard.read_text(encoding="utf-8"),
+        skill_dir=destination / "skills",
+    )
     if dry_run:
         return destination, None, True
 
