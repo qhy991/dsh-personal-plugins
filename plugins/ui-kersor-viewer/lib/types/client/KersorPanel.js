@@ -109,6 +109,10 @@ function ClassicSessionRow({ session, t }) {
                         ? _jsx("span", { className: css.gateBadge, "data-gate": session.dsh_compatibility, children: t('session.dshGate', {
                                 status: t(GATE_KEYS[session.dsh_compatibility]),
                             }) })
+                        : null, session.allow_workflow_authoring === true && session.candidate_ownership != null
+                        ? _jsx("span", { className: css.gateBadge, "data-gate": session.candidate_ownership, children: t('session.ownershipGate', {
+                                status: t(GATE_KEYS[session.candidate_ownership]),
+                            }) })
                         : null, activity !== undefined ? _jsx("span", { children: t('session.lastActivity', { time: activity }) }) : null] }), _jsxs("div", { className: css.classicFoot, children: [_jsx("span", { className: css.workflowName, children: session.workflow !== null && session.workflow !== undefined
                             ? t('session.workflow', { workflow: session.workflow })
                             : t('session.noWorkflow') }), session.lifecycle !== 'stalled' && session.lifecycle !== 'cancelled'

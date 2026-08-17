@@ -85,9 +85,11 @@ class BuiltPluginTests(unittest.TestCase):
         self.assertIn("Authoring · budget {budget}", client)
         self.assertIn("baseline_witness", client)
         self.assertIn("dsh_compatibility", client)
+        self.assertIn("candidate_ownership", client)
         self.assertIn("gateBadge", client)
         self.assertIn("Baseline witness: {status}", client)
         self.assertIn("DSH compatibility: {status}", client)
+        self.assertIn("Candidate ownership: {status}", client)
 
     def test_ui_source_matches_the_shared_client_bundle_entry(self) -> None:
         package = ROOT / "plugins" / "ui-kersor-viewer"
@@ -104,6 +106,7 @@ class BuiltPluginTests(unittest.TestCase):
             "workflow_authoring_budget",
             "baseline_witness",
             "dsh_compatibility",
+            "candidate_ownership",
             "decision",
         ):
             self.assertIn(field, schema)

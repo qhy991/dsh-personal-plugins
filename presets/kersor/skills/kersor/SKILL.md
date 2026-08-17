@@ -111,8 +111,29 @@ node "$kersor_root/scripts/prepare-dsh-workflow.mjs" \
   --report "$RUN_DIR/dsh-compatibility.json"
 ```
 
+After compatibility passes, seal the host-owned candidate boundary exactly
+once, before the Workflow call:
+
+```bash
+python3 "$kersor_root/scripts/candidate-ownership.py" seal \
+  --session "$SESSION_DIR" \
+  --run-dir "$RUN_DIR"
+```
+
 Read the generated envelope and call the Workflow tool exactly once as
 `Workflow({meta: envelope.meta, script: envelope.script, args: envelope.args})`.
+The first parent action after that blocking call returns, including an error,
+must verify the same boundary:
+
+```bash
+python3 "$kersor_root/scripts/candidate-ownership.py" verify \
+  --session "$SESSION_DIR" \
+  --run-dir "$RUN_DIR"
+```
+
+On an ownership failure, reject all child output and measurements, transition
+the Session to canonical `stalled`, and stop. Restoring an oracle afterward is
+recovery, not a passing result.
 Never pass `scriptPath`, invoke a nested `workflow()` helper, or translate the
 Proposal ad hoc. If compatibility preparation or the Workflow call fails, do
 not rewrite the author-owned script, retry dispatch, or optimize directly as

@@ -147,6 +147,21 @@ def dsh_compatibility_gate(session_dir: Path, round_number: int) -> str:
     return verdict if verdict in {"pass", "fail"} else "pending"
 
 
+def candidate_ownership_gate(session_dir: Path, round_number: int) -> str:
+    """Project the host-owned candidate boundary report for this round."""
+    report_path = session_dir / f"run-{round_number}" / "candidate-ownership.json"
+    if report_path.is_file():
+        verdict = read_json_object(report_path).get("verdict")
+        return verdict if verdict in {"pass", "fail"} else "fail"
+    config = read_json_object(session_dir / "session-config.json")
+    extensions = config.get("extensions")
+    required = (
+        isinstance(extensions, dict)
+        and extensions.get("candidate_ownership_required") is True
+    )
+    return "pending" if required else "not_required"
+
+
 def candidate_rounds(session_dir: Path) -> list[int]:
     """List rounds that have an Attempt directory or a completed summary."""
     rounds: set[int] = set()
@@ -227,6 +242,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "fit_confidence": None,
             "baseline_witness": None,
             "dsh_compatibility": None,
+            "candidate_ownership": None,
             "best_speedup": None,
             "rounds": [],
             "warnings": warnings,
@@ -322,6 +338,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "fit_confidence": fit_confidence,
         "baseline_witness": baseline_gate(root, session_dir),
         "dsh_compatibility": dsh_compatibility_gate(session_dir, round_number),
+        "candidate_ownership": candidate_ownership_gate(session_dir, round_number),
         "best_speedup": best_speedup,
         "rounds": rounds,
         "warnings": warnings,
@@ -467,6 +484,7 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "fit_confidence": value.get("fit_confidence"),
         "baseline_witness": value.get("baseline_witness"),
         "dsh_compatibility": value.get("dsh_compatibility"),
+        "candidate_ownership": value.get("candidate_ownership"),
         "best_speedup": value.get("best_speedup"),
         "warnings": warnings,
     }

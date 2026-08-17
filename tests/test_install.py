@@ -206,6 +206,9 @@ class InstallTests(unittest.TestCase):
         self.assertIn('--out "$RUN_DIR/dsh-workflow.json"', skill)
         self.assertIn('--report "$RUN_DIR/dsh-compatibility.json"', skill)
         self.assertIn("Workflow({meta: envelope.meta, script: envelope.script, args: envelope.args})", skill)
+        self.assertIn("candidate-ownership.py\" seal", skill)
+        self.assertIn("candidate-ownership.py\" verify", skill)
+        self.assertIn("first parent action", skill)
         self.assertIn("Never pass `scriptPath`", skill)
         self.assertIn("not rewrite the author-owned script, retry dispatch, or optimize directly", skill)
         self.assertIn("immutable oracles", skill)
@@ -227,7 +230,10 @@ class InstallTests(unittest.TestCase):
                     "started_at": "2026-08-17T12:00:00+08:00",
                     "allow_workflow_authoring": True,
                     "workflow_authoring_budget": 1,
-                    "extensions": {"baseline_witness_required": True},
+                    "extensions": {
+                        "baseline_witness_required": True,
+                        "candidate_ownership_required": True,
+                    },
                 }
             ),
             encoding="utf-8",
@@ -269,6 +275,10 @@ class InstallTests(unittest.TestCase):
             json.dumps({"schema_version": 1, "verdict": "pass"}),
             encoding="utf-8",
         )
+        (session / "run-2" / "candidate-ownership.json").write_text(
+            json.dumps({"schema_version": 1, "verdict": "pass"}),
+            encoding="utf-8",
+        )
         return project
 
     def test_status_bridge_uses_structured_kersor_stores(self) -> None:
@@ -298,6 +308,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(value["workflow_authoring_budget"], 1)
         self.assertEqual(value["baseline_witness"], "pending")
         self.assertEqual(value["dsh_compatibility"], "pass")
+        self.assertEqual(value["candidate_ownership"], "pass")
         self.assertEqual(value["rounds"][0]["decision"].split(":", 1)[0], "CONTINUE")
 
     def test_sessions_bridge_lists_bounded_recent_store_snapshots(self) -> None:
@@ -341,6 +352,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["workflow_authoring_budget"], 1)
         self.assertEqual(row["baseline_witness"], "pending")
         self.assertEqual(row["dsh_compatibility"], "pass")
+        self.assertEqual(row["candidate_ownership"], "pass")
         self.assertEqual(row["decision"], "CONTINUE: measure another workflow.")
         self.assertNotIn("kernel_path", row)
 
@@ -459,9 +471,10 @@ console.log(JSON.stringify({
         self.assertIs(result["meta"]["allow_workflow_authoring"], True)
         self.assertEqual(result["meta"]["baseline_witness"], "pending")
         self.assertEqual(result["meta"]["dsh_compatibility"], "pass")
+        self.assertEqual(result["meta"]["candidate_ownership"], "pass")
         self.assertIn("custom_simulator", result["content"][0]["text"])
         self.assertIn("enabled · budget 1", result["content"][0]["text"])
-        self.assertIn("| pending | pass |", result["content"][0]["text"])
+        self.assertIn("| pending | pass | pass |", result["content"][0]["text"])
         self.assertIn("1.25x", result["content"][0]["text"])
         self.assertEqual(result["card"]["title"], "KerSor · optimizing · r2/4 · 1.25x")
         self.assertEqual(result["parameterProperties"], {})

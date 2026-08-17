@@ -148,6 +148,11 @@ function ClassicSessionRow({ session, t }: {
               status: t(GATE_KEYS[session.dsh_compatibility]),
             })}</span>
           : null}
+        {session.allow_workflow_authoring === true && session.candidate_ownership != null
+          ? <span className={css.gateBadge} data-gate={session.candidate_ownership}>{t('session.ownershipGate', {
+              status: t(GATE_KEYS[session.candidate_ownership]),
+            })}</span>
+          : null}
         {activity !== undefined ? <span>{t('session.lastActivity', { time: activity })}</span> : null}
       </div>
       <div className={css.classicFoot}>

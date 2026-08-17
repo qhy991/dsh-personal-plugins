@@ -39,6 +39,7 @@ const STATUS_SCHEMA = {
     fit_confidence: nullable({ type: 'string' }),
     baseline_witness: nullable({ type: 'string' }),
     dsh_compatibility: nullable({ type: 'string' }),
+    candidate_ownership: nullable({ type: 'string' }),
     best_speedup: nullable({ type: 'number' }),
     rounds: {
       type: 'array',
@@ -62,7 +63,7 @@ const STATUS_SCHEMA = {
     'backend', 'kernel_language', 'integration_pattern',
     'allow_workflow_authoring', 'workflow_authoring_budget',
     'kernel_path', 'started_at', 'workflow',
-    'fit_confidence', 'baseline_witness', 'dsh_compatibility',
+    'fit_confidence', 'baseline_witness', 'dsh_compatibility', 'candidate_ownership',
     'best_speedup', 'rounds', 'warnings',
   ],
 }
@@ -122,9 +123,9 @@ export function renderStatus(value) {
     '| --- | --- | --- |',
     `| ${display(value.kernel_language)} / ${display(value.backend)} | ${display(value.integration_pattern)} | ${authoring(value)} |`,
     '',
-    '| Baseline witness | DSH compatibility |',
-    '| --- | --- |',
-    `| ${gate(value.baseline_witness)} | ${gate(value.dsh_compatibility)} |`,
+    '| Baseline witness | DSH compatibility | Candidate ownership |',
+    '| --- | --- | --- |',
+    `| ${gate(value.baseline_witness)} | ${gate(value.dsh_compatibility)} | ${gate(value.candidate_ownership)} |`,
   )
 
   const recent = value.rounds.slice(-5)
@@ -165,7 +166,7 @@ async function workspaceTarget(exec) {
 export function createTool() {
   return {
     name: 'kersor_status',
-    description: 'Read the current KerSor session phase, routing contract, baseline/DSH gates, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
+    description: 'Read the current KerSor session phase, routing contract, baseline/DSH/candidate-ownership gates, workflow-authoring gate, progress, measured speedups, target, fit, and recent round decisions. Always reads the current DSH workspace; call with an empty argument object.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -188,6 +189,7 @@ export function createTool() {
         workflow_authoring_budget: value.workflow_authoring_budget,
         baseline_witness: value.baseline_witness,
         dsh_compatibility: value.dsh_compatibility,
+        candidate_ownership: value.candidate_ownership,
         session_dir: value.session_dir,
         started_at: value.started_at,
       }),

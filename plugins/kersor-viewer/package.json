@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-kersor-viewer",
   "description": "KerSor host viewer: classic optimization Session summaries plus autonomous-workflow live progress",
-  "version": "0.1.0-rc.11",
+  "version": "0.1.0-rc.12",
   "publishConfig": {
     "access": "public"
   },

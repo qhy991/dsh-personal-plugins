@@ -4264,6 +4264,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					literal("pending"),
 					literal("not_required")
 				]).readonly().optional(),
+				"candidate_ownership": union([
+					literal(null),
+					literal("pass"),
+					literal("fail"),
+					literal("pending"),
+					literal("not_required")
+				]).readonly().optional(),
 				"best_speedup": union([literal(null), number()]).readonly().optional(),
 				"warnings": array(string()).readonly()
 			})).readonly(),
@@ -4606,6 +4613,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								className: KersorPanel_module_css_default.gateBadge,
 								"data-gate": session.dsh_compatibility,
 								children: t("session.dshGate", { status: t(GATE_KEYS[session.dsh_compatibility]) })
+							}) : null,
+							session.allow_workflow_authoring === true && session.candidate_ownership != null ? (0, react_jsx_runtime.jsx)("span", {
+								className: KersorPanel_module_css_default.gateBadge,
+								"data-gate": session.candidate_ownership,
+								children: t("session.ownershipGate", { status: t(GATE_KEYS[session.candidate_ownership]) })
 							}) : null,
 							activity !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("session.lastActivity", { time: activity }) }) : null
 						]
@@ -5198,6 +5210,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.authoring": "可创作 · 预算 {budget}",
 			"session.baselineGate": "基线见证：{status}",
 			"session.dshGate": "DSH 兼容：{status}",
+			"session.ownershipGate": "候选所有权：{status}",
 			"session.gate.pass": "通过",
 			"session.gate.fail": "失败",
 			"session.gate.pending": "待验证",
@@ -5255,6 +5268,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"session.authoring": "Authoring · budget {budget}",
 			"session.baselineGate": "Baseline witness: {status}",
 			"session.dshGate": "DSH compatibility: {status}",
+			"session.ownershipGate": "Candidate ownership: {status}",
 			"session.gate.pass": "pass",
 			"session.gate.fail": "fail",
 			"session.gate.pending": "pending",
