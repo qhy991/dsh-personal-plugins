@@ -22,6 +22,16 @@ python3 scripts/install_modus.py \
 
 这是一条已经过契约测试的 DSH 原生执行链，不是新的实验证据。Pi 上观察到的 profile 效应不能因迁移而自动成立；正式结论需要在 DSH 上重新进行 manipulation check、固定任务配对和 Router + Worker 总 token 比较。
 
+固定 action 对照使用三种不含 Router 调用的 matched Worker preset：
+
+```bash
+python3 scripts/install_modus_fixed.py --force \
+  --max-new-tokens 200000 \
+  --max-cache-read-tokens 2000000
+```
+
+安装后可选择 **Modus Fixed neutral**、**Modus Fixed p000** 或 **Modus Fixed p100**。三者从同一个 standard composition 生成，使用相同工具限制和 token gate；`p000/p100` 只分别追加固定 Profile，并执行与 Router Worker 相同的三次 pre-edit information gate。固定臂是反事实实验入口，不包含 Router token，不能用它代替最终 Router arena。
+
 ## 五分钟上手
 
 1. 安装或更新 preset：
@@ -199,10 +209,15 @@ presets/modus/
   router-persona.md          # 只路由、不执行的 Router policy
   profiles/                  # 固定 profile 快照、上游 commit 与 digest
   plugins/modus-router.mjs   # 一次路由、固定 persona Worker、无重发
+  plugins/modus-fixed-worker.mjs
+                             # neutral/p000/p100 matched 固定 Worker 运行门
   lib/trajectory.mjs         # token/budget fold、native+Code 行为轨迹与 seed 去重
+  lib/worker-policy.mjs      # routed/fixed Worker 共用的工具限制 SSOT
 scripts/install.py           # 从当前 standard preset 生成并安装
 scripts/build.py             # 在临时 DSH 布局中可复现地重建插件产物
 scripts/install_modus.py     # 生成并安装 Modus Router preset
+scripts/install_modus_fixed.py
+                             # 生成三种无 Router 的 matched 固定 Worker preset
 scripts/check.py             # 零依赖本地/CI 验证
 scripts/check_dsh_compat.py  # 对固定 DSH checkout 做真实运行时兼容性加载
 tests/                       # 安装合同回归测试

@@ -21,6 +21,7 @@
     "fork-seed-token-deduplication",
     "in-process-fork-first-request-governor",
     "router-worker-shared-token-budget",
-    "qualified-profile-pre-edit-information-gate"
+    "qualified-profile-pre-edit-information-gate",
+    "matched-fixed-worker-presets"
   ]
 }

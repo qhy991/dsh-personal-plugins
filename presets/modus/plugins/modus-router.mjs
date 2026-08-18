@@ -13,6 +13,10 @@ import {
   sumTokenUsage,
   zeroTokenUsage,
 } from '../lib/trajectory.mjs'
+import {
+  DEFAULT_WORKER_DENIED_TOOLS,
+  QUALIFIED_PROFILE_IDS,
+} from '../lib/worker-policy.mjs'
 
 
 export const name = 'modus-router'
@@ -23,7 +27,6 @@ const ADVANTAGES = ['token', 'performance', 'balanced']
 const DEFAULT_ROUTER_MAX_OUTPUT_TOKENS = 4096
 const DEFAULT_MAX_ROUTE_REMINDERS = 1
 const DEFAULT_WORKER_MAX_DEPTH = 1
-const DEFAULT_PRE_EDIT_INFORMATION_PROFILES = Object.freeze(['p000', 'p100'])
 const MAX_RATIONALE_CHARS = 1000
 const MAX_EVIDENCE_ITEMS = 6
 const MAX_EVIDENCE_CHARS = 500
@@ -306,16 +309,7 @@ export function resolveConfig(config = {}) {
   const routerProbeTools = stringList(config.routerProbeTools ?? [], 'routerProbeTools')
     .filter(item => item !== toolName)
   const workerDeniedTools = stringList(
-    config.workerDeniedTools ?? [
-      toolName,
-      'subagent',
-      'subagent_fork',
-      'send_message',
-      'interrupt_agent',
-      'list_agents',
-      'workflow',
-      'ralph',
-    ],
+    config.workerDeniedTools ?? DEFAULT_WORKER_DENIED_TOOLS,
     'workerDeniedTools',
   )
   if (!workerDeniedTools.includes(toolName)) workerDeniedTools.unshift(toolName)
@@ -364,7 +358,7 @@ export function resolveConfig(config = {}) {
     if (profiles.length === 0) {
       throw new Error('preEditInformationGate.profiles must not be empty')
     }
-    const unsupported = profiles.filter(profile => !DEFAULT_PRE_EDIT_INFORMATION_PROFILES.includes(profile))
+    const unsupported = profiles.filter(profile => !QUALIFIED_PROFILE_IDS.includes(profile))
     if (unsupported.length > 0) {
       throw new Error(
         `preEditInformationGate supports only qualified profiles: ${unsupported.join(', ')}`,

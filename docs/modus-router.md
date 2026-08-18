@@ -66,6 +66,12 @@ Profile snapshot 当前固定到 Modus `7661a5da146d6957de18f14a0e226684486d6bf6
 
 Router 同时报告 rationale、1–6 条可见 evidence、预期收益类型与是否 abstain。abstain 只能选择 `neutral`。
 
+### 固定 action 对照
+
+Router 净收益不能只与旧 Pi 结果或一个假想的零成本 Worker 比较。`scripts/install_modus_fixed.py` 从同一份当前 standard composition 一次生成 `modus-fixed-neutral`、`modus-fixed-p000` 与 `modus-fixed-p100`：三者拥有相同 provider/model 路由、standard 工具集合、Worker delegation deny-list、token gate 和用户 prompt；neutral 保持原 persona，p000/p100 只分别追加其 hash-bound Profile。三个 preset 都是一个根 Worker session、零 Router session、零 descendant，因此固定臂成本就是该根 session 的完整 durable usage，不需要 fork seed 扣除。
+
+固定 p000/p100 使用与 Router child 相同的三次 pre-edit information gate；neutral 不启用该门，但仍使用相同 delegation deny-list。安装器把 Profile digest、preset id 和可选两轴 token budget 写入生成的 composition。正式分析还必须从 request/header.system 验证 neutral 的 Profile occurrence 为零、p000/p100 的所选文本恰好一次且另一文本为零；preset 名或 installer 输出本身不足以证明 treatment 被模型看到。
+
 ## Token 核算
 
 比较动态策略时，成本估计量必须是：
@@ -164,11 +170,15 @@ Router 识别。
 ```bash
 python3 scripts/install_modus.py --dry-run
 python3 scripts/install_modus.py --force
+python3 scripts/install_modus_fixed.py --dry-run \
+  --max-new-tokens 200000 --max-cache-read-tokens 2000000
+python3 scripts/install_modus_fixed.py --force \
+  --max-new-tokens 200000 --max-cache-read-tokens 2000000
 python3 scripts/check.py
 python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness
 ```
 
-最后一条命令使用真实 DSH 的 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 和内置 fork provider 做兼容性加载；测试包含“首个 Worker 请求受控、跨阈值后下一请求未到 adapter”，以及“p000 的第 4 次 pre-edit read 未进入 tool body、随后 typed edit 可执行”。它默认同时要求 HEAD 与工作树匹配固定基线；`--allow-dirty` / `--allow-unpinned` 仅用于开发探测，不能作为固定兼容性证据。当前验证基线记录在 `presets/modus/compatibility.json`，升级 DSH 后应更新并重跑。覆盖安装会把不同的旧 preset 移到同级时间戳备份；完全相同的重装是 no-op。安装后需重启 DSH Web，并在新 task 中选择 **Modus Router**。
+最后一条命令使用真实 DSH 的 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 和内置 fork provider 做兼容性加载；测试包含“首个 Worker 请求受控、跨阈值后下一请求未到 adapter”，“p000 的第 4 次 pre-edit read 未进入 tool body、随后 typed edit 可执行”，以及“固定 p000 preset 隐藏 delegation 工具并复用同一行为门”。它默认同时要求 HEAD 与工作树匹配固定基线；`--allow-dirty` / `--allow-unpinned` 仅用于开发探测，不能作为固定兼容性证据。当前验证基线记录在 `presets/modus/compatibility.json`，升级 DSH 后应更新并重跑。覆盖安装会把不同的旧 preset 移到同级时间戳备份；完全相同的重装是 no-op。安装后需重启 DSH Web，并在新 task 中选择 Router 或对应的固定 Worker preset。
 
 ## 下一迭代
 

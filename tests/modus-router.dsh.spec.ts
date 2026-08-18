@@ -19,6 +19,7 @@ import * as ForkInProcess from '@deepseek-ai/dsh-subagent-fork-in-process'
 import { MockAdapter, textResponse, toolCallResponse } from '@dsh-test/mock-adapter'
 
 import * as ModusRouter from '../presets/modus/plugins/modus-router.mjs'
+import * as ModusFixedWorker from '../presets/modus/plugins/modus-fixed-worker.mjs'
 
 
 interface Mounted {
@@ -255,6 +256,126 @@ function appendCodeOutcome(agent: any, outcome: 'success' | 'failure' | 'unknown
 }
 
 describe('Modus Router against real DSH Loader and services', () => {
+  it('loads a fixed p000 Worker with matched tools and enforces its fourth-read boundary', async () => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(AgentRegistry)
+    let reads = 0
+    let edits = 0
+    for (const tool of [
+      defineTool({
+        name: 'read',
+        description: 'Read one fixture path.',
+        parameters: { file_path: { type: 'string' } },
+        output: {
+          schema: { type: 'string' },
+          render: (_args, value) => [{ type: 'text', text: value }],
+        },
+        execute: () => { reads += 1; return Promise.resolve('fixture') },
+      }),
+      defineTool({
+        name: 'edit',
+        description: 'Apply one fixture edit.',
+        parameters: {
+          file_path: { type: 'string' }, old_string: { type: 'string' }, new_string: { type: 'string' },
+        },
+        output: {
+          schema: { type: 'string' },
+          render: (_args, value) => [{ type: 'text', text: value }],
+        },
+        execute: () => { edits += 1; return Promise.resolve('edited') },
+      }),
+      defineTool({
+        name: 'subagent_fork',
+        description: 'A delegation tool hidden from fixed Workers.',
+        parameters: {},
+        output: {
+          schema: { type: 'string' },
+          render: (_args, value) => [{ type: 'text', text: value }],
+        },
+        execute: () => Promise.resolve('unused'),
+      }),
+    ]) ctx.tools.register(tool)
+    let agent: any
+    const FixedAgentFixture = {
+      name: 'modus-fixed-agent-fixture',
+      inject: ['agents', 'tools', 'systemPrompt'],
+      apply(inner: Context) {
+        const id = SessionId('modus-fixed-p000-real')
+        const session = Session.create(id, undefined, {
+          version: 0, id, createdAt: 1, agentPreset: 'modus-fixed-p000', cwd: '/workspace',
+        })
+        const key: any = {}
+        const scope = createScope(inner, key)
+        agent = Object.assign(key, {
+          id,
+          options: {},
+          session,
+          inbox: { nextStep: [] },
+          status: 'idle',
+          ctx: scope.ctx.extend({ agent: key }),
+          cancel() {},
+          async whenIdle() {},
+          runMaintenance(task: (signal: AbortSignal) => Promise<unknown>) {
+            return task(new AbortController().signal)
+          },
+          send() {}, followup() {}, steer() {}, inject() {},
+        })
+        inner.agents.register(agent)
+      },
+    }
+    await ctx.plugin(FixedAgentFixture)
+    await ctx.plugin(ModusFixedWorker, {
+      presetId: 'modus-fixed-p000',
+      profile: 'p000',
+      profileDigest: ModusRouter.PROFILE_CATALOG.profiles.p000.sha256,
+      maxPreEditInformationAttempts: 3,
+    })
+    const session = agent.session
+    expect(ctx.tools.schemas(agent).map(tool => tool.name).sort()).toEqual(['edit', 'read'])
+
+    for (let index = 1; index <= 3; index += 1) {
+      const callId = CallId(`fixed-read-${index}`)
+      const call = session.append('tool/call', {
+        turn: 1, step: index, callId, name: 'read',
+        arguments: JSON.stringify({ file_path: `src/${index}.ts` }),
+      })
+      session.append('tool/result', {
+        turn: 1,
+        step: index,
+        message: createToolResultMessage({
+          callId, content: [{ type: 'text', text: 'fixture' }], isError: false,
+        }),
+      }, { surfaceOp: 'append', sourceEventSeqs: [call.seq] })
+    }
+    const denied = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: CallId('fixed-read-4'),
+      name: 'read',
+      arguments: { file_path: 'src/4.ts' },
+      agent,
+    })
+    expect(denied.isError).toBe(true)
+    expect(reads).toBe(0)
+
+    const editId = CallId('fixed-edit-1')
+    session.append('tool/call', {
+      turn: 1, step: 4, callId: editId, name: 'edit',
+      arguments: JSON.stringify({ file_path: 'src/1.ts', old_string: 'a', new_string: 'b' }),
+    })
+    const edited = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: editId,
+      name: 'edit',
+      arguments: { file_path: 'src/1.ts', old_string: 'a', new_string: 'b' },
+      agent,
+    })
+    expect(edited.isError).toBe(false)
+    expect(edits).toBe(1)
+  })
+
   it('loads, confines a scoped agent, executes an exact Worker request, and unloads cleanly', async () => {
     const subject = await mount()
     expect(subject.ctx.tools.schemas(subject.agent).map(tool => tool.name))
