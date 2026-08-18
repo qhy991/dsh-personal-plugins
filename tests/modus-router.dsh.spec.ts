@@ -359,6 +359,7 @@ describe('Modus Router against real DSH Loader and services', () => {
     })
     expect(denied.isError).toBe(true)
     expect(reads).toBe(0)
+    expect(ctx.tools.schemas(agent).map(tool => tool.name).sort()).toEqual(['edit'])
 
     const editId = CallId('fixed-edit-1')
     session.append('tool/call', {
@@ -374,6 +375,7 @@ describe('Modus Router against real DSH Loader and services', () => {
     })
     expect(edited.isError).toBe(false)
     expect(edits).toBe(1)
+    expect(ctx.tools.schemas(agent).map(tool => tool.name).sort()).toEqual(['edit', 'read'])
   })
 
   it('loads, confines a scoped agent, executes an exact Worker request, and unloads cleanly', async () => {

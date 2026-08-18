@@ -126,6 +126,10 @@ test('qualified fixed Worker denies the fourth pre-edit read and lifts after edi
   }, async () => ({ kind: 'allow' }))
   assert.equal(denied.kind, 'deny')
   assert.match(denied.reason, /MODUS_PRE_EDIT_INFORMATION_LIMIT/)
+  assert.deepEqual(runtime.restrictions, [
+    { deny: ['subagent_fork'] },
+    { deny: ['read'] },
+  ])
 
   runtime.agent.session.events.push(
     nativeCall(6, 'edit-a', 'edit', { file_path: 'src/a.ts' }),
@@ -139,8 +143,9 @@ test('qualified fixed Worker denies the fourth pre-edit read and lifts after edi
     signal,
   }, async () => ({ kind: 'allow' }))
   assert.deepEqual(allowed, { kind: 'allow' })
-  runtime.cleanup()
   assert.equal(runtime.lifts(), 1)
+  runtime.cleanup()
+  assert.equal(runtime.lifts(), 2)
 })
 
 test('neutral fixed Worker retains the same tool surface without behavior denial', async () => {
@@ -161,4 +166,27 @@ test('neutral fixed Worker retains the same tool surface without behavior denial
     signal: new AbortController().signal,
   }, async () => ({ kind: 'allow' }))
   assert.deepEqual(allowed, { kind: 'allow' })
+})
+
+test('fixed Worker HMR reconstructs and later lifts the information-tool lock', () => {
+  const runtime = harness('p000')
+  runtime.agent.session.events.push(
+    nativeCall(0, 'read-a', 'read', { file_path: 'src/a.ts' }),
+    nativeResult(1, 'read-a'),
+    nativeCall(2, 'read-b', 'read', { file_path: 'src/b.ts' }),
+    nativeResult(3, 'read-b'),
+    nativeCall(4, 'read-c', 'read', { file_path: 'src/c.ts' }),
+    nativeResult(5, 'read-c'),
+    nativeCall(6, 'read-d', 'read', { file_path: 'src/d.ts' }),
+    nativeResult(7, 'read-d', true),
+  )
+  runtime.handlers.get('agent/session-start')({ agent: runtime.agent })
+  assert.deepEqual(runtime.restrictions.at(-1), { deny: ['read'] })
+
+  runtime.agent.session.events.push(
+    nativeCall(8, 'edit-a', 'edit', { file_path: 'src/a.ts' }),
+    nativeResult(9, 'edit-a'),
+  )
+  runtime.handlers.get('agent/session-start')({ agent: runtime.agent })
+  assert.deepEqual(runtime.restrictions.at(-1), { deny: ['subagent_fork'] })
 })

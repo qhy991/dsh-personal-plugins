@@ -30,7 +30,7 @@ python3 scripts/install_modus_fixed.py --force \
   --max-cache-read-tokens 2000000
 ```
 
-安装后可选择 **Modus Fixed neutral**、**Modus Fixed p000** 或 **Modus Fixed p100**。三者从同一个 standard composition 生成，使用相同工具限制和 token gate；`p000/p100` 只分别追加固定 Profile，并执行与 Router Worker 相同的三次 pre-edit information gate。固定臂是反事实实验入口，不包含 Router token，不能用它代替最终 Router arena。
+安装后可选择 **Modus Fixed neutral**、**Modus Fixed p000** 或 **Modus Fixed p100**。三者从同一个 standard composition 生成，使用相同工具限制和 token gate；`p000/p100` 只分别追加固定 Profile，并执行与 Router Worker 相同的三次 pre-edit information gate。触发上限后，下一次模型请求暂时不再看到 read/search/bash，typed edit 后自动恢复；neutral 不受该门影响。固定臂是反事实实验入口，不包含 Router token，不能用它代替最终 Router arena。
 
 ## 五分钟上手
 

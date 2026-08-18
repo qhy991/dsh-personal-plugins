@@ -15,6 +15,7 @@ import {
 } from '../lib/trajectory.mjs'
 import {
   DEFAULT_WORKER_DENIED_TOOLS,
+  PRE_EDIT_INFORMATION_TOOLS,
   QUALIFIED_PROFILE_IDS,
 } from '../lib/worker-policy.mjs'
 
@@ -700,7 +701,11 @@ function enforcePreEditInformationGate(agent, governed, config, exec) {
       arguments: exec.arguments,
     },
   })
+  if (decision.first_edit_observed || exec.name === 'edit' || exec.name === 'write') {
+    governed.deactivateInformationRestriction()
+  }
   if (decision.next_tool_allowed) return undefined
+  governed.activateInformationRestriction()
   return {
     kind: 'deny',
     reason:
@@ -1011,20 +1016,58 @@ export function apply(ctx, inputConfig) {
   const bindWorkerBehavior = (agent) => {
     if (config.preEditInformationGate === undefined
       || agent.session.header.origin !== 'subagent') return
+    workerBehaviors.get(agent)?.cleanup?.()
     const parentId = agent.session.header.parentSession
     const pendingProfile = pendingProfiles.get(parentId)
     const descriptorProfile = pendingProfile === undefined
       ? profileFromWorkerDescriptor(agent, config)
       : pendingProfile
     if (descriptorProfile === undefined || descriptorProfile === null) {
-      workerBehaviors.set(agent, { bound: false, enabled: false, profile: null })
+      workerBehaviors.set(agent, {
+        bound: false, enabled: false, profile: null, cleanup() {},
+      })
       return
     }
-    workerBehaviors.set(agent, {
+    const informationTools = PRE_EDIT_INFORMATION_TOOLS.filter(tool =>
+      ctx.tools.schemas(agent).some(schema => schema.name === tool))
+    const behavior = {
       bound: true,
       enabled: config.preEditInformationGate.profiles.includes(descriptorProfile),
       profile: descriptorProfile,
-    })
+      informationCleanup: undefined,
+      activateInformationRestriction() {
+        if (!this.enabled || this.informationCleanup !== undefined
+          || informationTools.length === 0) return
+        const release = agent.ctx.tools.restrict({ deny: informationTools })
+        let active = true
+        const cleanup = () => {
+          if (!active) return
+          active = false
+          activeRestrictions.delete(cleanup)
+          release()
+          if (behavior.informationCleanup === cleanup) behavior.informationCleanup = undefined
+        }
+        this.informationCleanup = cleanup
+        activeRestrictions.add(cleanup)
+      },
+      deactivateInformationRestriction() {
+        this.informationCleanup?.()
+      },
+      cleanup() {
+        this.deactivateInformationRestriction()
+      },
+    }
+    workerBehaviors.set(agent, behavior)
+    if (behavior.enabled) {
+      const trajectory = foldWorkerBehaviorTrajectory(agent, {
+        evaluationPatterns: config.evaluationPatterns,
+      })
+      if (trajectory !== null
+        && !trajectory.first_typed_workspace_edit_attempt.observed
+        && trajectory.pre_edit_information_attempts > config.preEditInformationGate.maxAttempts) {
+        behavior.activateInformationRestriction()
+      }
+    }
   }
 
   ctx.on('agent/session-start', ({ agent }) => {
@@ -1038,6 +1081,7 @@ export function apply(ctx, inputConfig) {
   ctx.on('agent/disposed', ({ agent }) => {
     routerStates.get(agent)?.cleanup()
     workerBudgets.delete(agent)
+    workerBehaviors.get(agent)?.cleanup?.()
     workerBehaviors.delete(agent)
   })
 

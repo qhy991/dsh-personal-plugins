@@ -2,6 +2,14 @@
 
 export const QUALIFIED_PROFILE_IDS = Object.freeze(['p000', 'p100'])
 
+export const PRE_EDIT_INFORMATION_TOOLS = Object.freeze([
+  'read',
+  'read_image',
+  'glob',
+  'grep',
+  'bash',
+])
+
 export const DEFAULT_WORKER_DENIED_TOOLS = Object.freeze([
   'modus_delegate',
   'subagent',
