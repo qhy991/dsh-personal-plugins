@@ -650,6 +650,89 @@ describe('Modus Router against real DSH Loader and services', () => {
     })
   })
 
+  it('enforces the qualified-profile information limit through the real native tool pipeline', async () => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    await mountAgentLoopTestDependencies(ctx)
+    await ctx.plugin(AgentLoop, { agents: [] })
+    await ctx.plugin(SubagentRuntime)
+    await ctx.plugin(ForkInProcess, { providerName: 'fork' })
+
+    const adapter = new MockAdapter([
+      toolCallResponse('route-behavior', 'modus_delegate', routeArgs()),
+      toolCallResponse('read-1', 'read', { file_path: 'src/a.ts' }),
+      toolCallResponse('read-2', 'read', { file_path: 'src/b.ts' }),
+      toolCallResponse('read-3', 'read', { file_path: 'src/c.ts' }),
+      toolCallResponse('read-4', 'read', { file_path: 'src/d.ts' }),
+      toolCallResponse('edit-1', 'edit', {
+        file_path: 'src/a.ts', old_string: 'a', new_string: 'b',
+      }),
+      textResponse('bounded edit complete'),
+    ])
+    ctx.llm.registerAdapter(['mock'], adapter)
+    let reads = 0
+    let edits = 0
+    ctx.tools.register(defineTool({
+      name: 'read',
+      description: 'Read one fixture path.',
+      parameters: { file_path: { type: 'string' } },
+      output: {
+        schema: { type: 'string' },
+        render: (_args, value) => [{ type: 'text', text: value }],
+      },
+      execute: () => { reads += 1; return Promise.resolve('fixture') },
+    }))
+    ctx.tools.register(defineTool({
+      name: 'edit',
+      description: 'Apply one fixture edit.',
+      parameters: {
+        file_path: { type: 'string' },
+        old_string: { type: 'string' },
+        new_string: { type: 'string' },
+      },
+      output: {
+        schema: { type: 'string' },
+        render: (_args, value) => [{ type: 'text', text: value }],
+      },
+      execute: () => { edits += 1; return Promise.resolve('edited') },
+    }))
+    await ctx.plugin(ModusRouter, {
+      basePersona: 'ordinary coding agent',
+      preEditInformationGate: { profiles: ['p000', 'p100'], maxAttempts: 3 },
+    })
+
+    let worker: any
+    ctx.on('agent/session-start', ({ agent }) => {
+      if (agent.session.header.origin === 'subagent') worker = agent
+    })
+    const parent = ctx.agentLoop.create(
+      SessionId('modus-real-behavior-parent'),
+      { provider: 'mock', model: 'mock' },
+      { cwd: '/workspace' },
+    )
+    parent.followup(createUserMessage({
+      content: [{ type: 'text', text: 'Implement the bounded change.' }],
+      source: { kind: 'user' },
+    }))
+    await parent.whenIdle()
+
+    expect(adapter.requests).toHaveLength(7)
+    expect(reads).toBe(3)
+    expect(edits).toBe(1)
+    const denied = worker.session.events.find((event: any) =>
+      event.type === 'tool/result'
+      && event.data.message?.source?.callId === CallId('read-4')) as any
+    expect(denied).toBeDefined()
+    expect(denied.data.message.content[0]).toMatchObject({ isError: true })
+    const routeResult = parent.session.events.find((event: any) =>
+      event.type === 'tool/result' && event.data.meta?.profile === 'p000') as any
+    expect(routeResult.data.meta.trajectory).toMatchObject({
+      pre_edit_information_attempts: 4,
+      first_typed_workspace_edit_attempt: { observed: true, path: 'src/a.ts' },
+      failed_tool_calls: [{ name: 'read', count: 1 }],
+    })
+  })
+
   it('charges an admitted compaction and blocks the ordinary Worker request after it crosses the cap', async () => {
     const ctx = new Context()
     contexts.push(ctx)

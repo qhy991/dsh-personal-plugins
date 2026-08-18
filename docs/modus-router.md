@@ -13,6 +13,7 @@ Modus 可以迁移到 DSH，而且不需要包装原来的 Pi、tmux、`bin/lab`
   → 新 DSH fork Worker（首次请求前固定 persona + profile digest）
   → Worker 输出回到父 session
   → 从父子 durable events 投影 token、编辑前调查与 edit/evaluate 轨迹
+  → 对 p000/p100：首次 typed edit 前执行可恢复的信息尝试门
   → 可选：在下一次模型请求前执行 Router + Worker 共享 token gate
 ```
 
@@ -33,6 +34,7 @@ Modus 可以迁移到 DSH，而且不需要包装原来的 Pi、tmux、`bin/lab`
 7. 父、子 session 是行为与 token 的权威记录；汇总只能从它们确定性派生。
 8. 行为 projector 只解析 durable event，不读取或执行 workspace。
 9. 配置预算时，只支持兼容性清单固定的 DSH 内置 in-process `fork`；远程 Worker 不能被宣称为已治理。
+10. 安装器为 `p000/p100` 启用首次编辑前的信息门：前三次 workspace read/search/inspection shell 可执行，第 4 次被拒绝并要求开始 bounded edit；`neutral` 不受该门影响。计数从 durable event 重折，HMR 无法绑定 Profile 时在请求前 fail-closed。
 
 非目标：
 
@@ -97,6 +99,8 @@ projector 将 native `tool/call` 与 Code Mode `tool/code-dispatch-start` 统一
 
 这里有四个必须保留的科学限定：任意 bash 中隐藏的文件修改不可观测；路径只做相对 `cwd` 的 lexical qualification，不做 realpath/symlink 证明；测试命令只表示验证意图，不表示测试通过；即使 tool result 为 non-error，也不能由 session log 单独证明文件真的发生了预期变化。因此 manipulation check 使用明确标成 attempt/intent 的行为量；实际修改、正确性与性能一律由独立 verifier 判定。
 
+安装器还把同一个 projector 用作 `p000/p100` 的 pre-execute 行为门。它不是新的可变计数器：每次 pending tool call 都从 Worker 的 `seedLength` 后 durable native/Code actions 重折，当前调用无论是否已写入 start event 都只计一次。前三次 workspace information attempt 允许通过；首次 typed `edit/write` 后门永久解除；第 4 次以及后续信息调用以 `MODUS_PRE_EDIT_INFORMATION_LIMIT` 拒绝。该机制只强制“停止继续调查并进入编辑或明确报告证据不足”，不证明编辑正确，也不限制编辑后的故障诊断。`neutral` 保持 standard 行为，因而仍可作为未施加 Modus profile 的对照。
+
 ## 实验边界
 
 默认 Router 没有 bash、read、grep 等主动工作区能力，但 standard preset 的 `agent-instructions` 仍可能向 Router 提供静态 workspace instructions。一般使用中这是预期行为；确认性实验必须保证这些说明不含 profile、hidden label 或历史 outcome，并在所有 treatment 间完全相同。需要绝对 workspace-blind 的 Router 时，应使用独立、冻结的 route-state provider，而不是让 Router 读取待测工作区。
@@ -149,8 +153,8 @@ usage 不完整不能当作零成本或做 complete-case 删除；它会使该 c
 预冻结的保守上界/整块基础设施处理规则进入分析。HTTP 402、provider 失联等独立基础设施
 故障不是 Profile 失败，但原始记录必须保留，且只有预先规定的整块替换可以重跑。
 
-当前插件已经覆盖 action 固定、父子 session、seed 去重、行为投影、无重发和本地 fork
-预算 gate；尚缺的是 profile-blind state/shadow runner、冻结 run coordinator、独立 verifier
+当前插件已经覆盖 action 固定、父子 session、seed 去重、行为投影、无重发、qualified-profile
+首次编辑前信息门和本地 fork 预算 gate；尚缺的是 profile-blind state/shadow runner、冻结 run coordinator、独立 verifier
 接入与 96-session 的真实 DeepSeek-V4-Flash 数据。因此当前状态仍是“实验装置通过”，不是
 “P1d 已完成”。单个 VLIW 六格矩阵只能作为之后的长程优化案例，不能替代这一步的跨任务
 Router 识别。
@@ -164,7 +168,7 @@ python3 scripts/check.py
 python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness
 ```
 
-最后一条命令使用真实 DSH 的 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 和内置 fork provider 做兼容性加载；测试包含“首个 Worker 请求受控、跨阈值后下一请求未到 adapter”。它默认同时要求 HEAD 与工作树匹配固定基线；`--allow-dirty` / `--allow-unpinned` 仅用于开发探测，不能作为固定兼容性证据。当前验证基线记录在 `presets/modus/compatibility.json`，升级 DSH 后应更新并重跑。覆盖安装会把不同的旧 preset 移到同级时间戳备份；完全相同的重装是 no-op。安装后需重启 DSH Web，并在新 task 中选择 **Modus Router**。
+最后一条命令使用真实 DSH 的 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 和内置 fork provider 做兼容性加载；测试包含“首个 Worker 请求受控、跨阈值后下一请求未到 adapter”，以及“p000 的第 4 次 pre-edit read 未进入 tool body、随后 typed edit 可执行”。它默认同时要求 HEAD 与工作树匹配固定基线；`--allow-dirty` / `--allow-unpinned` 仅用于开发探测，不能作为固定兼容性证据。当前验证基线记录在 `presets/modus/compatibility.json`，升级 DSH 后应更新并重跑。覆盖安装会把不同的旧 preset 移到同级时间戳备份；完全相同的重装是 no-op。安装后需重启 DSH Web，并在新 task 中选择 **Modus Router**。
 
 ## 下一迭代
 

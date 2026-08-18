@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import {
+  evaluatePreEditInformationGate,
   evaluateRouteTokenBudget,
   foldWorkerBehaviorTrajectory,
   foldTokenUsage,
@@ -22,6 +23,7 @@ const ADVANTAGES = ['token', 'performance', 'balanced']
 const DEFAULT_ROUTER_MAX_OUTPUT_TOKENS = 4096
 const DEFAULT_MAX_ROUTE_REMINDERS = 1
 const DEFAULT_WORKER_MAX_DEPTH = 1
+const DEFAULT_PRE_EDIT_INFORMATION_PROFILES = Object.freeze(['p000', 'p100'])
 const MAX_RATIONALE_CHARS = 1000
 const MAX_EVIDENCE_ITEMS = 6
 const MAX_EVIDENCE_CHARS = 500
@@ -351,6 +353,36 @@ export function resolveConfig(config = {}) {
       )
     }
   }
+  let preEditInformationGate
+  if (config.preEditInformationGate !== undefined) {
+    const value = exactKeys(
+      config.preEditInformationGate,
+      ['profiles', 'maxAttempts'],
+      'preEditInformationGate',
+    )
+    const profiles = stringList(value.profiles, 'preEditInformationGate.profiles')
+    if (profiles.length === 0) {
+      throw new Error('preEditInformationGate.profiles must not be empty')
+    }
+    const unsupported = profiles.filter(profile => !DEFAULT_PRE_EDIT_INFORMATION_PROFILES.includes(profile))
+    if (unsupported.length > 0) {
+      throw new Error(
+        `preEditInformationGate supports only qualified profiles: ${unsupported.join(', ')}`,
+      )
+    }
+    if (provider !== 'fork') {
+      throw new Error(
+        'preEditInformationGate is enforceable only with the pinned in-process fork provider',
+      )
+    }
+    preEditInformationGate = Object.freeze({
+      profiles: Object.freeze(profiles),
+      maxAttempts: nonNegativeInteger(
+        value.maxAttempts,
+        'preEditInformationGate.maxAttempts',
+      ),
+    })
+  }
   const evaluationPatterns = config.evaluationPatterns === undefined
     ? undefined
     : Object.freeze(stringList(config.evaluationPatterns, 'evaluationPatterns'))
@@ -390,6 +422,7 @@ export function resolveConfig(config = {}) {
       ? undefined
       : Object.freeze({ ...workerAgentOptions }),
     routeTokenBudget,
+    preEditInformationGate,
     evaluationPatterns,
   })
 }
@@ -494,6 +527,20 @@ function workerToolFilter(ctx, config, scope) {
     )
   }
   return Object.freeze({ deny: Object.freeze(deny) })
+}
+
+function profileFromWorkerDescriptor(agent, config) {
+  const descriptor = agent.session.events.findLast(event => event.type === 'subagent/descriptor')
+  if (descriptor === undefined) return undefined
+  const data = descriptor.data
+  if (data?.version !== 2 || data.mode !== 'one-shot' || data.provider !== config.provider) {
+    return null
+  }
+  for (const profile of PROFILE_IDS) {
+    const record = PROFILE_CATALOG.profiles[profile]
+    if (data.label === `Modus ${profile}@${record.sha256.slice(0, 12)}`) return profile
+  }
+  return null
 }
 
 function errorText(error) {
@@ -638,13 +685,48 @@ function enforceWorkerBudget(agent, governed, config, openStep = undefined) {
   )
 }
 
+function enforceWorkerBehaviorBound(governed) {
+  if (governed !== undefined && governed.bound !== true) {
+    throw new Error(
+      'MODUS_PROFILE_BEHAVIOR_UNBOUND: Worker profile could not be reconstructed from the durable descriptor',
+    )
+  }
+}
+
+function enforcePreEditInformationGate(agent, governed, config, exec) {
+  if (governed?.enabled !== true) return undefined
+  const decision = evaluatePreEditInformationGate(agent.session.events, {
+    minSeq: agent.session.header?.seedLength ?? 0,
+    cwd: agent.session.header?.cwd,
+    evaluationPatterns: config.evaluationPatterns,
+    maxAttempts: config.preEditInformationGate.maxAttempts,
+    pending: {
+      callId: exec.callId,
+      name: exec.name,
+      arguments: exec.arguments,
+    },
+  })
+  if (decision.next_tool_allowed) return undefined
+  return {
+    kind: 'deny',
+    reason:
+      `MODUS_PRE_EDIT_INFORMATION_LIMIT: ${governed.profile} used `
+      + `${decision.observed_attempts}/${decision.max_attempts} pre-edit information attempts; `
+      + 'apply the first bounded edit now, or report that the visible evidence is insufficient',
+  }
+}
+
 /** Build the one model-facing route-and-delegate capability. */
 export function createModusDelegateTool(
   ctx,
   config,
   routerStates,
   providerState = { available: true },
-  runtimeState = { workerBudgets: new WeakMap(), pendingBudgets: new Map() },
+  runtimeState = {
+    workerBudgets: new WeakMap(),
+    pendingBudgets: new Map(),
+    pendingProfiles: new Map(),
+  },
 ) {
   return {
     name: config.toolName,
@@ -742,6 +824,9 @@ export function createModusDelegateTool(
           ? workerToolFilter(ctx, config)
           : runtimeState.workerToolFilters.get(parent)
         const parentId = parent.session.header?.id ?? parent.id
+        if (config.preEditInformationGate !== undefined) {
+          runtimeState.pendingProfiles?.set(parentId, args.profile)
+        }
         if (config.routeTokenBudget !== undefined) {
           runtimeState.pendingBudgets.set(parentId, { turn, routerUsage })
         }
@@ -783,6 +868,9 @@ export function createModusDelegateTool(
         } finally {
           if (config.routeTokenBudget !== undefined) {
             runtimeState.pendingBudgets.delete(parentId)
+          }
+          if (config.preEditInformationGate !== undefined) {
+            runtimeState.pendingProfiles?.delete(parentId)
           }
         }
       }
@@ -841,9 +929,17 @@ export function apply(ctx, inputConfig) {
   const routerStates = new WeakMap()
   const routersBySessionId = new Map()
   const workerBudgets = new WeakMap()
+  const workerBehaviors = new WeakMap()
   const workerToolFilters = new WeakMap()
   const pendingBudgets = new Map()
-  const runtimeState = { workerBudgets, workerToolFilters, pendingBudgets }
+  const pendingProfiles = new Map()
+  const runtimeState = {
+    workerBudgets,
+    workerBehaviors,
+    workerToolFilters,
+    pendingBudgets,
+    pendingProfiles,
+  }
   const providerState = { available: false }
   const observeProvider = (provider) => {
     if (provider.name !== config.provider) return
@@ -918,14 +1014,37 @@ export function apply(ctx, inputConfig) {
     workerBudgets.set(agent, { parentId, turn, routerUsage })
   }
 
+  const bindWorkerBehavior = (agent) => {
+    if (config.preEditInformationGate === undefined
+      || agent.session.header.origin !== 'subagent') return
+    const parentId = agent.session.header.parentSession
+    const pendingProfile = pendingProfiles.get(parentId)
+    const descriptorProfile = pendingProfile === undefined
+      ? profileFromWorkerDescriptor(agent, config)
+      : pendingProfile
+    if (descriptorProfile === undefined || descriptorProfile === null) {
+      workerBehaviors.set(agent, { bound: false, enabled: false, profile: null })
+      return
+    }
+    workerBehaviors.set(agent, {
+      bound: true,
+      enabled: config.preEditInformationGate.profiles.includes(descriptorProfile),
+      profile: descriptorProfile,
+    })
+  }
+
   ctx.on('agent/session-start', ({ agent }) => {
-    if (agent.session.header.origin === 'subagent') bindWorkerBudget(agent)
+    if (agent.session.header.origin === 'subagent') {
+      bindWorkerBudget(agent)
+      bindWorkerBehavior(agent)
+    }
     else bindRouter(agent)
   })
 
   ctx.on('agent/disposed', ({ agent }) => {
     routerStates.get(agent)?.cleanup()
     workerBudgets.delete(agent)
+    workerBehaviors.delete(agent)
   })
 
   // This gate is prepended ahead of standard compaction. It prevents an
@@ -933,6 +1052,7 @@ export function apply(ctx, inputConfig) {
   // A compaction admitted below the cap may cross it; agent/request then blocks
   // the ordinary call in the same proposed step.
   ctx.on('agent/pre-step', async ({ agent }, next) => {
+    enforceWorkerBehaviorBound(workerBehaviors.get(agent))
     enforceWorkerBudget(agent, workerBudgets.get(agent), config)
     return next()
   }, { prepend: true })
@@ -942,6 +1062,7 @@ export function apply(ctx, inputConfig) {
       && Number.isSafeInteger(step) && step > 0
       ? { turn, step }
       : undefined
+    enforceWorkerBehaviorBound(workerBehaviors.get(agent))
     enforceWorkerBudget(agent, workerBudgets.get(agent), config, openStep)
     const request = await next()
     return routerStates.has(agent)
@@ -950,6 +1071,15 @@ export function apply(ctx, inputConfig) {
   })
 
   ctx.on('tools/pre-execute', async (exec, next) => {
+    if (exec.agent !== undefined) {
+      const behaviorDecision = enforcePreEditInformationGate(
+        exec.agent,
+        workerBehaviors.get(exec.agent),
+        config,
+        exec,
+      )
+      if (behaviorDecision !== undefined) return behaviorDecision
+    }
     const state = exec.agent === undefined ? undefined : routerStates.get(exec.agent)
     if (state === undefined || !config.routerProbeTools.includes(exec.name)) return next()
     const turn = turnNumber(exec.agent)
@@ -996,6 +1126,9 @@ export function apply(ctx, inputConfig) {
   }
   for (const agent of presentAgents) {
     if (agent.session.header.agentPreset === config.presetId
-      && agent.session.header.origin === 'subagent') bindWorkerBudget(agent)
+      && agent.session.header.origin === 'subagent') {
+      bindWorkerBudget(agent)
+      bindWorkerBehavior(agent)
+    }
   }
 }
