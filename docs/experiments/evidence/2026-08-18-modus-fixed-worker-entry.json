@@ -1,0 +1,76 @@
+{
+  "schema": "modus-fixed-worker-entry-development-evidence-v1",
+  "date": "2026-08-18",
+  "scientific_evidence": false,
+  "outcome_evidence": false,
+  "claim_boundary": "Installed treatment-injection and runtime mechanism evidence only; model output was scripted.",
+  "plugin": {
+    "repository": "qhy991/dsh-personal-plugins",
+    "branch": "codex/modus-router-plugin-pr",
+    "commit": "51a6a2a03df4bbbc03c2d2f008a745c2d26f7661"
+  },
+  "dsh": {
+    "repository": "qhy991/deepseek-harness",
+    "commit": "71705c7ff0d47cc7823b240e4d3f2be1dd7d52bb"
+  },
+  "verification": {
+    "node_plugin_tests_passed": 34,
+    "repository_python_tests_passed": 32,
+    "real_dsh_compatibility_tests_passed": 17,
+    "metadata_portability_check": "passed",
+    "diff_check": "passed"
+  },
+  "installed_policy": {
+    "new_token_threshold": 200000,
+    "cache_read_token_threshold": 2000000,
+    "fixed_root_sessions_per_cell": 1,
+    "router_sessions_per_cell": 0,
+    "descendant_sessions_per_cell": 0,
+    "neutral_pre_edit_gate": false,
+    "qualified_max_pre_edit_information_attempts": 3,
+    "delegation_tools_denied_for_all_actions": true
+  },
+  "web_api_smoke": {
+    "status": "passed",
+    "provider": "hermetic-mock",
+    "credentials_read": false,
+    "prompt_identical": true,
+    "raw_summary_sha256": "79e74f917413a81371a549947d1d947d55ba9942e519155c67d92a46f38cc9d1",
+    "actions": {
+      "neutral": {
+        "agent_preset": "modus-fixed-neutral",
+        "terminal": "completed",
+        "request_count": 1,
+        "usage": { "input_tokens": 3, "output_tokens": 8, "total_tokens": 11 },
+        "p000_occurrences": 0,
+        "p100_occurrences": 0,
+        "system_sha256": "c31d926279bafae9a10ed5661222ea363f5cc9726bac5cc11370433b88b06da5",
+        "export_sha256": "6223b2d65771c64af761be3f758effd9447faa852bba2df982f9f4e52d69e416",
+        "export_members": ["session.jsonl"]
+      },
+      "p000": {
+        "agent_preset": "modus-fixed-p000",
+        "terminal": "completed",
+        "request_count": 1,
+        "usage": { "input_tokens": 3, "output_tokens": 8, "total_tokens": 11 },
+        "p000_occurrences": 1,
+        "p100_occurrences": 0,
+        "system_sha256": "d8ea2a250595d0b1b3b84789f63ab71138b9838ce50df694d5a7d62650a05743",
+        "export_sha256": "df52da8c6075c978f254302798575550ecfcaa74f8e9b5127253e0fcbb40386c",
+        "export_members": ["session.jsonl"]
+      },
+      "p100": {
+        "agent_preset": "modus-fixed-p100",
+        "terminal": "completed",
+        "request_count": 1,
+        "usage": { "input_tokens": 3, "output_tokens": 8, "total_tokens": 11 },
+        "p000_occurrences": 0,
+        "p100_occurrences": 1,
+        "system_sha256": "02c24042c8af427757db5d7f746be2fb8d32b8d19ec7739b360046283ca978df",
+        "export_sha256": "90628851ed9c465b00d94362182b36d463ff536bfe504ad5b3491ed7fde4334a",
+        "export_members": ["session.jsonl"]
+      }
+    }
+  },
+  "next_action": "Freeze and run one real-model 3-action by 3-repeat development matrix with independent verification and no selective retry."
+}
