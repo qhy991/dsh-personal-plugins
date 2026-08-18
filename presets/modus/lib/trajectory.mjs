@@ -440,6 +440,18 @@ function countByName(actions) {
     .map(([name, count]) => ({ name, count }))
 }
 
+function isWorkspaceInformationAttempt(name, args, cwd) {
+  if (CONCRETE_READ_TOOLS.has(name)) {
+    return workspacePath(args?.file_path, cwd) !== undefined
+  }
+  if (SEARCH_TOOLS.has(name)) {
+    return workspacePath(args?.path ?? '.', cwd) !== undefined
+  }
+  if (name !== 'bash') return false
+  const command = typeof args?.command === 'string' ? args.command : ''
+  return INSPECTION_COMMAND.test(command)
+}
+
 /**
  * Project transport-neutral behavior evidence from one durable session log.
  * This function performs lexical parsing only: it never reads, imports, stats,
@@ -582,6 +594,56 @@ export function foldWorkerBehaviorTrajectory(agent, options = {}) {
     cwd: agent.session.header?.cwd,
     ...options,
   })
+}
+
+/**
+ * Decide whether one pending information call may run before the first typed
+ * workspace edit. Durable actions are the authority; the pending call is
+ * counted exactly once whether or not its transport start was already logged.
+ */
+export function evaluatePreEditInformationGate(events, options = {}) {
+  if (!Array.isArray(events)) throw new Error('events must be an array')
+  const minSeq = options.minSeq ?? 0
+  if (!Number.isSafeInteger(minSeq) || minSeq < 0) {
+    throw new Error('minSeq must be a non-negative safe integer')
+  }
+  const maxAttempts = options.maxAttempts
+  if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 0) {
+    throw new Error('maxAttempts must be a non-negative safe integer')
+  }
+  const pending = plainObject(options.pending)
+  if (pending === undefined || typeof pending.name !== 'string') {
+    throw new Error('pending must contain a tool name')
+  }
+  const pendingArgs = plainObject(pending.arguments) ?? {}
+  const trajectory = foldBehaviorTrajectory(events, {
+    minSeq,
+    cwd: options.cwd,
+    evaluationPatterns: options.evaluationPatterns,
+  })
+  const normalized = normalizeActions(events, minSeq)
+  const pendingId = pending.callId === undefined ? '' : String(pending.callId)
+  const alreadyRecorded = pendingId.length > 0
+    && normalized.actions.some(action => action.id === pendingId)
+  const pendingInformation = isWorkspaceInformationAttempt(
+    pending.name,
+    pendingArgs,
+    options.cwd,
+  )
+  const editObserved = trajectory.first_typed_workspace_edit_attempt.observed
+  const attempts = trajectory.pre_edit_information_attempts
+    + (!editObserved && pendingInformation && !alreadyRecorded ? 1 : 0)
+  const limitReached = !editObserved && pendingInformation && attempts > maxAttempts
+  return {
+    schema: 'dsh-modus-pre-edit-information-gate-v1',
+    max_attempts: maxAttempts,
+    observed_attempts: attempts,
+    first_edit_observed: editObserved,
+    pending_is_information: pendingInformation,
+    pending_already_recorded: alreadyRecorded,
+    next_tool_allowed: !limitReached,
+    state: limitReached ? 'limit-reached' : 'within',
+  }
 }
 
 /** Evaluate a configured Router+Worker budget from already-folded usage. */

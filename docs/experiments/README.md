@@ -23,3 +23,4 @@
 | [10](2026-08-17-vliw-from-scratch-10.md) | VLIW Take-Home DSH dispatch | 合法 handoff 能否以当前 Session baseline 安全进入 DSH Workflow | handoff 全链首次通过；pre-Session baseline 与 DSH schema drift 复现；因果 witness、兼容门禁与可视化实现 |
 | [11](2026-08-17-vliw-from-scratch-11.md) | VLIW Take-Home DSH child ownership | 一次合法 DSH Workflow 调用能否把所有候选限制在 Session 内 | baseline、handoff、兼容与单次 dispatch 全部通过；Generate 越权修改规范文件；host 所有权门禁与红色徽标实现 |
 | [12](2026-08-17-vliw-from-scratch-12.md) | VLIW Take-Home fresh Session isolation | “从头开始”是否真的禁止读取旧 Session | baseline 前历史读取被停止；`--fresh-session` 物理 preflight 与红色隔离徽标实现 |
+| [Modus gate](2026-08-18-modus-pre-edit-information-gate.md) | 同起点 VLIW checkpoint 的两种 prompt treatment | bounded profile 文本能否可靠触发首次编辑 | 硬预算降低约 92% 成本但 prompt-only 门未被遵守；将第 4 次 pre-edit information attempt 改为 DSH durable runtime gate |

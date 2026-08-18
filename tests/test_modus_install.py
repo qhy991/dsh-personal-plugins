@@ -70,6 +70,12 @@ class ModusInstallTests(unittest.TestCase):
         self.assertIn("presetId: modus", rendered)
         self.assertIn("routerProbeTools: []", rendered)
         self.assertIn("maxProbeCalls: 0", rendered)
+        self.assertIn(
+            "preEditInformationGate:\n"
+            "      profiles: [p000, p100]\n"
+            "      maxAttempts: 3",
+            rendered,
+        )
         self.assertNotIn("routeTokenBudget:", rendered)
         self.assertIn("- id: agent-instructions", rendered)
         self.assertIn("- id: tool-subagent-fork", rendered)

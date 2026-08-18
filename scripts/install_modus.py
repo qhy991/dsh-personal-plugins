@@ -41,6 +41,9 @@ MODUS_PLUGIN_ENTRY = f"""
     maxProbeCalls: 0
     maxRouteReminders: 1
     workerMaxDepth: 1
+    preEditInformationGate:
+      profiles: [p000, p100]
+      maxAttempts: 3
 """.strip()
 
 

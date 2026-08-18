@@ -12,6 +12,7 @@ import {
   resolveConfig,
 } from '../presets/modus/plugins/modus-router.mjs'
 import {
+  evaluatePreEditInformationGate,
   evaluateRouteTokenBudget,
   foldBehaviorTrajectory,
   foldTokenUsage,
@@ -150,6 +151,14 @@ test('configuration is bounded and fails closed on contradictory probe policy', 
   assert.ok(config.workerDeniedTools.includes('modus_delegate'))
   assert.ok(config.workerDeniedTools.includes('subagent_fork'))
   assert.equal(config.presetId, 'modus')
+  assert.equal(config.preEditInformationGate, undefined)
+
+  const behaviorGate = resolveConfig({
+    basePersona: 'x',
+    preEditInformationGate: { profiles: ['p000', 'p100'], maxAttempts: 3 },
+  })
+  assert.deepEqual(behaviorGate.preEditInformationGate.profiles, ['p000', 'p100'])
+  assert.equal(behaviorGate.preEditInformationGate.maxAttempts, 3)
 
   assert.throws(() => resolveConfig({}), /basePersona/)
   assert.throws(
@@ -165,6 +174,21 @@ test('configuration is bounded and fails closed on contradictory probe policy', 
       basePersona: 'x',
       provider: 'remote',
       routeTokenBudget: { maxNewTokens: 1, maxCacheReadTokens: 1 },
+    }),
+    /in-process fork/,
+  )
+  assert.throws(
+    () => resolveConfig({
+      basePersona: 'x',
+      preEditInformationGate: { profiles: ['neutral'], maxAttempts: 3 },
+    }),
+    /qualified profiles/,
+  )
+  assert.throws(
+    () => resolveConfig({
+      basePersona: 'x',
+      provider: 'remote',
+      preEditInformationGate: { profiles: ['p000'], maxAttempts: 3 },
     }),
     /in-process fork/,
   )
@@ -752,6 +776,132 @@ test('reload reconstructs a live Worker budget from parent and fork-suffix logs'
   assert.equal(calls, 0)
 })
 
+test('reload reconstructs the qualified-profile pre-edit information gate', async () => {
+  const handlers = new Map()
+  const parent = {
+    id: 'behavior-root',
+    session: {
+      header: { id: 'behavior-root', agentPreset: 'modus' },
+      events: taskEvents(1),
+    },
+    ctx: { tools: { restrict() { return () => {} } } },
+  }
+  const worker = {
+    id: 'behavior-worker',
+    session: {
+      header: {
+        id: 'behavior-worker',
+        agentPreset: 'modus',
+        origin: 'subagent',
+        parentSession: 'behavior-root',
+        cwd: '/workspace',
+      },
+      events: [
+        {
+          seq: 0,
+          type: 'subagent/descriptor',
+          data: {
+            version: 2,
+            mode: 'one-shot',
+            provider: 'fork',
+            label: `Modus p000@${PROFILE_CATALOG.profiles.p000.sha256.slice(0, 12)}`,
+          },
+        },
+        nativeCall(1, 'read-a', 'read', { file_path: 'src/a.ts' }),
+        nativeResult(2, 'read-a'),
+        nativeCall(3, 'read-b', 'grep', { pattern: 'x', path: 'src' }),
+        nativeResult(4, 'read-b'),
+        nativeCall(5, 'read-c', 'bash', { command: 'rg y src' }),
+        nativeResult(6, 'read-c'),
+      ],
+    },
+  }
+  const provider = {
+    name: 'fork',
+    capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true },
+  }
+  const ctx = {
+    tools: { register() {}, schemas() { return visibleWorkerToolSchemas() } },
+    subagents: { getProvider() { return provider } },
+    agents: { list() { return [worker, parent] } },
+    logger: { info() {} },
+    effect() {},
+    on(event, handler) { handlers.set(event, handler) },
+  }
+  apply(ctx, {
+    basePersona: 'ordinary coder',
+    preEditInformationGate: { profiles: ['p000', 'p100'], maxAttempts: 3 },
+  })
+  const signal = new AbortController().signal
+  const denied = await handlers.get('tools/pre-execute')({
+    agent: worker,
+    callId: 'read-d',
+    name: 'read',
+    arguments: { file_path: 'src/d.ts' },
+    signal,
+  }, async () => ({ kind: 'allow' }))
+  assert.equal(denied.kind, 'deny')
+  assert.match(denied.reason, /MODUS_PRE_EDIT_INFORMATION_LIMIT/)
+
+  worker.session.events.push(
+    nativeCall(7, 'edit-a', 'edit', { file_path: 'src/a.ts' }),
+    nativeResult(8, 'edit-a'),
+  )
+  const allowed = await handlers.get('tools/pre-execute')({
+    agent: worker,
+    callId: 'read-after-edit',
+    name: 'read',
+    arguments: { file_path: 'src/d.ts' },
+    signal,
+  }, async () => ({ kind: 'allow' }))
+  assert.deepEqual(allowed, { kind: 'allow' })
+})
+
+test('qualified behavior enforcement fails closed when HMR cannot bind a Worker descriptor', async () => {
+  const handlers = new Map()
+  const parent = {
+    id: 'unbound-root',
+    session: {
+      header: { id: 'unbound-root', agentPreset: 'modus' },
+      events: taskEvents(1),
+    },
+    ctx: { tools: { restrict() { return () => {} } } },
+  }
+  const worker = {
+    id: 'unbound-worker',
+    session: {
+      header: {
+        id: 'unbound-worker', agentPreset: 'modus', origin: 'subagent',
+        parentSession: 'unbound-root', cwd: '/workspace',
+      },
+      events: [],
+    },
+  }
+  const provider = {
+    name: 'fork',
+    capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true },
+  }
+  const ctx = {
+    tools: { register() {}, schemas() { return visibleWorkerToolSchemas() } },
+    subagents: { getProvider() { return provider } },
+    agents: { list() { return [parent, worker] } },
+    logger: { info() {} },
+    effect() {},
+    on(event, handler) { handlers.set(event, handler) },
+  }
+  apply(ctx, {
+    basePersona: 'ordinary coder',
+    preEditInformationGate: { profiles: ['p000', 'p100'], maxAttempts: 3 },
+  })
+  await assert.rejects(
+    () => handlers.get('agent/request')(
+      { agent: worker, turn: 1, step: 1 },
+      async () => ({ provider: 'test', model: 'test' }),
+    ),
+    /MODUS_PROFILE_BEHAVIOR_UNBOUND/,
+  )
+})
+
 test('replay consumes every native and Code Mode route start regardless of final outcome', () => {
   const config = resolveConfig({
     basePersona: 'ordinary coder',
@@ -1209,6 +1359,55 @@ test('behavior trajectory keeps a strict pre-edit boundary and old edit/evaluate
   assert.equal(value.post_edit_evaluation_command_intents, 2)
   assert.equal(value.attempted_edit_evaluate_cycles, 2)
   assert.equal(value.attempted_evaluation_to_edit_switches, 1)
+})
+
+test('pre-edit information gate counts a pending call once and lifts after typed edit', () => {
+  const threeReads = [
+    nativeCall(0, 'read-a', 'read', { file_path: 'src/a.ts' }),
+    nativeResult(1, 'read-a'),
+    nativeCall(2, 'read-b', 'grep', { pattern: 'x', path: 'src' }),
+    nativeResult(3, 'read-b'),
+    nativeCall(4, 'read-c', 'bash', { command: 'rg y src' }),
+    nativeResult(5, 'read-c'),
+  ]
+  const pending = {
+    callId: 'read-d',
+    name: 'read',
+    arguments: { file_path: 'src/d.ts' },
+  }
+  const denied = evaluatePreEditInformationGate(threeReads, {
+    cwd: '/workspace',
+    maxAttempts: 3,
+    pending,
+  })
+  assert.equal(denied.observed_attempts, 4)
+  assert.equal(denied.pending_already_recorded, false)
+  assert.equal(denied.next_tool_allowed, false)
+
+  const withPendingStart = [...threeReads, nativeCall(6, 'read-d', 'read', {
+    file_path: 'src/d.ts',
+  })]
+  const recorded = evaluatePreEditInformationGate(withPendingStart, {
+    cwd: '/workspace',
+    maxAttempts: 3,
+    pending,
+  })
+  assert.equal(recorded.observed_attempts, 4)
+  assert.equal(recorded.pending_already_recorded, true)
+  assert.equal(recorded.next_tool_allowed, false)
+
+  const afterEdit = [
+    ...threeReads,
+    nativeCall(6, 'edit-a', 'edit', { file_path: 'src/a.ts' }),
+    nativeResult(7, 'edit-a'),
+  ]
+  const lifted = evaluatePreEditInformationGate(afterEdit, {
+    cwd: '/workspace',
+    maxAttempts: 3,
+    pending,
+  })
+  assert.equal(lifted.first_edit_observed, true)
+  assert.equal(lifted.next_tool_allowed, true)
 })
 
 test('Code Mode projects inner actions once and inherits outer turn coordinates', () => {
