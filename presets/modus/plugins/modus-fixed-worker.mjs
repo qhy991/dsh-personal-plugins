@@ -128,8 +128,8 @@ function enforceTokenBudget(agent, config, openStep = undefined) {
   )
   if (decision.next_request_allowed) return
   const code = decision.state === 'usage-incomplete'
-    ? 'MODUS_FIXED_TOKEN_USAGE_INCOMPLETE'
-    : 'MODUS_FIXED_TOKEN_BUDGET_EXHAUSTED'
+    ? 'MODUS_TOKEN_USAGE_INCOMPLETE'
+    : 'MODUS_TOKEN_BUDGET_EXHAUSTED'
   throw new Error(
     `${code}: ${decision.observed.new_tokens}/${decision.limits.new_tokens} new tokens; `
     + `${decision.observed.cache_read_tokens}/${decision.limits.cache_read_tokens} cache-read tokens`,
