@@ -8,6 +8,7 @@ import {
 } from '../lib/trajectory.mjs'
 import {
   DEFAULT_WORKER_DENIED_TOOLS,
+  PRE_EDIT_INFORMATION_TOOLS,
   QUALIFIED_PROFILE_IDS,
 } from '../lib/worker-policy.mjs'
 
@@ -136,7 +137,7 @@ function enforceTokenBudget(agent, config, openStep = undefined) {
   )
 }
 
-function preEditDecision(agent, config, exec) {
+function preEditDecision(agent, state, config, exec) {
   if (config.maxPreEditInformationAttempts === undefined) return undefined
   const decision = evaluatePreEditInformationGate(agent.session.events, {
     cwd: agent.session.header?.cwd,
@@ -148,7 +149,11 @@ function preEditDecision(agent, config, exec) {
       arguments: exec.arguments,
     },
   })
+  if (decision.first_edit_observed || exec.name === 'edit' || exec.name === 'write') {
+    state.deactivateInformationRestriction()
+  }
   if (decision.next_tool_allowed) return undefined
+  state.activateInformationRestriction()
   return {
     kind: 'deny',
     reason:
@@ -172,19 +177,53 @@ export function apply(ctx, inputConfig) {
     fixedWorkers.get(agent)?.cleanup()
     const known = new Set(ctx.tools.schemas(agent).map(tool => tool.name))
     const deny = config.deniedTools.filter(tool => known.has(tool))
+    const informationTools = PRE_EDIT_INFORMATION_TOOLS.filter(tool => known.has(tool))
     const lift = agent.ctx.tools.restrict({ deny })
     let live = true
-    const state = { cleanup: undefined }
+    const state = {
+      cleanup: undefined,
+      informationCleanup: undefined,
+      activateInformationRestriction() {
+        if (this.informationCleanup !== undefined || informationTools.length === 0) return
+        const release = agent.ctx.tools.restrict({ deny: informationTools })
+        let active = true
+        const cleanup = () => {
+          if (!active) return
+          active = false
+          activeRestrictions.delete(cleanup)
+          release()
+          if (state.informationCleanup === cleanup) state.informationCleanup = undefined
+        }
+        this.informationCleanup = cleanup
+        activeRestrictions.add(cleanup)
+      },
+      deactivateInformationRestriction() {
+        this.informationCleanup?.()
+      },
+    }
     const cleanup = () => {
       if (!live) return
       live = false
       activeRestrictions.delete(cleanup)
+      state.deactivateInformationRestriction()
       lift()
       if (fixedWorkers.get(agent) === state) fixedWorkers.delete(agent)
     }
     state.cleanup = cleanup
     fixedWorkers.set(agent, state)
     activeRestrictions.add(cleanup)
+    if (config.maxPreEditInformationAttempts !== undefined) {
+      const trajectory = evaluatePreEditInformationGate(agent.session.events, {
+        cwd: agent.session.header?.cwd,
+        evaluationPatterns: config.evaluationPatterns,
+        maxAttempts: config.maxPreEditInformationAttempts,
+        pending: { callId: '__modus_hmr__', name: '__modus_hmr__', arguments: {} },
+      })
+      if (!trajectory.first_edit_observed
+        && trajectory.observed_attempts > trajectory.max_attempts) {
+        state.activateInformationRestriction()
+      }
+    }
   }
 
   ctx.on('agent/session-start', ({ agent }) => bind(agent))
@@ -205,7 +244,7 @@ export function apply(ctx, inputConfig) {
   })
   ctx.on('tools/pre-execute', async (exec, next) => {
     if (exec.agent === undefined || !fixedWorkers.has(exec.agent)) return next()
-    const decision = preEditDecision(exec.agent, config, exec)
+    const decision = preEditDecision(exec.agent, fixedWorkers.get(exec.agent), config, exec)
     return decision ?? next()
   })
 

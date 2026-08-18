@@ -778,6 +778,8 @@ test('reload reconstructs a live Worker budget from parent and fork-suffix logs'
 
 test('reload reconstructs the qualified-profile pre-edit information gate', async () => {
   const handlers = new Map()
+  const workerRestrictions = []
+  let workerLifts = 0
   const parent = {
     id: 'behavior-root',
     session: {
@@ -815,13 +817,26 @@ test('reload reconstructs the qualified-profile pre-edit information gate', asyn
         nativeResult(6, 'read-c'),
       ],
     },
+    ctx: {
+      tools: {
+        restrict(value) {
+          workerRestrictions.push(value)
+          return () => { workerLifts += 1 }
+        },
+      },
+    },
   }
   const provider = {
     name: 'fork',
     capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true },
   }
   const ctx = {
-    tools: { register() {}, schemas() { return visibleWorkerToolSchemas() } },
+    tools: {
+      register() {},
+      schemas() {
+        return [...visibleWorkerToolSchemas(), { name: 'read' }, { name: 'edit' }]
+      },
+    },
     subagents: { getProvider() { return provider } },
     agents: { list() { return [worker, parent] } },
     logger: { info() {} },
@@ -842,6 +857,7 @@ test('reload reconstructs the qualified-profile pre-edit information gate', asyn
   }, async () => ({ kind: 'allow' }))
   assert.equal(denied.kind, 'deny')
   assert.match(denied.reason, /MODUS_PRE_EDIT_INFORMATION_LIMIT/)
+  assert.deepEqual(workerRestrictions, [{ deny: ['read'] }])
 
   worker.session.events.push(
     nativeCall(7, 'edit-a', 'edit', { file_path: 'src/a.ts' }),
@@ -855,6 +871,7 @@ test('reload reconstructs the qualified-profile pre-edit information gate', asyn
     signal,
   }, async () => ({ kind: 'allow' }))
   assert.deepEqual(allowed, { kind: 'allow' })
+  assert.equal(workerLifts, 1)
 })
 
 test('qualified behavior enforcement fails closed when HMR cannot bind a Worker descriptor', async () => {

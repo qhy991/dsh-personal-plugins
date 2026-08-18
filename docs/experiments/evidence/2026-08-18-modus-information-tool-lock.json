@@ -1,0 +1,34 @@
+{
+  "schema": "modus-information-tool-lock-development-evidence-v1",
+  "date": "2026-08-18",
+  "scientific_evidence": false,
+  "outcome_evidence": false,
+  "source_pilot": {
+    "repository": "qhy991/Modus",
+    "commit": "75c7b96",
+    "cells": 9,
+    "correct_cells": 9,
+    "p000_gate_denials": 6,
+    "p100_gate_denials": 19,
+    "largest_single_cell_gate_denials": 16,
+    "largest_single_cell_total_tokens": 198211
+  },
+  "mechanism": {
+    "profiles": ["p000", "p100"],
+    "neutral_untreated": true,
+    "allowed_executed_pre_edit_information_calls": 3,
+    "hidden_after_first_limit": ["read", "read_image", "glob", "grep", "bash"],
+    "kept_visible": ["edit", "write"],
+    "typed_edit_restores_information_tools": true,
+    "hmr_reconstructs_lock": true,
+    "agent_disposal_releases_lock": true
+  },
+  "verification": {
+    "node_plugin_tests_passed": 35,
+    "repository_python_tests_passed": 32,
+    "real_dsh_compatibility_tests_passed": 17,
+    "fixed_real_tool_runtime_schema_transition": "passed",
+    "fixed_hmr_lock_and_release": "passed"
+  },
+  "claim_boundary": "Mechanism regression evidence only. No real-model cell has yet compared deny-only versus temporary schema hiding."
+}

@@ -105,7 +105,7 @@ projector 将 native `tool/call` 与 Code Mode `tool/code-dispatch-start` 统一
 
 这里有四个必须保留的科学限定：任意 bash 中隐藏的文件修改不可观测；路径只做相对 `cwd` 的 lexical qualification，不做 realpath/symlink 证明；测试命令只表示验证意图，不表示测试通过；即使 tool result 为 non-error，也不能由 session log 单独证明文件真的发生了预期变化。因此 manipulation check 使用明确标成 attempt/intent 的行为量；实际修改、正确性与性能一律由独立 verifier 判定。
 
-安装器还把同一个 projector 用作 `p000/p100` 的 pre-execute 行为门。它不是新的可变计数器：每次 pending tool call 都从 Worker 的 `seedLength` 后 durable native/Code actions 重折，当前调用无论是否已写入 start event 都只计一次。前三次 workspace information attempt 允许通过；首次 typed `edit/write` 后门永久解除；第 4 次以及后续信息调用以 `MODUS_PRE_EDIT_INFORMATION_LIMIT` 拒绝。该机制只强制“停止继续调查并进入编辑或明确报告证据不足”，不证明编辑正确，也不限制编辑后的故障诊断。`neutral` 保持 standard 行为，因而仍可作为未施加 Modus profile 的对照。
+安装器还把同一个 projector 用作 `p000/p100` 的 pre-execute 行为门。它不是新的可变计数器：每次 pending tool call 都从 Worker 的 `seedLength` 后 durable native/Code actions 重折，当前调用无论是否已写入 start event 都只计一次。前三次 workspace information attempt 允许通过；第 4 次调用以 `MODUS_PRE_EDIT_INFORMATION_LIMIT` 拒绝，并为下一次模型请求临时隐藏 `read/read_image/glob/grep/bash`，保留 typed `edit/write`；首次 typed edit 后立即恢复信息与验证工具。HMR/reload 会从 durable trajectory 重建隐藏状态，不能通过重载逃逸。并行同一响应中已经提出的多余调用仍各自形成 denied result，但后续模型请求不再看到这些工具。该机制只强制“停止继续调查并进入编辑或明确报告证据不足”，不证明编辑正确，也不限制编辑后的故障诊断。`neutral` 保持 standard 行为，因而仍可作为未施加 Modus profile 的对照。
 
 ## 实验边界
 

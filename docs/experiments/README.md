@@ -25,3 +25,4 @@
 | [12](2026-08-17-vliw-from-scratch-12.md) | VLIW Take-Home fresh Session isolation | “从头开始”是否真的禁止读取旧 Session | baseline 前历史读取被停止；`--fresh-session` 物理 preflight 与红色隔离徽标实现 |
 | [Modus gate](2026-08-18-modus-pre-edit-information-gate.md) | 同起点 VLIW checkpoint 的两种 prompt treatment | bounded profile 文本能否可靠触发首次编辑 | 硬预算降低约 92% 成本但 prompt-only 门未被遵守；将第 4 次 pre-edit information attempt 改为 DSH durable runtime gate |
 | [Modus fixed Worker](2026-08-18-modus-fixed-worker-entry.md) | neutral/p000/p100 matched fixed action | 不含 Router 的公平固定臂能否经 DSH Web/API 运行并证明 Profile 注入 | 三 preset 安装、工具/预算门、system occurrence、单根 session 与导出全部通过；scripted smoke 不构成 outcome evidence |
+| [Modus tool lock](2026-08-18-modus-information-tool-lock.md) | 九格 fixed pilot 后的行为门迭代 | deny-only 是否仍允许高成本重复调查 | p100 出现单格16次拒绝/198K token；首次拒绝后临时隐藏信息工具、typed edit 后恢复，native/HMR 合同通过 |

@@ -22,6 +22,7 @@
     "in-process-fork-first-request-governor",
     "router-worker-shared-token-budget",
     "qualified-profile-pre-edit-information-gate",
-    "matched-fixed-worker-presets"
+    "matched-fixed-worker-presets",
+    "qualified-profile-information-tool-lock"
   ]
 }
