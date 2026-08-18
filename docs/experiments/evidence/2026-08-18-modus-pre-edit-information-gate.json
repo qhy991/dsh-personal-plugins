@@ -1,0 +1,90 @@
+{
+  "schema": "modus-pre-edit-information-gate-development-evidence-v1",
+  "date": "2026-08-18",
+  "scientific_evidence": false,
+  "outcome_evidence": false,
+  "claim_boundary": "Development mechanism evidence only; no held-out Profile or Router comparison.",
+  "kernelowl_carrier": {
+    "commit": "ddd79548176b62aa7bac55b8a6d4b3e0525a9483",
+    "targeted_tests_passed": 35,
+    "seed_kernel_sha256": "03c8b9196fcf4cb8557f72f3df9bc0cf71b29825eab17bdb566fcf0bb5c9ed01",
+    "seed_cycles": 16978,
+    "seed_correct_seeds": 8,
+    "treatments": [
+      {
+        "id": "broad-checkpoint-continuation",
+        "model_calls": 34,
+        "agent_steps": 34,
+        "uncached_input_tokens": 226725,
+        "cache_read_tokens": 742656,
+        "output_tokens": 182693,
+        "total_tokens": 1152074,
+        "cost_cny": 0.606964,
+        "executed_edits": 0,
+        "final_cycles": 16978,
+        "original_workspace_custody": false,
+        "local_summary_sha256": "d808fd0e691cb7055a180f372cdf46baf2c516704666888be1e479dff543fc7c"
+      },
+      {
+        "id": "prompt-only-bounded-patcher",
+        "model_calls": 9,
+        "agent_steps": 11,
+        "uncached_input_tokens": 31280,
+        "cache_read_tokens": 54784,
+        "output_tokens": 7521,
+        "total_tokens": 93585,
+        "cost_cny": 0.047418,
+        "executed_edits": 0,
+        "pre_edit_information_attempts": 10,
+        "prompt_limit": 2,
+        "prompt_limit_obeyed": false,
+        "final_cycles": 16978,
+        "original_workspace_custody": true,
+        "local_summary_sha256": "071b9b9a81a886d4056145f2d66204fd08110f747bcb1a37f8c55f66770653d5"
+      }
+    ],
+    "total_token_reduction_fraction": 0.918768,
+    "cost_reduction_fraction": 0.921877,
+    "quality_improvement": false
+  },
+  "dsh_modus_plugin": {
+    "repository": "qhy991/dsh-personal-plugins",
+    "branch": "codex/modus-router-plugin-pr",
+    "implementation_commit": "9ef8ebec2fddafaec53e3d588f79bc0dac622d25",
+    "dsh_tested_commit": "71705c7ff0d47cc7823b240e4d3f2be1dd7d52bb",
+    "policy": {
+      "profiles": ["p000", "p100"],
+      "max_pre_edit_information_attempts": 3,
+      "neutral_untreated": true,
+      "fourth_attempt_denied": true,
+      "typed_edit_lifts_gate": true,
+      "durable_native_and_code_fold": true,
+      "hmr_profile_binding_fail_closed": true
+    },
+    "verification": {
+      "node_plugin_tests_passed": 31,
+      "repository_python_tests_passed": 29,
+      "real_dsh_compatibility_tests_passed": 16,
+      "metadata_portability_check": "passed",
+      "diff_check": "passed"
+    }
+  },
+  "installed_web_api_smoke": {
+    "status": "passed",
+    "provider": "hermetic-mock",
+    "credentials_read": false,
+    "scripted_profile": "p000",
+    "profile_digest": "4430eff8d5b732333319f93bf0a699c3593f6e6d708296d304c76c7161f67282",
+    "router_tokens": 5,
+    "worker_tokens": 12,
+    "total_tokens": 17,
+    "usage_complete": true,
+    "parent_child_lineage_verified": true,
+    "installed_pre_edit_gate_verified_in_config": true,
+    "gate_behavior_exercised_by_smoke": false,
+    "raw_summary_sha256": "753cab7c99d0bf82ae4f14432ac49043e35d00b1b99517cc7f1d729295ebcea1",
+    "session_export_sha256": "415c234ef86bea5acac33812e63a4bde99c9a444f04ddcffccf3178ab6841e52",
+    "effective_config_sha256": "67ebd26be4f68c1f3ca773834481e8baa71cf7713d553df1a5135b6de6190ae8"
+  },
+  "next_action": "Run replicated fixed neutral, p000, and p100 DSH cells with an independent verifier before making an outcome or token-efficiency claim."
+}
