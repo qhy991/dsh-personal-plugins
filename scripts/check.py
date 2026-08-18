@@ -108,6 +108,7 @@ def main() -> int:
         ROOT / "presets" / "kersor" / "plugins" / "kersor-status.mjs",
         ROOT / "tools" / "codex-infini-bridge" / "server.mjs",
         ROOT / "presets" / "modus" / "plugins" / "modus-router.mjs",
+        ROOT / "presets" / "modus" / "plugins" / "modus-fixed-worker.mjs",
     )
     for target in syntax_targets:
         syntax = subprocess.run(
@@ -119,7 +120,12 @@ def main() -> int:
             return syntax.returncode
 
     node_tests = subprocess.run(
-        [node, "--test", str(ROOT / "tests" / "modus-router.test.mjs")],
+        [
+            node,
+            "--test",
+            str(ROOT / "tests" / "modus-router.test.mjs"),
+            str(ROOT / "tests" / "modus-fixed-worker.test.mjs"),
+        ],
         cwd=ROOT,
         check=False,
     )
