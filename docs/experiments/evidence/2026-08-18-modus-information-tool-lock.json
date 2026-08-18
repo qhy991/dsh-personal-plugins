@@ -30,5 +30,32 @@
     "fixed_real_tool_runtime_schema_transition": "passed",
     "fixed_hmr_lock_and_release": "passed"
   },
-  "claim_boundary": "Mechanism regression evidence only. No real-model cell has yet compared deny-only versus temporary schema hiding."
+  "real_model_sentinel": {
+    "scientific_evidence": false,
+    "excluded_from_prior_matrix": true,
+    "action": "p100",
+    "terminal": "completed",
+    "correct": true,
+    "steady_seconds": 0.010545447265625,
+    "usage": {
+      "uncached_input_tokens": 16650,
+      "cache_read_tokens": 55808,
+      "output_tokens": 3175,
+      "total_tokens": 75633
+    },
+    "pre_edit_information_attempts": 6,
+    "executed_pre_edit_information_attempts": 3,
+    "gate_denials": 3,
+    "first_edit_step": 3,
+    "tool_schema_sequence": [
+      "full",
+      "full",
+      "information-tools-hidden",
+      "full-after-edit"
+    ],
+    "manifest_sha256": "2e4bc63e2d5d05fe58c5d2a56bc342c3bf2e8515451e019c8b4b6503c029aa7a",
+    "record_sha256": "ea30c4c38f2d8cbbf1761f76643bca32f900d26ecbf65847fa67cd9c74a0eb45",
+    "session_export_sha256": "21f868aa7bb194781f43006865e8bef92bd4bf6affb1fda1c6f376d0f2e8cf2b"
+  },
+  "claim_boundary": "Mechanism evidence only. The real-model sentinel proves schema hiding removes sequential deny churn but does not estimate a typical token or outcome improvement."
 }
