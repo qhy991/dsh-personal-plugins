@@ -33,4 +33,17 @@ Neutral remains untreated. The fixed and Router-created Worker paths share the s
 - the real ToolRuntime test observes only `edit` after the fourth read denial and observes both `edit` and `read` after typed edit;
 - the fixed Worker HMR test reconstructs the lock from four durable pre-edit attempts and reconstructs the released state after durable edit.
 
-This is mechanism evidence, not an outcome improvement. A new development sentinel may test whether denied-attempt and token churn fall, but it must use a new run id and cannot overwrite or reinterpret the completed nine-cell pilot.
+## Real-model sentinel
+
+A new development-only p100 cell used plugin commit `3ac091d`, a new session/workspace/run id, the same old task and prompt, and was excluded from the completed nine-cell analysis. Its actual request schemas were:
+
+1. step 1: full fixed Worker tools;
+2. step 2: full fixed Worker tools; the parallel batch proposed six information calls and three were denied;
+3. step 3: `read/read_image/glob/grep/bash` absent, while `edit/write` remained visible;
+4. step 4: full tools restored after typed edit.
+
+The Worker edited at step 3, completed with hidden correctness, and reported three gate denials rather than the previous p100 outlier's sixteen. It used 16,650 uncached input, 55,808 cache-read, and 3,175 output tokens (75,633 total), with steady time 0.010545 seconds. This proves the schema transition and removal of sequential deny churn. It does not prove lower typical cost: one sentinel total remains above the prior p100 median of 50,966 tokens.
+
+Sentinel manifest SHA-256: `2e4bc63e2d5d05fe58c5d2a56bc342c3bf2e8515451e019c8b4b6503c029aa7a`. Record SHA-256: `ea30c4c38f2d8cbbf1761f76643bca32f900d26ecbf65847fa67cd9c74a0eb45`. Session export SHA-256: `21f868aa7bb194781f43006865e8bef92bd4bf6affb1fda1c6f376d0f2e8cf2b`.
+
+This remains mechanism evidence, not an outcome improvement, and cannot overwrite or reinterpret the completed nine-cell pilot.
