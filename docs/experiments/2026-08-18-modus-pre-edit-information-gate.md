@@ -37,6 +37,8 @@ Raw local artifacts remain outside Git. Their frozen summaries are bound by thes
 - bounded summary: `071b9b9a81a886d4056145f2d66204fd08110f747bcb1a37f8c55f66770653d5`;
 - bounded original-workspace verifier receipt: `b8f0644442f00da19ef6a6ff4aaa001d038e8a696ef60d348f53187788731959`.
 
+The redacted, machine-readable development record is committed at [`evidence/2026-08-18-modus-pre-edit-information-gate.json`](evidence/2026-08-18-modus-pre-edit-information-gate.json).
+
 ## Conclusion
 
 The data supports one narrow claim: a smaller hard budget controls cost, while a prompt-only instruction did not control the inspection-to-edit transition in these runs. It does not show that the existing Modus DSH profiles are ineffective, because the carrier was KernelOwl and no DSH Profile Worker was executed.
@@ -61,6 +63,8 @@ The implementation passed:
 - 16 real DSH Loader/ToolRuntime/AgentLoop/fork compatibility tests on clean DSH `71705c7ff0d47cc7823b240e4d3f2be1dd7d52bb`.
 
 The real native pipeline test proves that the first three `read` bodies execute, the fourth body does not execute, a following typed `edit` does execute, and the final parent route result exposes the denied read plus the first edit in its durable trajectory.
+
+An additional installed Web/API smoke used clean DSH `71705c7`, clean plugin commit `9ef8ebe`, an isolated home, and a provider-free mock. It verified that the rendered preset contains the `p000/p100` three-attempt gate, created one p000 fork Worker, preserved parent/child lineage, exported both sessions, and recovered complete mock usage of 5 Router + 12 Worker = 17 total tokens. The smoke summary, export, and effective-config hashes are recorded in the machine-readable evidence. Because the mock route and Worker answer were scripted, this proves installation/composition only and does not exercise or validate profile-task fit.
 
 ## Next experiment
 
