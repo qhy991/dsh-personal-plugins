@@ -11,6 +11,7 @@ export const PRE_EDIT_INFORMATION_TOOLS = Object.freeze([
 ])
 
 export const DEFAULT_WORKER_DENIED_TOOLS = Object.freeze([
+  'ask_user_question',
   'modus_delegate',
   'subagent',
   'subagent_fork',
