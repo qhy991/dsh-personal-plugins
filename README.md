@@ -32,6 +32,11 @@ python3 scripts/install_modus_fixed.py --force \
 
 安装后可选择 **Modus Fixed neutral**、**Modus Fixed p000** 或 **Modus Fixed p100**。三者从同一个 standard composition 生成，使用相同工具限制和 token gate；`p000/p100` 只分别追加固定 Profile，并执行与 Router Worker 相同的三次 pre-edit information gate。触发上限后，下一次模型请求暂时不再看到 read/search/bash，typed edit 后自动恢复；neutral 不受该门影响。固定臂是反事实实验入口，不包含 Router token，不能用它代替最终 Router arena。
 
+Profile 修订必须与 qualified action 分开。开发性的 E1-v2 候选可用
+`--experimental-p100 e1-v2` 额外安装为 **Modus Fixed p100-e1-v2**；它有独立 manifest、
+上游 commit 和 digest，不会替换 Router 或 qualified p100。该候选在独立 manipulation
+sentinel 通过前保持 unqualified，不能因安装成功而升级为实验结论。
+
 ## 五分钟上手
 
 1. 安装或更新 preset：
