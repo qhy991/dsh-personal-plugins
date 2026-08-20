@@ -264,6 +264,7 @@ describe('Modus Router against real DSH Loader and services', () => {
     await ctx.plugin(AgentRegistry)
     let reads = 0
     let edits = 0
+    let questions = 0
     for (const tool of [
       defineTool({
         name: 'read',
@@ -286,6 +287,16 @@ describe('Modus Router against real DSH Loader and services', () => {
           render: (_args, value) => [{ type: 'text', text: value }],
         },
         execute: () => { edits += 1; return Promise.resolve('edited') },
+      }),
+      defineTool({
+        name: 'ask_user_question',
+        description: 'An interactive tool hidden from unattended fixed Workers.',
+        parameters: { question: { type: 'string' } },
+        output: {
+          schema: { type: 'string' },
+          render: (_args, value) => [{ type: 'text', text: value }],
+        },
+        execute: () => { questions += 1; return Promise.resolve('answered') },
       }),
       defineTool({
         name: 'subagent_fork',
@@ -335,6 +346,7 @@ describe('Modus Router against real DSH Loader and services', () => {
     })
     const session = agent.session
     expect(ctx.tools.schemas(agent).map(tool => tool.name).sort()).toEqual(['edit', 'read'])
+    expect(questions).toBe(0)
 
     for (let index = 1; index <= 3; index += 1) {
       const callId = CallId(`fixed-read-${index}`)
