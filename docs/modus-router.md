@@ -72,6 +72,13 @@ Router 净收益不能只与旧 Pi 结果或一个假想的零成本 Worker 比�
 
 固定 p000/p100 使用与 Router child 相同的三次 pre-edit information gate；neutral 不启用该门，但仍使用相同 delegation deny-list。安装器把 Profile digest、preset id 和可选两轴 token budget 写入生成的 composition。正式分析还必须从 request/header.system 验证 neutral 的 Profile occurrence 为零、p000/p100 的所选文本恰好一次且另一文本为零；preset 名或 installer 输出本身不足以证明 treatment 被模型看到。
 
+安装器另有一个显式 opt-in 的 fixed-only 实验入口：`--experimental-p100 e1-v2` 会在三种
+qualified preset 之外追加 `modus-fixed-p100-e1-v2`。候选文本和上游 SSOT 绑定在
+`presets/modus/experimental-profiles/e1-v2/manifest.json`，状态固定为
+`unqualified-development-candidate`；它不会替换 Router 使用的 p100，也不能在通过独立
+manipulation sentinel 前作为 Router action。该入口只用于比较 Profile 文本修订，实验记录
+必须同时保存 candidate id 与 digest。
+
 ## Token 核算
 
 比较动态策略时，成本估计量必须是：
@@ -173,6 +180,10 @@ python3 scripts/install_modus.py --force
 python3 scripts/install_modus_fixed.py --dry-run \
   --max-new-tokens 200000 --max-cache-read-tokens 2000000
 python3 scripts/install_modus_fixed.py --force \
+  --max-new-tokens 200000 --max-cache-read-tokens 2000000
+# 仅开发 sentinel；不会替换 Router 或 qualified p100
+python3 scripts/install_modus_fixed.py --force \
+  --experimental-p100 e1-v2 \
   --max-new-tokens 200000 --max-cache-read-tokens 2000000
 python3 scripts/check.py
 python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness

@@ -108,6 +108,42 @@ class ModusFixedInstallTests(unittest.TestCase):
         )
         self.assertTrue(all(not row[3] and row[2] is None for row in repeated))
 
+    def test_experimental_p100_is_additive_versioned_and_unqualified(self) -> None:
+        candidate = INSTALLER.load_experimental_p100("e1-v2")
+        self.assertEqual(candidate["profile"], "p100")
+        self.assertEqual(candidate["preset_id"], "modus-fixed-p100-e1-v2")
+        self.assertEqual(
+            candidate["sha256"],
+            "c4d0326d4fb5afb14aa51aeb91653fa7771610a41eb53de019c87bf9ff3419e1",
+        )
+        self.assertIn("leaving any one of those three unchanged is incomplete", candidate["text"])
+
+        installed = INSTALLER.install_all(
+            dsh_home=self.dsh_home,
+            standard_preset=self.standard,
+            force=False,
+            dry_run=False,
+            token_budget=(200_000, 2_000_000),
+            experimental_p100="e1-v2",
+        )
+        self.assertEqual(
+            [row[0] for row in installed],
+            [*INSTALLER.PROFILE_IDS, "p100-e1-v2"],
+        )
+        candidate_root = self.dsh_home / ".agent-presets" / "modus-fixed-p100-e1-v2"
+        composition = (candidate_root / "agent.cordis.yml").read_text(encoding="utf-8")
+        self.assertIn("presetId: modus-fixed-p100-e1-v2", composition)
+        self.assertIn("profile: p100", composition)
+        self.assertIn("profileDigest: " + candidate["sha256"], composition)
+        persona = f"{INSTALLER.STANDARD_PERSONA}\n\n{candidate['text'].rstrip()}"
+        self.assertIn(
+            "text: |-\n" + INSTALLER.indent_block(persona, 6),
+            composition,
+        )
+        self.assertTrue(
+            (candidate_root / "experimental-profiles/e1-v2/manifest.json").is_file()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

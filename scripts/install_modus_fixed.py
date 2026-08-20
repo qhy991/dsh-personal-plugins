@@ -21,6 +21,7 @@ from install_modus import ASSET_ROOT, PERSONA_BLOCK, STANDARD_PERSONA, indent_bl
 
 PROFILE_IDS = ("neutral", "p000", "p100")
 QUALIFIED_PROFILE_IDS = ("p000", "p100")
+EXPERIMENTAL_P100_IDS = ("e1-v2",)
 FIXED_PLUGIN = "./plugins/modus-fixed-worker.mjs"
 
 
@@ -50,12 +51,43 @@ def load_profiles() -> dict[str, dict[str, str]]:
     return result
 
 
+def load_experimental_p100(candidate_id: str) -> dict[str, str]:
+    if candidate_id not in EXPERIMENTAL_P100_IDS:
+        raise RuntimeError(f"unsupported experimental p100 candidate: {candidate_id}")
+    root = ASSET_ROOT / "experimental-profiles" / candidate_id
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    expected = {"schema", "status", "profile", "candidate_id", "upstream", "path", "sha256"}
+    if not isinstance(manifest, dict) or set(manifest) != expected:
+        raise RuntimeError("experimental p100 manifest fields differ")
+    if manifest["schema"] != "dsh-modus-experimental-profile-candidate-v1":
+        raise RuntimeError("unsupported experimental p100 manifest")
+    if manifest["status"] != "unqualified-development-candidate":
+        raise RuntimeError("experimental p100 must remain explicitly unqualified")
+    if manifest["profile"] != "p100" or manifest["candidate_id"] != candidate_id:
+        raise RuntimeError("experimental p100 identity differs")
+    if manifest["path"] != "p100.md":
+        raise RuntimeError("experimental p100 path differs")
+    text = (root / manifest["path"]).read_text(encoding="utf-8")
+    digest = sha256_text(text)
+    if digest != manifest["sha256"]:
+        raise RuntimeError("experimental p100 digest mismatch")
+    return {
+        "profile": "p100",
+        "candidate_id": candidate_id,
+        "preset_id": f"modus-fixed-p100-{candidate_id}",
+        "text": text,
+        "sha256": digest,
+    }
+
+
 def plugin_row(
     profile: str,
     digest: str,
     token_budget: tuple[int, int] | None,
+    *,
+    preset_id: str | None = None,
 ) -> str:
-    preset_id = f"modus-fixed-{profile}"
+    preset_id = f"modus-fixed-{profile}" if preset_id is None else preset_id
     lines = [
         "- id: modus-fixed-worker",
         f"  name: '{FIXED_PLUGIN}'",
@@ -85,6 +117,8 @@ def render_fixed_composition(
     profile: str,
     profiles: dict[str, dict[str, str]] | None = None,
     token_budget: tuple[int, int] | None = None,
+    *,
+    preset_id: str | None = None,
 ) -> str:
     catalog = load_profiles() if profiles is None else profiles
     if profile not in PROFILE_IDS or profile not in catalog:
@@ -96,7 +130,8 @@ def render_fixed_composition(
     lines = standard_source.splitlines()
     if not lines:
         raise RuntimeError("standard preset is empty")
-    lines[0] = f"# The `modus-fixed-{profile}` preset: matched direct Modus Worker action."
+    preset_id = f"modus-fixed-{profile}" if preset_id is None else preset_id
+    lines[0] = f"# The `{preset_id}` preset: matched direct Modus Worker action."
     rendered = "\n".join(lines)
     if profile != "neutral":
         persona = f"{STANDARD_PERSONA}\n\n{catalog[profile]['text'].rstrip()}"
@@ -107,12 +142,12 @@ def render_fixed_composition(
         )
     return (
         f"{rendered.rstrip()}\n\n"
-        f"{plugin_row(profile, catalog[profile]['sha256'], token_budget)}\n"
+        f"{plugin_row(profile, catalog[profile]['sha256'], token_budget, preset_id=preset_id)}\n"
     )
 
 
-def stage_fixed(parent: Path, profile: str, composition: str) -> Path:
-    stage = Path(tempfile.mkdtemp(prefix=f".modus-fixed-{profile}-", dir=parent))
+def stage_fixed(parent: Path, install_id: str, profile: str, composition: str) -> Path:
+    stage = Path(tempfile.mkdtemp(prefix=f".{install_id}-", dir=parent))
     (stage / "preset.yml").write_text(
         f"name: Modus Fixed {profile}\n"
         f"description: Direct fixed-action Modus Worker ({profile}); no Router model call.\n",
@@ -122,6 +157,7 @@ def stage_fixed(parent: Path, profile: str, composition: str) -> Path:
     shutil.copytree(ASSET_ROOT / "plugins", stage / "plugins")
     shutil.copytree(ASSET_ROOT / "lib", stage / "lib")
     shutil.copytree(ASSET_ROOT / "profiles", stage / "profiles")
+    shutil.copytree(ASSET_ROOT / "experimental-profiles", stage / "experimental-profiles")
     (stage / "agent.cordis.yml").write_text(composition, encoding="utf-8")
     return stage
 
@@ -129,16 +165,17 @@ def stage_fixed(parent: Path, profile: str, composition: str) -> Path:
 def install_one(
     *,
     dsh_home: Path,
+    install_id: str,
     profile: str,
     composition: str,
     force: bool,
     dry_run: bool,
 ) -> tuple[Path, Path | None, bool]:
-    destination = dsh_home.expanduser().resolve() / ".agent-presets" / f"modus-fixed-{profile}"
+    destination = dsh_home.expanduser().resolve() / ".agent-presets" / install_id
     if dry_run:
         return destination, None, True
     destination.parent.mkdir(parents=True, exist_ok=True)
-    stage = stage_fixed(destination.parent, profile, composition)
+    stage = stage_fixed(destination.parent, install_id, profile, composition)
     backup: Path | None = None
     try:
         if destination.exists() and directory_equal(stage, destination):
@@ -168,6 +205,7 @@ def install_all(
     force: bool,
     dry_run: bool,
     token_budget: tuple[int, int] | None = None,
+    experimental_p100: str | None = None,
 ) -> list[tuple[str, Path, Path | None, bool]]:
     standard = locate_standard(dsh_home, standard_preset)
     source = standard.read_text(encoding="utf-8")
@@ -176,11 +214,12 @@ def install_all(
         profile: render_fixed_composition(source, profile, profiles, token_budget)
         for profile in PROFILE_IDS
     }
-    return [
+    installed = [
         (
             profile,
             *install_one(
                 dsh_home=dsh_home,
+                install_id=f"modus-fixed-{profile}",
                 profile=profile,
                 composition=compositions[profile],
                 force=force,
@@ -189,6 +228,28 @@ def install_all(
         )
         for profile in PROFILE_IDS
     ]
+    if experimental_p100 is not None:
+        candidate = load_experimental_p100(experimental_p100)
+        candidate_catalog = {"p100": candidate}
+        composition = render_fixed_composition(
+            source,
+            "p100",
+            candidate_catalog,
+            token_budget,
+            preset_id=candidate["preset_id"],
+        )
+        installed.append((
+            f"p100-{experimental_p100}",
+            *install_one(
+                dsh_home=dsh_home,
+                install_id=candidate["preset_id"],
+                profile="p100",
+                composition=composition,
+                force=force,
+                dry_run=dry_run,
+            ),
+        ))
+    return installed
 
 
 def parser() -> argparse.ArgumentParser:
@@ -199,6 +260,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--dry-run", action="store_true")
     result.add_argument("--max-new-tokens", type=int)
     result.add_argument("--max-cache-read-tokens", type=int)
+    result.add_argument("--experimental-p100", choices=EXPERIMENTAL_P100_IDS)
     return result
 
 
@@ -217,6 +279,7 @@ def main(argv: list[str] | None = None) -> int:
         force=options.force,
         dry_run=options.dry_run,
         token_budget=token_budget,
+        experimental_p100=options.experimental_p100,
     ):
         state = "would install" if options.dry_run else ("installed" if changed else "unchanged")
         print(f"{profile}: {state} {destination}")
