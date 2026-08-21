@@ -22,43 +22,10 @@ jobs:
           python3 -c 'import json, os, pathlib;
           value=json.loads(pathlib.Path("plugins/dsh-mirror.json").read_text());
           pathlib.Path(os.environ["GITHUB_OUTPUT"]).open("a").write(
-          "revision=" + value["authority"]["revision"] + "\nnode=" + value["toolchain"]["node"] +
-          "\npnpm=" + value["toolchain"]["pnpm"] + "\n")'
+          "node=" + value["toolchain"]["node"] + "\n")'
 
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.dsh-source.outputs.node }}
 
       - run: python3 scripts/check.py
-
-      - uses: actions/checkout@v4
-        with:
-          repository: qhy991/deepseek-harness
-          ref: ${{ steps.dsh-source.outputs.revision }}
-          path: .ci/deepseek-harness
-          persist-credentials: false
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ steps.dsh-source.outputs.pnpm }}
-
-      - name: Install the pinned DSH test toolchain
-        working-directory: .ci/deepseek-harness
-        run: pnpm install --frozen-lockfile
-
-      - name: Stage the personal viewer sources in the disposable checkout
-        working-directory: .ci/deepseek-harness
-        run: |
-          cp -R "$GITHUB_WORKSPACE/plugins/kersor-viewer/src/." packages/extensions/kersor-viewer/src/
-          cp -R "$GITHUB_WORKSPACE/plugins/kersor-viewer/tests/." packages/extensions/kersor-viewer/tests/
-          cp -R "$GITHUB_WORKSPACE/plugins/ui-kersor-viewer/src/." packages/extensions/ui-kersor-viewer/src/
-          cp -R "$GITHUB_WORKSPACE/plugins/ui-kersor-viewer/tests/." packages/extensions/ui-kersor-viewer/tests/
-
-      - name: Run viewer and UI Vitest suites
-        working-directory: .ci/deepseek-harness
-        env:
-          KERSOR_PYTHON: python3
-        run: >-
-          pnpm exec vitest run
-          packages/extensions/kersor-viewer/tests
-          packages/extensions/ui-kersor-viewer/tests

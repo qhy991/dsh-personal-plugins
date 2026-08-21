@@ -42,16 +42,15 @@ class MirrorManifestTests(unittest.TestCase):
             self.assertFalse(any("tsconfig.tsbuildinfo" in item for item in violations))
             self.assertFalse(any("kersor-viewer/tsdown.config.ts" in item for item in violations))
 
-    def test_ci_uses_the_manifest_pinned_dsh_toolchain(self) -> None:
+    def test_ci_validates_the_public_snapshot_without_private_checkout(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("ref: ${{ steps.dsh-source.outputs.revision }}", workflow)
+        self.assertIn('python-version: "3.12"', workflow)
         self.assertIn("node-version: ${{ steps.dsh-source.outputs.node }}", workflow)
-        self.assertIn("version: ${{ steps.dsh-source.outputs.pnpm }}", workflow)
-        self.assertIn("pnpm install --frozen-lockfile", workflow)
-        self.assertIn("packages/extensions/kersor-viewer/tests", workflow)
-        self.assertIn("packages/extensions/ui-kersor-viewer/tests", workflow)
+        self.assertIn("python3 scripts/check.py", workflow)
+        self.assertNotIn("repository: qhy991/deepseek-harness", workflow)
+        self.assertNotIn("pnpm install", workflow)
 
 
 if __name__ == "__main__":
