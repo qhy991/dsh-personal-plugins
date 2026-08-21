@@ -9,6 +9,7 @@ import {
 
 const EMPTY_SHA = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
 const P000_SHA = '4430eff8d5b732333319f93bf0a699c3593f6e6d708296d304c76c7161f67282'
+const P001_SHA = '708dd24963f9ee44afaba3b0e0c7222e3e4bc61666b63b1e74a9ec38a8246242'
 const P010_SHA = '8b0e10fb396407cce7c1d190aafa98c446115b68763a1f3a42222f2df7b53d48'
 
 function nativeCall(seq, callId, name, args) {
@@ -70,7 +71,13 @@ function harness(profile = 'p000') {
   apply(ctx, {
     presetId: `modus-fixed-${profile}`,
     profile,
-    profileDigest: profile === 'neutral' ? EMPTY_SHA : profile === 'p010' ? P010_SHA : P000_SHA,
+    profileDigest: profile === 'neutral'
+      ? EMPTY_SHA
+      : profile === 'p001'
+        ? P001_SHA
+        : profile === 'p010'
+          ? P010_SHA
+          : P000_SHA,
     ...(profile === 'neutral' || profile === 'p010'
       ? {}
       : { maxPreEditInformationAttempts: 3 }),
@@ -211,6 +218,43 @@ test('experimental p010 retains broad pre-edit information access', async () => 
   assert.deepEqual(runtime.restrictions, [{
     deny: ['ask_user_question', 'web_search', 'subagent_fork'],
   }])
+})
+
+test('experimental p001 keeps the T0 information lock while changing A only', async () => {
+  const config = resolveFixedWorkerConfig({
+    presetId: 'modus-fixed-p001-a1-v1',
+    profile: 'p001',
+    profileDigest: P001_SHA,
+    maxPreEditInformationAttempts: 3,
+  })
+  assert.equal(config.maxPreEditInformationAttempts, 3)
+  assert.throws(
+    () => resolveFixedWorkerConfig({
+      presetId: 'modus-fixed-p001-a1-v1',
+      profile: 'p001',
+      profileDigest: P001_SHA,
+    }),
+    /maxPreEditInformationAttempts/,
+  )
+
+  const runtime = harness('p001')
+  runtime.agent.session.events.push(
+    nativeCall(0, 'read-a', 'read', { file_path: 'src/a.ts' }),
+    nativeResult(1, 'read-a'),
+    nativeCall(2, 'read-b', 'read', { file_path: 'src/b.ts' }),
+    nativeResult(3, 'read-b'),
+    nativeCall(4, 'read-c', 'read', { file_path: 'src/c.ts' }),
+    nativeResult(5, 'read-c'),
+  )
+  const denied = await runtime.handlers.get('tools/pre-execute')({
+    agent: runtime.agent,
+    callId: 'read-d',
+    name: 'read',
+    arguments: { file_path: 'src/d.ts' },
+    signal: new AbortController().signal,
+  }, async () => ({ kind: 'allow' }))
+  assert.equal(denied.kind, 'deny')
+  assert.match(denied.reason, /MODUS_PRE_EDIT_INFORMATION_LIMIT/)
 })
 
 test('fixed Worker HMR reconstructs and later lifts the information-tool lock', () => {

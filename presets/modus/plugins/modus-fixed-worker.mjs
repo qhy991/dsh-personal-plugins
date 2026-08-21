@@ -9,6 +9,7 @@ import {
 import {
   DEFAULT_WORKER_DENIED_TOOLS,
   EXPERIMENTAL_FIXED_PROFILE_IDS,
+  FIXED_PRE_EDIT_GATED_PROFILE_IDS,
   PRE_EDIT_INFORMATION_TOOLS,
   QUALIFIED_PROFILE_IDS,
 } from '../lib/worker-policy.mjs'
@@ -84,7 +85,7 @@ export function resolveFixedWorkerConfig(config = {}) {
     'deniedTools',
   ))
   let maxPreEditInformationAttempts
-  if (profile === 'neutral' || EXPERIMENTAL_FIXED_PROFILE_IDS.includes(profile)) {
+  if (!FIXED_PRE_EDIT_GATED_PROFILE_IDS.includes(profile)) {
     if (config.maxPreEditInformationAttempts !== undefined) {
       throw new Error(`${profile} must not configure maxPreEditInformationAttempts`)
     }

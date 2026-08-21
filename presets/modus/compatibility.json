@@ -24,6 +24,7 @@
     "qualified-profile-pre-edit-information-gate",
     "matched-fixed-worker-presets",
     "fixed-worker-auxiliary-tool-confinement",
+    "experimental-p001-fixed-treatment",
     "experimental-p010-fixed-treatment",
     "qualified-profile-information-tool-lock"
   ]
