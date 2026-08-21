@@ -191,6 +191,50 @@ class ModusFixedInstallTests(unittest.TestCase):
             (candidate_root / "experimental-profiles/t1-v1/manifest.json").is_file()
         )
 
+    def test_experimental_p001_is_additive_single_axis_and_keeps_t0_gate(self) -> None:
+        candidate = INSTALLER.load_experimental_p001("a1-v1")
+        profiles = INSTALLER.load_profiles()
+        self.assertEqual(candidate["profile"], "p001")
+        self.assertEqual(candidate["preset_id"], "modus-fixed-p001-a1-v1")
+        self.assertEqual(
+            candidate["sha256"],
+            "708dd24963f9ee44afaba3b0e0c7222e3e4bc61666b63b1e74a9ec38a8246242",
+        )
+        self.assertEqual(
+            candidate["text"].replace(
+                "After each material edit, run a focused verification covering the affected "
+                "contract. Update the diagnosis and implementation direction whenever observed "
+                "feedback contradicts them; use checks to steer each small step. If verification "
+                "fails, inspect the new evidence, make one coherent correction, and verify again "
+                "before proceeding or reporting.",
+                "After editing, complete one final verification covering the visible contract. "
+                "Keep the original diagnosis and implementation direction through intermediate "
+                "uncertainty; do not run checks merely to steer each small step. Reconsider only "
+                "if final verification fails, then make one coherent correction and verify once "
+                "more before reporting clearly.",
+            ),
+            profiles["p000"]["text"],
+        )
+
+        installed = INSTALLER.install_all(
+            dsh_home=self.dsh_home,
+            standard_preset=self.standard,
+            force=False,
+            dry_run=False,
+            token_budget=(200_000, 2_000_000),
+            experimental_p001="a1-v1",
+        )
+        self.assertEqual(
+            [row[0] for row in installed],
+            [*INSTALLER.PROFILE_IDS, "p001-a1-v1"],
+        )
+        candidate_root = self.dsh_home / ".agent-presets" / "modus-fixed-p001-a1-v1"
+        composition = (candidate_root / "agent.cordis.yml").read_text(encoding="utf-8")
+        self.assertIn("presetId: modus-fixed-p001-a1-v1", composition)
+        self.assertIn("profile: p001", composition)
+        self.assertIn("profileDigest: " + candidate["sha256"], composition)
+        self.assertIn("maxPreEditInformationAttempts: 3", composition)
+
 
 if __name__ == "__main__":
     unittest.main()

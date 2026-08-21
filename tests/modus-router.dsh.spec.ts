@@ -321,6 +321,7 @@ describe('Modus Router against real DSH Loader and services', () => {
       }),
     ]) ctx.tools.register(tool)
     let agent: any
+    let p001Agent: any
     let p010Agent: any
     const FixedAgentFixture = {
       name: 'modus-fixed-agent-fixture',
@@ -351,6 +352,7 @@ describe('Modus Router against real DSH Loader and services', () => {
           return value
         }
         agent = createFixedAgent('modus-fixed-p000-real', 'modus-fixed-p000')
+        p001Agent = createFixedAgent('modus-fixed-p001-real', 'modus-fixed-p001-a1-v1')
         p010Agent = createFixedAgent('modus-fixed-p010-real', 'modus-fixed-p010-t1-v1')
       },
     }
@@ -445,6 +447,40 @@ describe('Modus Router against real DSH Loader and services', () => {
     expect(reads).toBe(4)
     expect(questions).toBe(0)
     expect(webSearches).toBe(0)
+
+    await ctx.plugin({
+      ...ModusFixedWorker,
+      name: 'modus-fixed-worker-p001-real-fixture',
+    }, {
+      presetId: 'modus-fixed-p001-a1-v1',
+      profile: 'p001',
+      profileDigest: '708dd24963f9ee44afaba3b0e0c7222e3e4bc61666b63b1e74a9ec38a8246242',
+      maxPreEditInformationAttempts: 3,
+    })
+    expect(ctx.tools.schemas(p001Agent).map(tool => tool.name).sort()).toEqual(['edit', 'read'])
+    for (let index = 1; index <= 3; index += 1) {
+      const callId = CallId(`p001-read-${index}`)
+      const call = p001Agent.session.append('tool/call', {
+        turn: 1, step: index, callId, name: 'read',
+        arguments: JSON.stringify({ file_path: `src/p001-${index}.ts` }),
+      })
+      p001Agent.session.append('tool/result', {
+        turn: 1,
+        step: index,
+        message: createToolResultMessage({
+          callId, content: [{ type: 'text', text: 'fixture' }], isError: false,
+        }),
+      }, { surfaceOp: 'append', sourceEventSeqs: [call.seq] })
+    }
+    const p001Denied = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: CallId('p001-read-4'),
+      name: 'read',
+      arguments: { file_path: 'src/p001-4.ts' },
+      agent: p001Agent,
+    })
+    expect(p001Denied.isError).toBe(true)
+    expect(reads).toBe(4)
   })
 
   it('loads, confines a scoped agent, executes an exact Worker request, and unloads cleanly', async () => {

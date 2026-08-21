@@ -86,6 +86,11 @@ edit-topology M1 组件 SSOT 机械编译 `E0/T1/A0`，与 p000 只差 T0→T1�
 T1 的广泛调查处理。它不会进入 Router action space，只能用于预先冻结的
 p000/p010 单轴开发实验。
 
+`--experimental-p001 a1-v1` 以同样方式机械编译 `E0/T0/A1`，与 p000
+只差 A0→A1。它保留 p000 的 T0 三次调查锁，因此 p000/p001 的
+运行时信息边界一致；处理差异只是 A1 要求每次关键编辑后运行聚焦验证并根据反馈纠偏。
+该候选仍为 fixed-only、unqualified，只应在可见反馈能否定首次编辑的任务上测试。
+
 ## Token 核算
 
 比较动态策略时，成本估计量必须是：
@@ -195,6 +200,10 @@ python3 scripts/install_modus_fixed.py --force \
 # 仅开发 T1 单轴候选；不会加入 Router
 python3 scripts/install_modus_fixed.py --force \
   --experimental-p010 t1-v1 \
+  --max-new-tokens 200000 --max-cache-read-tokens 2000000
+# 仅开发 A1 单轴候选；保留 T0 调查锁
+python3 scripts/install_modus_fixed.py --force \
+  --experimental-p001 a1-v1 \
   --max-new-tokens 200000 --max-cache-read-tokens 2000000
 python3 scripts/check.py
 python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness

@@ -39,6 +39,9 @@ sentinel 通过前保持 unqualified，不能因安装成功而升级为实验�
 开发性的 T1-v1 候选可用 `--experimental-p010 t1-v1` 额外安装为
 **Modus Fixed p010-t1-v1**。它从当前 M1 组件 SSOT 机械编译 E0/T1/A0，
 与 p000 只差 T 位；它不启用 T0 的三次调查锁，也不会进入 Router action space。
+开发性的 A1-v1 候选可用 `--experimental-p001 a1-v1` 额外安装为
+**Modus Fixed p001-a1-v1**。它机械编译 E0/T0/A1，与 p000 只差 A 位，
+并保留相同的 T0 三次调查锁；它同样不进入 Router。
 
 ## 五分钟上手
 
