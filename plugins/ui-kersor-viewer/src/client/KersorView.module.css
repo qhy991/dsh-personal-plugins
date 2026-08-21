@@ -1,79 +1,15 @@
-/* Sidebar-foot KerSor action and the fixed run inventory it opens above the footer. */
+/* Full-height KerSor conversation view. */
 
-.layer {
-  position: relative;
-  flex: none;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: 49px;
-  margin: 8px 0 0;
-}
-
-.trigger {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 49px;
-  padding: 0 8px 0 6px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.trigger:hover {
-  background: var(--dsw-alias-bg-hover-secondary);
-}
-
-.trigger[aria-expanded='true'] {
-  background: var(--dsw-alias-bg-active-secondary);
-}
-
-.triggerIcon {
-  display: inline-flex;
-  flex: none;
-  width: 16px;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.triggerLabel {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.triggerBadge {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-}
-
-.panel {
-  position: fixed;
-  left: 12px;
-  bottom: 128px;
-  z-index: 30;
+.view {
   display: flex;
   flex-direction: column;
-  width: 460px;
-  max-width: calc(100vw - 24px);
-  max-height: 60vh;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--dsw-alias-border-l1);
-  border-radius: 12px;
-  background: var(--dsw-alias-bg-base);
-  box-shadow: var(--dsw-shadow-lv2);
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-tertiary);
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
@@ -762,6 +698,18 @@
   gap: 8px;
 }
 
+.workflowIdentity {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 510;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .statusTail {
   display: inline-flex;
   flex: none;
@@ -789,6 +737,161 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-state-error-primary);
+}
+
+.pipeline {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  margin: 6px 0 2px;
+  padding: 2px 2px 8px;
+  list-style: none;
+}
+
+.pipelineNode {
+  position: relative;
+  flex: 1 0 150px;
+  min-width: 150px;
+  padding: 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 9px;
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.pipelineNode:not(:last-child)::after {
+  position: absolute;
+  top: 18px;
+  right: -13px;
+  width: 12px;
+  height: 1px;
+  background: var(--dsw-alias-border-l1);
+  content: '';
+}
+
+.pipelineNode[data-phase-status='running'] {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.pipelineNode[data-phase-status='failed'] {
+  border-color: var(--dsw-alias-state-error-primary);
+}
+
+.pipelineNodeHead,
+.pipelineCall {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.pipelineNodeHead {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 510;
+  line-height: 18px;
+}
+
+.pipelineNodeHead > span:last-child,
+.pipelineCall > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pipelineCount {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.pipelineCalls {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.pipelineCall {
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.pipelineCall[data-call-status='running'] {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.pipelineCall[data-call-status='failed'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.workflowResult {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.resultHead,
+.resultMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.resultHead {
+  justify-content: space-between;
+}
+
+.resultStage,
+.resultMetrics {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.resultMetrics [data-measurement='measured'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.resultMetrics [data-measurement='estimated'] {
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.candidate {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.candidate[data-selected='true'] {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-state-business-primary);
 }
 
 .phaseSection {

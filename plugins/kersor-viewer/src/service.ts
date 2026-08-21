@@ -12,8 +12,10 @@ import type {} from '@deepseek-ai/dsh-workspace'
 import { readClassicSessionDetail, readClassicSessions } from './classic.ts'
 import type { KersorClassicSessionDetail, KersorClassicSnapshot } from './classic.ts'
 import { createIssue, issueFromError, mergeIssue } from './diagnostics.ts'
-import { createRunView, foldEvent } from './fold.ts'
+import { applyWorkflowResult, createRunView, foldEvent } from './fold.ts'
 import type { KersorEvent, KersorRunView } from './fold.ts'
+import { readWorkflowResult } from './result.ts'
+import type { KersorWorkflowResultView } from './fold.ts'
 import { scanRoots } from './scanner.ts'
 import type { KersorRunRef, KersorScanObservation } from './scanner.ts'
 import { EventsTailer } from './tailer.ts'
@@ -137,8 +139,19 @@ export class KersorViewerService extends TypertRemoteService {
 
   /** Full folded view of one run (panel open / reconnect backlog). */
   @Remote('runBacklog')
-  runBacklog(runDir: string): KersorRunView | undefined {
-    return this.tracked.get(runDir)?.view
+  async runBacklog(runDir: string): Promise<KersorRunView | undefined> {
+    const tracked = this.tracked.get(runDir)
+    if (tracked === undefined) return undefined
+    const result = tracked.view.result ?? await readWorkflowResult(runDir)
+    if (result !== undefined) applyWorkflowResult(tracked.view, result)
+    return tracked.view
+  }
+
+  /** Bounded candidate-selection result for one discovered run. */
+  @Remote('runResult')
+  async runResult(runDir: string): Promise<KersorWorkflowResultView | undefined> {
+    if (!this.tracked.has(runDir)) return undefined
+    return readWorkflowResult(runDir)
   }
 
   /**
@@ -223,10 +236,12 @@ export class KersorViewerService extends TypertRemoteService {
               state: existing.observation.lastIssue === undefined ? 'complete' : 'degraded',
             }
             this.publishRun(existing.view)
+            void this.loadRunResult(existing)
           } else {
             this.attachTailer(existing)
           }
         }
+        if (existing.view.result === undefined && ref.discovery !== 'active') void this.loadRunResult(existing)
         continue
       }
       const tracked: TrackedRun = {
@@ -275,6 +290,8 @@ export class KersorViewerService extends TypertRemoteService {
       this.foldLine(tracked, line)
     }
     if (view.status !== 'completed' && view.status !== 'failed') view.status = terminalStatus(ref)
+    const result = await readWorkflowResult(ref.runDir)
+    if (result !== undefined) applyWorkflowResult(view, result)
     tracked.observation = {
       ...tracked.observation,
       state: tracked.observation.lastIssue === undefined ? 'complete' : 'degraded',
@@ -307,6 +324,7 @@ export class KersorViewerService extends TypertRemoteService {
             state: tracked.observation.lastIssue === undefined ? 'complete' : 'degraded',
           }
           tailer.stop()
+          void this.loadRunResult(tracked)
         }
       },
       () => {
@@ -347,6 +365,13 @@ export class KersorViewerService extends TypertRemoteService {
       tracked.observation = { ...tracked.observation, state: 'failed' }
       this.publishSnapshot()
     }
+  }
+
+  private async loadRunResult(tracked: TrackedRun): Promise<void> {
+    const result = await readWorkflowResult(tracked.ref.runDir)
+    if (result === undefined || this.tracked.get(tracked.ref.runDir) !== tracked) return
+    applyWorkflowResult(tracked.view, result)
+    this.publishRun(tracked.view)
   }
 
   private foldLine(tracked: TrackedRun, line: string): void {

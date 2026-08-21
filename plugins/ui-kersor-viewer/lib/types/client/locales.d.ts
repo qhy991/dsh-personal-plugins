@@ -2,6 +2,7 @@
 export declare const NS = "kersorViewer";
 /** Simplified Chinese KerSor viewer messages. */
 export declare const zh: {
+    readonly 'view.kersor': "KerSor";
     readonly 'panel.trigger': "KerSor 活动";
     readonly 'panel.title': "KerSor 活动";
     readonly 'panel.empty': "已扫描 {roots} 个来源，未发现 KerSor 优化会话或 Workflow 运行";
@@ -82,7 +83,7 @@ export declare const zh: {
     readonly 'detail.source': "查看密封的 workflow.js";
     readonly 'detail.sealRequired': "设计内容会在 author handoff 密封后出现。";
     readonly 'detail.omitted': "设计内容不可显示：{reason}";
-    readonly 'run.sectionTitle': "Autonomous Workflow";
+    readonly 'run.sectionTitle': "Workflow 执行";
     readonly 'launcher.title': "任务控制";
     readonly 'launcher.start': "启动";
     readonly 'launcher.stop': "停止";
@@ -97,6 +98,15 @@ export declare const zh: {
     readonly 'run.tokens': "{tokens} tokens";
     readonly 'run.startedAt': "开始于 {time}";
     readonly 'run.error': "错误：{message}";
+    readonly 'run.pipeline': "Workflow 执行图";
+    readonly 'run.result.title': "候选选择";
+    readonly 'run.result.stage': "阶段：{stage}";
+    readonly 'run.result.selected': "已选择 {candidate}";
+    readonly 'run.result.cycles': "{cycles} cycles";
+    readonly 'run.result.measured': "{speedup}x 实测";
+    readonly 'run.result.estimated': "{speedup}x 预估";
+    readonly 'run.result.unmeasured': "尚未实测";
+    readonly 'run.result.chosen': "已选择";
     readonly 'phase.empty': "（无事件）";
     readonly 'call.queued': "排队中";
     readonly 'call.running': "运行中";
@@ -109,6 +119,7 @@ export declare const zh: {
 };
 /** English KerSor viewer messages. */
 export declare const en: {
+    readonly 'view.kersor': "KerSor";
     readonly 'panel.trigger': "KerSor activity";
     readonly 'panel.title': "KerSor activity";
     readonly 'panel.empty': "Scanned {roots} sources; no KerSor optimization Sessions or Workflow runs were discovered";
@@ -189,7 +200,7 @@ export declare const en: {
     readonly 'detail.source': "View sealed workflow.js";
     readonly 'detail.sealRequired': "Design content appears after the author handoff is sealed.";
     readonly 'detail.omitted': "Design content is unavailable: {reason}";
-    readonly 'run.sectionTitle': "Autonomous Workflows";
+    readonly 'run.sectionTitle': "Workflow execution";
     readonly 'launcher.title': "Task controls";
     readonly 'launcher.start': "Start";
     readonly 'launcher.stop': "Stop";
@@ -204,6 +215,15 @@ export declare const en: {
     readonly 'run.tokens': "{tokens} tokens";
     readonly 'run.startedAt': "Started {time}";
     readonly 'run.error': "Error: {message}";
+    readonly 'run.pipeline': "Workflow execution graph";
+    readonly 'run.result.title': "Candidate selection";
+    readonly 'run.result.stage': "Stage: {stage}";
+    readonly 'run.result.selected': "Selected {candidate}";
+    readonly 'run.result.cycles': "{cycles} cycles";
+    readonly 'run.result.measured': "{speedup}x measured";
+    readonly 'run.result.estimated': "{speedup}x estimated";
+    readonly 'run.result.unmeasured': "Not measured yet";
+    readonly 'run.result.chosen': "Selected";
     readonly 'phase.empty': "(no events)";
     readonly 'call.queued': "Queued";
     readonly 'call.running': "Running";

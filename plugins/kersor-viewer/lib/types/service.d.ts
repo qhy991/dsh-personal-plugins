@@ -8,6 +8,7 @@ import z from '@deepseek-ai/schemastery';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import type { KersorClassicSessionDetail } from './classic.ts';
 import type { KersorRunView } from './fold.ts';
+import type { KersorWorkflowResultView } from './fold.ts';
 import type { KersorViewerSnapshot } from './types.ts';
 export type { KersorEvent, KersorRunView } from './fold.ts';
 export type { KersorRunRef } from './scanner.ts';
@@ -54,7 +55,9 @@ export declare class KersorViewerService extends TypertRemoteService {
     /** Complete inventory and source-health snapshot for panel refresh/reconnect. */
     snapshot(): KersorViewerSnapshot;
     /** Full folded view of one run (panel open / reconnect backlog). */
-    runBacklog(runDir: string): KersorRunView | undefined;
+    runBacklog(runDir: string): Promise<KersorRunView | undefined>;
+    /** Bounded candidate-selection result for one discovered run. */
+    runResult(runDir: string): Promise<KersorWorkflowResultView | undefined>;
     /**
      * Read sealed, bounded detail for one classic Session present in the snapshot.
      * @param sessionDir - Exact discovered Session directory.
@@ -66,6 +69,7 @@ export declare class KersorViewerService extends TypertRemoteService {
     private performRescan;
     private backfillTerminated;
     private attachTailer;
+    private loadRunResult;
     private foldLine;
     private rejectLine;
     private recordRunIssue;

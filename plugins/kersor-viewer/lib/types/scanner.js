@@ -2,10 +2,11 @@
  * Root-directory discovery of KerSor autonomous runs and bounded source observations.
  * @module @deepseek-ai/dsh-kersor-viewer
  */
-import { readFile, readdir } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { createIssue, errorCode, issueFromError, mergeIssue } from "./diagnostics.js";
+import { readWorkflowResult } from "./result.js";
 /** Default roots scanned in addition to configured ones. */
 export const DEFAULT_KERSOR_ROOTS = [
     path.join(homedir(), '.local', 'share', 'kersor'),
@@ -79,23 +80,30 @@ async function readSummary(file) {
     return { value: decoded };
 }
 async function scanSession(sessionDir, root) {
-    const runsDir = path.join(sessionDir, 'autonomous-runs');
-    let children;
+    const autonomousDir = path.join(sessionDir, 'autonomous-runs');
+    let autonomousChildren = [];
     try {
-        children = await readdir(runsDir, { withFileTypes: true });
+        autonomousChildren = await readdir(autonomousDir, { withFileTypes: true });
     }
     catch (error) {
-        if (errorCode(error) === 'ENOENT')
-            return { runs: [], issues: [] };
-        return { runs: [], issues: [], issue: issueFromError('runs_scan', error, 'warning') };
+        if (errorCode(error) !== 'ENOENT') {
+            return { runs: [], issues: [], issue: issueFromError('runs_scan', error, 'warning') };
+        }
     }
     const runs = [];
     const issues = [];
-    for (const child of children) {
-        if (!child.isDirectory() && !child.isSymbolicLink())
-            continue;
-        const runId = child.name;
-        const runDir = path.join(runsDir, runId);
+    const appendRun = async (runId, runDir, kind, round) => {
+        if (kind === 'classic-round') {
+            try {
+                await access(path.join(runDir, '.runtime', 'events.jsonl'));
+            }
+            catch (error) {
+                if (errorCode(error) === 'ENOENT')
+                    return;
+                issues.push({ runDir, issue: issueFromError('runs_scan', error, 'warning') });
+                return;
+            }
+        }
         const summary = await readSummary(path.join(runDir, '.runtime', 'summary.json'));
         let discovery = 'active';
         if (summary.value !== undefined) {
@@ -110,7 +118,34 @@ async function scanSession(sessionDir, root) {
         }
         if (summary.issue !== undefined)
             issues.push({ runDir, issue: summary.issue });
-        runs.push({ runId, runDir, sessionDir, root, discovery });
+        const result = await readWorkflowResult(runDir);
+        runs.push({
+            runId, runDir, sessionDir, root, kind,
+            ...(round === undefined ? {} : { round }),
+            ...(result === undefined ? {} : { result }),
+            discovery,
+        });
+    };
+    for (const child of autonomousChildren) {
+        if (!child.isDirectory() && !child.isSymbolicLink())
+            continue;
+        const runId = child.name;
+        await appendRun(runId, path.join(autonomousDir, runId), 'autonomous');
+    }
+    let sessionChildren;
+    try {
+        sessionChildren = await readdir(sessionDir, { withFileTypes: true });
+    }
+    catch (error) {
+        return { runs, issues, issue: issueFromError('runs_scan', error, 'warning') };
+    }
+    for (const child of sessionChildren) {
+        if (!child.isDirectory() && !child.isSymbolicLink())
+            continue;
+        const match = /^run-([1-9][0-9]*)$/.exec(child.name);
+        if (match === null)
+            continue;
+        await appendRun(child.name, path.join(sessionDir, child.name), 'classic-round', Number(match[1]));
     }
     return { runs, issues };
 }

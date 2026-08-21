@@ -3,16 +3,22 @@
  * @module @deepseek-ai/dsh-kersor-viewer
  */
 import type { KersorDiagnosticIssue } from './diagnostics.ts';
+import type { KersorWorkflowResultView } from './fold.ts';
 /** Default roots scanned in addition to configured ones. */
 export declare const DEFAULT_KERSOR_ROOTS: string[];
 /** Lifecycle classification of one discovered run directory. */
 export type KersorRunDiscovery = 'active' | 'completed' | 'failed';
+/** Storage family of one executable Workflow run. */
+export type KersorRunKind = 'autonomous' | 'classic-round';
 /** One discovered run: identity paths plus classification. */
 export interface KersorRunRef {
     readonly runId: string;
     readonly runDir: string;
     readonly sessionDir: string;
     readonly root: string;
+    readonly kind: KersorRunKind;
+    readonly round?: number;
+    readonly result?: KersorWorkflowResultView;
     readonly discovery: KersorRunDiscovery;
 }
 /** How a root entered the scanner. */

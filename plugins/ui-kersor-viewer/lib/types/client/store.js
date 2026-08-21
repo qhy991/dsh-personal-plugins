@@ -21,7 +21,7 @@ export class KersorViewerStore {
     get rows() {
         return (this.state.snapshot?.runs ?? []).map(ref => ({
             ...ref,
-            view: this.state.views.get(ref.runDir),
+            view: this.withInventoryResult(ref.runDir, this.state.views.get(ref.runDir)),
         }));
     }
     /** Currently selected run directory (panel-local choice). */
@@ -69,8 +69,8 @@ export class KersorViewerStore {
             this.selectedClassic = undefined;
         }
         const { transportError: _, ...state } = this.state;
-        const loading = snapshot.diagnostics.scan.state === 'never'
-            || snapshot.diagnostics.scan.state === 'running';
+        const loading = this.state.snapshot === undefined && (snapshot.diagnostics.scan.state === 'never'
+            || snapshot.diagnostics.scan.state === 'running');
         this.state = { ...state, snapshot, views, classicDetails, loading };
         this.emit();
     }
@@ -147,7 +147,7 @@ export class KersorViewerStore {
             return;
         }
         const views = new Map(this.state.views);
-        views.set(frame.run.runDir, frame.run);
+        views.set(frame.run.runDir, this.withInventoryResult(frame.run.runDir, frame.run) ?? frame.run);
         this.state = { ...this.state, views, loading: false };
         this.emit();
     }
@@ -156,8 +156,29 @@ export class KersorViewerStore {
         if (view === undefined)
             return;
         const views = new Map(this.state.views);
-        views.set(runDir, view);
+        views.set(runDir, this.withInventoryResult(runDir, view) ?? view);
         this.state = { ...this.state, views, loading: false };
+        this.emit();
+    }
+    /** Attach one separately loaded bounded Workflow result to its folded run view. */
+    setRunResult(runDir, result) {
+        if (result === undefined)
+            return;
+        const existing = this.state.views.get(runDir);
+        if (existing === undefined)
+            return;
+        const views = new Map(this.state.views);
+        views.set(runDir, {
+            ...existing,
+            result,
+            candidateStage: result.stage,
+            selectedCandidateId: result.selectedCandidateId,
+            expectedCycles: result.expectedCycles,
+            estimatedSpeedup: result.estimatedSpeedup,
+            measuredSpeedup: result.measuredSpeedup,
+            candidates: result.candidates,
+        });
+        this.state = { ...this.state, views };
         this.emit();
     }
     /** Drop connection-scoped state. */
@@ -166,6 +187,23 @@ export class KersorViewerStore {
         this.selected = undefined;
         this.selectedClassic = undefined;
         this.emit();
+    }
+    withInventoryResult(runDir, view) {
+        if (view === undefined || view.result !== undefined)
+            return view;
+        const result = this.state.snapshot?.runs.find(ref => ref.runDir === runDir)?.result;
+        return result === undefined
+            ? view
+            : {
+                ...view,
+                result,
+                candidateStage: result.stage,
+                selectedCandidateId: result.selectedCandidateId,
+                expectedCycles: result.expectedCycles,
+                estimatedSpeedup: result.estimatedSpeedup,
+                measuredSpeedup: result.measuredSpeedup,
+                candidates: result.candidates,
+            };
     }
     emit() {
         for (const listener of this.listeners)

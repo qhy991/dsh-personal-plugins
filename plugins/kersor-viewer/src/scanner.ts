@@ -3,11 +3,14 @@
  * @module @deepseek-ai/dsh-kersor-viewer
  */
 
-import { readFile, readdir } from 'node:fs/promises'
+import { access, readFile, readdir } from 'node:fs/promises'
+import type { Dirent } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { createIssue, errorCode, issueFromError, mergeIssue } from './diagnostics.ts'
 import type { KersorDiagnosticIssue } from './diagnostics.ts'
+import type { KersorWorkflowResultView } from './fold.ts'
+import { readWorkflowResult } from './result.ts'
 
 /** Default roots scanned in addition to configured ones. */
 export const DEFAULT_KERSOR_ROOTS = [
@@ -18,12 +21,18 @@ export const DEFAULT_KERSOR_ROOTS = [
 /** Lifecycle classification of one discovered run directory. */
 export type KersorRunDiscovery = 'active' | 'completed' | 'failed'
 
+/** Storage family of one executable Workflow run. */
+export type KersorRunKind = 'autonomous' | 'classic-round'
+
 /** One discovered run: identity paths plus classification. */
 export interface KersorRunRef {
   readonly runId: string
   readonly runDir: string
   readonly sessionDir: string
   readonly root: string
+  readonly kind: KersorRunKind
+  readonly round?: number
+  readonly result?: KersorWorkflowResultView
   readonly discovery: KersorRunDiscovery
 }
 
@@ -149,20 +158,32 @@ async function scanSession(
   sessionDir: string,
   root: string,
 ): Promise<{ runs: KersorRunRef[]; issues: KersorScannedRunIssue[]; issue?: KersorDiagnosticIssue }> {
-  const runsDir = path.join(sessionDir, 'autonomous-runs')
-  let children
+  const autonomousDir = path.join(sessionDir, 'autonomous-runs')
+  let autonomousChildren: Dirent[] = []
   try {
-    children = await readdir(runsDir, { withFileTypes: true })
+    autonomousChildren = await readdir(autonomousDir, { withFileTypes: true })
   } catch (error) {
-    if (errorCode(error) === 'ENOENT') return { runs: [], issues: [] }
-    return { runs: [], issues: [], issue: issueFromError('runs_scan', error, 'warning') }
+    if (errorCode(error) !== 'ENOENT') {
+      return { runs: [], issues: [], issue: issueFromError('runs_scan', error, 'warning') }
+    }
   }
   const runs: KersorRunRef[] = []
   const issues: KersorScannedRunIssue[] = []
-  for (const child of children) {
-    if (!child.isDirectory() && !child.isSymbolicLink()) continue
-    const runId = child.name
-    const runDir = path.join(runsDir, runId)
+  const appendRun = async (
+    runId: string,
+    runDir: string,
+    kind: KersorRunKind,
+    round?: number,
+  ): Promise<void> => {
+    if (kind === 'classic-round') {
+      try {
+        await access(path.join(runDir, '.runtime', 'events.jsonl'))
+      } catch (error) {
+        if (errorCode(error) === 'ENOENT') return
+        issues.push({ runDir, issue: issueFromError('runs_scan', error, 'warning') })
+        return
+      }
+    }
     const summary = await readSummary(path.join(runDir, '.runtime', 'summary.json'))
     let discovery: KersorRunDiscovery = 'active'
     if (summary.value !== undefined) {
@@ -174,7 +195,30 @@ async function scanSession(
       }
     }
     if (summary.issue !== undefined) issues.push({ runDir, issue: summary.issue })
-    runs.push({ runId, runDir, sessionDir, root, discovery })
+    const result = await readWorkflowResult(runDir)
+    runs.push({
+      runId, runDir, sessionDir, root, kind,
+      ...(round === undefined ? {} : { round }),
+      ...(result === undefined ? {} : { result }),
+      discovery,
+    })
+  }
+  for (const child of autonomousChildren) {
+    if (!child.isDirectory() && !child.isSymbolicLink()) continue
+    const runId = child.name
+    await appendRun(runId, path.join(autonomousDir, runId), 'autonomous')
+  }
+  let sessionChildren: Dirent[]
+  try {
+    sessionChildren = await readdir(sessionDir, { withFileTypes: true })
+  } catch (error) {
+    return { runs, issues, issue: issueFromError('runs_scan', error, 'warning') }
+  }
+  for (const child of sessionChildren) {
+    if (!child.isDirectory() && !child.isSymbolicLink()) continue
+    const match = /^run-([1-9][0-9]*)$/.exec(child.name)
+    if (match === null) continue
+    await appendRun(child.name, path.join(sessionDir, child.name), 'classic-round', Number(match[1]))
   }
   return { runs, issues }
 }

@@ -37,12 +37,30 @@ export interface KersorPhaseView {
   readonly calls: KersorCallView[]
 }
 
+/** One bounded authored candidate projected from the Workflow output. */
+export interface KersorCandidateResultView {
+  readonly id: string
+  readonly expectedCycles?: number
+}
+
+/** Candidate-selection and verification state owned by one Workflow output. */
+export interface KersorWorkflowResultView {
+  readonly stage?: string
+  readonly selectedCandidateId?: string
+  readonly expectedCycles?: number
+  readonly estimatedSpeedup?: number
+  readonly measuredSpeedup?: number | null
+  readonly candidates: readonly KersorCandidateResultView[]
+}
+
 /** Folded projection of one KerSor autonomous run. */
 export interface KersorRunView {
   readonly runId: string
   readonly runDir: string
   readonly sessionDir: string
   status: KersorRunStatus
+  workflow?: string | undefined
+  scriptHash?: string | undefined
   startedTs?: string | undefined
   endedTs?: string | undefined
   currentPhase: string
@@ -54,6 +72,13 @@ export interface KersorRunView {
     tokens: number
   }
   error?: string | undefined
+  result?: KersorWorkflowResultView | undefined
+  candidateStage?: string | undefined
+  selectedCandidateId?: string | undefined
+  expectedCycles?: number | undefined
+  estimatedSpeedup?: number | undefined
+  measuredSpeedup?: number | null | undefined
+  candidates?: readonly KersorCandidateResultView[] | undefined
 }
 
 /** Shape of one parsed `events.jsonl` line (superset; unknown fields ignored). */
@@ -65,6 +90,9 @@ export interface KersorEvent {
   readonly seq?: number
   readonly call_id?: string
   readonly usage?: { total_tokens?: number }
+  readonly script?: string
+  readonly script_hash?: string
+  readonly message?: string
   readonly error?: { message?: string } | string
   [key: string]: unknown
 }
@@ -89,6 +117,47 @@ function ensurePhase(view: KersorRunView, title: string): KersorPhaseView {
   const phase: KersorPhaseView = { title, index: view.phases.length, status: 'running', calls: [] }
   view.phases.push(phase)
   return phase
+}
+
+function workflowName(script: string): string | undefined {
+  const parts = script.replaceAll('\\', '/').split('/').filter(Boolean)
+  return parts.length > 1 ? parts.at(-2) : parts.at(-1)
+}
+
+/** Copy one canonical result into the flat wire projection and its grouped view. */
+export function applyWorkflowResult(view: KersorRunView, result: KersorWorkflowResultView): void {
+  view.result = result
+  view.candidateStage = result.stage
+  view.selectedCandidateId = result.selectedCandidateId
+  view.expectedCycles = result.expectedCycles
+  view.estimatedSpeedup = result.estimatedSpeedup
+  view.measuredSpeedup = result.measuredSpeedup
+  view.candidates = result.candidates
+}
+
+function foldWorkflowLog(view: KersorRunView, message: string): void {
+  const candidate = /: candidate ([A-Za-z0-9._-]+) accepted, expected_cycles=([0-9]+)/.exec(message)
+  if (candidate !== null) {
+    const id = candidate[1]
+    const expectedCycles = Number(candidate[2])
+    if (id === undefined || !Number.isFinite(expectedCycles)) return
+    const current = view.result ?? { candidates: [] }
+    const candidates = current.candidates.some(row => row.id === id)
+      ? current.candidates
+      : [...current.candidates, { id, expectedCycles }]
+    applyWorkflowResult(view, { ...current, candidates })
+    return
+  }
+  const selected = /: selected ([A-Za-z0-9._-]+) \(/.exec(message)
+  if (selected?.[1] !== undefined) {
+    const current = view.result ?? { candidates: [] }
+    const chosen = current.candidates.find(row => row.id === selected[1])
+    applyWorkflowResult(view, {
+      ...current,
+      selectedCandidateId: selected[1],
+      ...(chosen?.expectedCycles === undefined ? {} : { expectedCycles: chosen.expectedCycles }),
+    })
+  }
 }
 
 function callBucket(view: KersorRunView, event: KersorEvent, kind: KersorCallKind): KersorCallView | undefined {
@@ -120,6 +189,8 @@ export function foldEvent(view: KersorRunView, event: KersorEvent): void {
     case 'workflow.started': {
       view.status = 'running'
       view.startedTs = event.ts
+      if (typeof event.script === 'string') view.workflow = workflowName(event.script)
+      if (typeof event.script_hash === 'string') view.scriptHash = event.script_hash
       return
     }
     case 'phase.changed': {
@@ -209,8 +280,12 @@ export function foldEvent(view: KersorRunView, event: KersorEvent): void {
       if (row) row.rolledBack = true
       return
     }
+    case 'workflow.log': {
+      if (typeof event.message === 'string') foldWorkflowLog(view, event.message)
+      return
+    }
     default:
-      // workflow.log, admission, resume, transaction progress, step detail:
+      // Admission, resume, transaction progress, step detail:
       // intentionally not projected into the view model.
       return
   }

@@ -31,12 +31,28 @@ export interface KersorPhaseView {
     status: 'running' | 'completed' | 'failed';
     readonly calls: KersorCallView[];
 }
+/** One bounded authored candidate projected from the Workflow output. */
+export interface KersorCandidateResultView {
+    readonly id: string;
+    readonly expectedCycles?: number;
+}
+/** Candidate-selection and verification state owned by one Workflow output. */
+export interface KersorWorkflowResultView {
+    readonly stage?: string;
+    readonly selectedCandidateId?: string;
+    readonly expectedCycles?: number;
+    readonly estimatedSpeedup?: number;
+    readonly measuredSpeedup?: number | null;
+    readonly candidates: readonly KersorCandidateResultView[];
+}
 /** Folded projection of one KerSor autonomous run. */
 export interface KersorRunView {
     readonly runId: string;
     readonly runDir: string;
     readonly sessionDir: string;
     status: KersorRunStatus;
+    workflow?: string | undefined;
+    scriptHash?: string | undefined;
     startedTs?: string | undefined;
     endedTs?: string | undefined;
     currentPhase: string;
@@ -48,6 +64,13 @@ export interface KersorRunView {
         tokens: number;
     };
     error?: string | undefined;
+    result?: KersorWorkflowResultView | undefined;
+    candidateStage?: string | undefined;
+    selectedCandidateId?: string | undefined;
+    expectedCycles?: number | undefined;
+    estimatedSpeedup?: number | undefined;
+    measuredSpeedup?: number | null | undefined;
+    candidates?: readonly KersorCandidateResultView[] | undefined;
 }
 /** Shape of one parsed `events.jsonl` line (superset; unknown fields ignored). */
 export interface KersorEvent {
@@ -60,11 +83,16 @@ export interface KersorEvent {
     readonly usage?: {
         total_tokens?: number;
     };
+    readonly script?: string;
+    readonly script_hash?: string;
+    readonly message?: string;
     readonly error?: {
         message?: string;
     } | string;
     [key: string]: unknown;
 }
+/** Copy one canonical result into the flat wire projection and its grouped view. */
+export declare function applyWorkflowResult(view: KersorRunView, result: KersorWorkflowResultView): void;
 /** Fold one parsed event into the view. Mutates `view` in place. */
 export declare function foldEvent(view: KersorRunView, event: KersorEvent): void;
 /** Create an empty view for a discovered run directory. */

@@ -13,6 +13,7 @@
     "src/classic.ts",
     "src/diagnostics.ts",
     "src/fold.ts",
+    "src/result.ts",
     "src/invariant.ts"
   ],
   "references": [

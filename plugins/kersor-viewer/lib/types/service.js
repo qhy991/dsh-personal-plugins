@@ -42,7 +42,8 @@ import z from '@deepseek-ai/schemastery';
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import { readClassicSessionDetail, readClassicSessions } from "./classic.js";
 import { createIssue, issueFromError, mergeIssue } from "./diagnostics.js";
-import { createRunView, foldEvent } from "./fold.js";
+import { applyWorkflowResult, createRunView, foldEvent } from "./fold.js";
+import { readWorkflowResult } from "./result.js";
 import { scanRoots } from "./scanner.js";
 import { EventsTailer } from "./tailer.js";
 export { EventsTailer } from "./tailer.js";
@@ -55,15 +56,18 @@ let KersorViewerService = (() => {
     let _instanceExtraInitializers = [];
     let _snapshot_decorators;
     let _runBacklog_decorators;
+    let _runResult_decorators;
     let _classicSessionDetail_decorators;
     return class KersorViewerService extends _classSuper {
         static {
             const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
             _snapshot_decorators = [Remote('snapshot')];
             _runBacklog_decorators = [Remote('runBacklog')];
+            _runResult_decorators = [Remote('runResult')];
             _classicSessionDetail_decorators = [Remote('classicSessionDetail')];
             __esDecorate(this, null, _snapshot_decorators, { kind: "method", name: "snapshot", static: false, private: false, access: { has: obj => "snapshot" in obj, get: obj => obj.snapshot }, metadata: _metadata }, null, _instanceExtraInitializers);
             __esDecorate(this, null, _runBacklog_decorators, { kind: "method", name: "runBacklog", static: false, private: false, access: { has: obj => "runBacklog" in obj, get: obj => obj.runBacklog }, metadata: _metadata }, null, _instanceExtraInitializers);
+            __esDecorate(this, null, _runResult_decorators, { kind: "method", name: "runResult", static: false, private: false, access: { has: obj => "runResult" in obj, get: obj => obj.runResult }, metadata: _metadata }, null, _instanceExtraInitializers);
             __esDecorate(this, null, _classicSessionDetail_decorators, { kind: "method", name: "classicSessionDetail", static: false, private: false, access: { has: obj => "classicSessionDetail" in obj, get: obj => obj.classicSessionDetail }, metadata: _metadata }, null, _instanceExtraInitializers);
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
@@ -143,8 +147,20 @@ let KersorViewerService = (() => {
             };
         }
         /** Full folded view of one run (panel open / reconnect backlog). */
-        runBacklog(runDir) {
-            return this.tracked.get(runDir)?.view;
+        async runBacklog(runDir) {
+            const tracked = this.tracked.get(runDir);
+            if (tracked === undefined)
+                return undefined;
+            const result = tracked.view.result ?? await readWorkflowResult(runDir);
+            if (result !== undefined)
+                applyWorkflowResult(tracked.view, result);
+            return tracked.view;
+        }
+        /** Bounded candidate-selection result for one discovered run. */
+        async runResult(runDir) {
+            if (!this.tracked.has(runDir))
+                return undefined;
+            return readWorkflowResult(runDir);
         }
         /**
          * Read sealed, bounded detail for one classic Session present in the snapshot.
@@ -229,11 +245,14 @@ let KersorViewerService = (() => {
                                 state: existing.observation.lastIssue === undefined ? 'complete' : 'degraded',
                             };
                             this.publishRun(existing.view);
+                            void this.loadRunResult(existing);
                         }
                         else {
                             this.attachTailer(existing);
                         }
                     }
+                    if (existing.view.result === undefined && ref.discovery !== 'active')
+                        void this.loadRunResult(existing);
                     continue;
                 }
                 const tracked = {
@@ -286,6 +305,9 @@ let KersorViewerService = (() => {
             }
             if (view.status !== 'completed' && view.status !== 'failed')
                 view.status = terminalStatus(ref);
+            const result = await readWorkflowResult(ref.runDir);
+            if (result !== undefined)
+                applyWorkflowResult(view, result);
             tracked.observation = {
                 ...tracked.observation,
                 state: tracked.observation.lastIssue === undefined ? 'complete' : 'degraded',
@@ -318,6 +340,7 @@ let KersorViewerService = (() => {
                         state: tracked.observation.lastIssue === undefined ? 'complete' : 'degraded',
                     };
                     tailer.stop();
+                    void this.loadRunResult(tracked);
                 }
             }, () => {
                 if (tracked.tailer === tailer)
@@ -358,6 +381,13 @@ let KersorViewerService = (() => {
                 tracked.observation = { ...tracked.observation, state: 'failed' };
                 this.publishSnapshot();
             }
+        }
+        async loadRunResult(tracked) {
+            const result = await readWorkflowResult(tracked.ref.runDir);
+            if (result === undefined || this.tracked.get(tracked.ref.runDir) !== tracked)
+                return;
+            applyWorkflowResult(tracked.view, result);
+            this.publishRun(tracked.view);
         }
         foldLine(tracked, line) {
             let decoded;

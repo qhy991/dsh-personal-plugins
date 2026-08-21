@@ -1,6 +1,6 @@
 # dsh-personal-plugins
 
-统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、只读 run viewer、Web 侧栏以及可选的有限 Mission 启动器；不复制 DSH 上游源码，也不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
+统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、只读 run viewer、与 Chat／Trajectory 并列的 KerSor view，以及可选的有限 Mission 启动器；不复制 DSH 上游源码，也不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
 
 ## 五分钟上手
 
@@ -19,7 +19,7 @@
 3. **重启 DSH Web 进程**。已经运行的 Host 不会自动采用新 preset composition 或新的浏览器 bundle。
 4. 在 DSH 中添加目标工作区，新建会话，把 agent preset 从“标准模式”切换为 **KerSor**。
 5. 用任务合同描述目标、基线、权威验证命令、禁止修改的文件和停止条件。Agent 应先加载 `kersor` skill，再由 skill 路由到当前 KerSor checkout 的协议。
-6. 用 `kersor_status` 查看当前 Session；用侧栏底部的“KerSor 活动”查看优化会话与 autonomous Workflow。
+6. 用 `kersor_status` 查看当前 Session；用会话标题下的 `KerSor` 标签查看优化会话、Workflow 执行图与候选选择。
 
 ## 为什么安装时生成 composition
 
@@ -42,7 +42,7 @@ python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
 
 覆盖前，安装器会把旧目录移动到同级时间戳备份。KerSor 的机器路径只写入已安装 preset 的 `.local/kersor-root`，不会进入 Git。
 
-为 Web profile 安装 run viewer 与侧栏（建议先安装上面的 preset，让两者共享同一份 checkout 指针）：
+为 Web profile 安装 run viewer 与 KerSor conversation view（建议先安装上面的 preset，让两者共享同一份 checkout 指针）：
 
 ```bash
 dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
@@ -58,6 +58,29 @@ dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
 dsh plugin --profile web remove @qhy991/dsh-kersor-web
 dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
 ```
+
+## 公开分发
+
+本仓库当前是包含多个本地 package 的源码分发包，而不是可以从仓库根直接安装的单一 npm package。最可靠的公开安装方式是把 GitHub 仓库设为 public、发布一个不可变 tag，并让使用者 clone 后通过 `file:` 安装 bundle：
+
+```bash
+git clone --branch <release-tag> https://github.com/qhy991/dsh-personal-plugins.git
+cd dsh-personal-plugins
+python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
+dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
+```
+
+发布者在测试通过后创建并推送 tag：
+
+```bash
+git tag v0.1.17
+git push origin main
+git push origin v0.1.17
+```
+
+使用者应锁定 tag 或 commit；Git package 和本地 package 的安装代码运行在 agent 沙箱之外，只应安装可信源码。升级时先 `git pull` 或切换到新 tag，再按上文执行精确 remove／add 和 Web Host 重启。
+
+若需要 `dsh plugin --profile web add @scope/package` 的单行安装体验，下一步应把 launcher、Host viewer、Client viewer 和 bundle 分别发布到有权限的 npm scope，并把 bundle 中的 `file:` 依赖改成相同 release family 的 semver 依赖。在完成重命名、依赖改写和四包发布之前，不应宣称当前 GitHub 根目录支持 `github:owner/repo` 直接安装。
 
 若 DSH 使用非默认位置：
 
@@ -92,7 +115,7 @@ compose optimize --path <task-dir> \
 
 在 DSH Workspace Write 中，Phase 3.6 的 Proposal 必须保存在 Session 内的 `workflow-authoring/proposals/`，Catalog 也从同一 store 生成；不要要求写 KerSor checkout。`author-context.json.dispatch` 是唯一 subagent envelope，必须原样传入而不是由 parent 重写 metadata 模板；其中 `run_in_background:false` 会让工具阻塞到作者完成。不要用 `list_agents` 轮询，也不要检查或写 staging 进度。author 返回后的第一步是把三个文件封存在 `author-handoff.json`；save 必须携带该 seal，任何 parent 修补都会因 hash 不匹配而被拒绝。结构校验通过后仍要做语义安全审查：Workflow 只能返回候选或评测 Session-local 副本，不能在证明正确且更快之前覆盖规范 checkpoint。任务的 tests、reference、problem 与 benchmark harness 都是不可改写的 oracle。
 
-“从头开始”还必须使用 `--fresh-session` 与全新 worktree；只有任务工作区没有 `.kersor` 历史时，外置空 `KERSOR_SESSION_ROOT` 才是有效替代。setup 会同时检查存储根和任务工作区，关闭 retrieval、experience、transfer 与 seed analysis，并拒绝先前或 partial Session。基线也必须由当前 Session 亲自见证：已经知道 task-native 命令时，Session 创建后先用 `baseline-witness.py init` 原子创建 `test-method.md`，再运行 `record` 与 `verify` 校验命令、Session config 与 kernel hash；不要手写最小 Markdown，也不要用代码 span 包住命令。创建 Session 前跑出的数字或复制进 Markdown 的历史数值不算证据。baseline 后必须通过 `profile-handoff.py context` 调用唯一的前台 kernel-profiler；parent 返回后的第一动作以 child Session id seal 精确 profile 字节，selection 与 authoring 都会重新 verify，非空但无 provenance 的文件也会失败。dispatch 前还要用 `prepare-dsh-workflow.mjs` 生成 `dsh-workflow.json` 与 `dsh-compatibility.json`，通过后用 `candidate-ownership.py seal` 锁定规范 kernel、tests、problem、既有 diff 与非 Session 文件。只以 `meta/script/args` 调用一次 DSH Workflow，返回后的第一步必须执行 ownership `verify`；子 Agent 只能返回源码或分析，由 host 在 Session 内落盘和评测。任一门禁或 Workflow 调用失败时，不得由 parent 修补、重试或直接接管优化，必须把 Session 转成 `stalled`。侧栏会分别显示“从零隔离”“基线见证”“Profile 证据／来源”“DSH 兼容”和“候选所有权”徽标，并在 baseline 未完成时显示 `init`、`record + verify` 或“新建 Session”下一步及规范失败原因，因此执行边界无需翻文件即可确认。
+“从头开始”还必须使用 `--fresh-session` 与全新 worktree；只有任务工作区没有 `.kersor` 历史时，外置空 `KERSOR_SESSION_ROOT` 才是有效替代。setup 会同时检查存储根和任务工作区，关闭 retrieval、experience、transfer 与 seed analysis，并拒绝先前或 partial Session。基线也必须由当前 Session 亲自见证：已经知道 task-native 命令时，Session 创建后先用 `baseline-witness.py init` 原子创建 `test-method.md`，再运行 `record` 与 `verify` 校验命令、Session config 与 kernel hash；不要手写最小 Markdown，也不要用代码 span 包住命令。创建 Session 前跑出的数字或复制进 Markdown 的历史数值不算证据。baseline 后必须通过 `profile-handoff.py context` 调用唯一的前台 kernel-profiler；parent 返回后的第一动作以 child Session id seal 精确 profile 字节，selection 与 authoring 都会重新 verify，非空但无 provenance 的文件也会失败。dispatch 前还要用 `prepare-dsh-workflow.mjs` 生成 `dsh-workflow.json` 与 `dsh-compatibility.json`，通过后用 `candidate-ownership.py seal` 锁定规范 kernel、tests、problem、既有 diff 与非 Session 文件。只以 `meta/script/args` 调用一次 DSH Workflow，返回后的第一步必须执行 ownership `verify`；子 Agent 只能返回源码或分析，由 host 在 Session 内落盘和评测。任一门禁或 Workflow 调用失败时，不得由 parent 修补、重试或直接接管优化，必须把 Session 转成 `stalled`。与 Chat、Trajectory 并列的 KerSor view 会分别显示“从零隔离”“基线见证”“Profile 证据／来源”“DSH 兼容”和“候选所有权”徽标，并在 baseline 未完成时显示 `init`、`record + verify` 或“新建 Session”下一步及规范失败原因，因此执行边界无需翻文件即可确认。
 
 验证 setup 合同时不要直接解析 `session-config.json` 的内部层级。使用
 `bash "$kersor_root/scripts/kersor-state.sh" "$SESSION_DIR" get <field>` 读取稳定投影；
@@ -184,7 +207,7 @@ python3 scripts/check.py
 bundles/kersor-web/         # Web profile 的只读 viewer + UI 组合层
 plugins/kersor/             # 可选有限 Mission 启动器（Host）
 plugins/kersor-viewer/      # Session 摘要、run 发现、tail、fold 与 snapshot remotes
-plugins/ui-kersor-viewer/   # 优化会话与 run 的 Web 侧栏（Client）
+plugins/ui-kersor-viewer/   # 优化会话、执行图与候选选择的 KerSor view（Client）
 presets/kersor/
   preset.yml                 # DSH picker metadata
   skills/kersor/SKILL.md     # 只负责路由到 KerSor 的轻量适配层

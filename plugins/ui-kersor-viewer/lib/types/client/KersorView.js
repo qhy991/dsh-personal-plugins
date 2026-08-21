@@ -1,9 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-/** KerSor runs sidebar panel: run inventory with live phase/call progress. */
-import { useState, useSyncExternalStore } from 'react';
+/** KerSor conversation view: Session inventory with live Workflow progress. */
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { IconChevronRightOutline14, StateDot } from '@deepseek-ai/dsh-client-ui-primitives';
 import { visibleFitConfidence } from "./readiness.js";
-import css from './KersorPanel.module.css';
+import css from './KersorView.module.css';
 const RUN_STATUS_KEYS = {
     running: 'run.active',
     completed: 'run.completed',
@@ -209,8 +209,51 @@ function PhaseSection({ phase, t }) {
     const title = phase.title.length > 0 ? phase.title : t('phase.empty');
     return (_jsxs("div", { className: css.phaseSection, children: [_jsxs("div", { className: css.phaseHeader, children: [_jsx("span", { className: css.dotSlot, children: _jsx(StateDot, { state: phaseDotState(phase.status) }) }), _jsx("span", { className: css.phaseTitle, children: title }), _jsx("span", { className: css.phaseSummary, children: phase.calls.length })] }), phase.calls.map(call => _jsx(CallRow, { call: call, t: t }, call.callId))] }));
 }
+function WorkflowPipeline({ view, t }) {
+    return (_jsx("ol", { className: css.pipeline, "aria-label": t('run.pipeline'), children: view.phases.map(phase => (_jsxs("li", { className: css.pipelineNode, "data-phase-status": phase.status, children: [_jsxs("div", { className: css.pipelineNodeHead, children: [_jsx(StateDot, { state: phaseDotState(phase.status) }), _jsx("span", { children: phase.title.length > 0 ? phase.title : t('phase.empty') })] }), _jsx("span", { className: css.pipelineCount, children: t('run.calls', { calls: phase.calls.length }) }), phase.calls.length > 0
+                    ? (_jsx("div", { className: css.pipelineCalls, children: phase.calls.map(call => (_jsxs("span", { className: css.pipelineCall, "data-call-status": call.status, title: call.callId, children: [_jsx(StateDot, { state: callDotState(call.status) }), _jsx("span", { children: call.label })] }, call.callId))) }))
+                    : null] }, `${phase.index}-${phase.title}`))) }));
+}
+function WorkflowResult({ result, t }) {
+    return (_jsxs("section", { className: css.workflowResult, "aria-label": t('run.result.title'), children: [_jsxs("div", { className: css.resultHead, children: [_jsx("span", { className: css.detailTitle, children: t('run.result.title') }), result.stage !== undefined
+                        ? _jsx("span", { className: css.resultStage, children: t('run.result.stage', { stage: result.stage }) })
+                        : null] }), _jsxs("div", { className: css.resultMetrics, children: [result.selectedCandidateId !== undefined
+                        ? _jsx("span", { children: t('run.result.selected', { candidate: result.selectedCandidateId }) })
+                        : null, result.expectedCycles !== undefined
+                        ? _jsx("span", { children: t('run.result.cycles', { cycles: result.expectedCycles.toLocaleString() }) })
+                        : null, result.measuredSpeedup !== undefined && result.measuredSpeedup !== null
+                        ? _jsx("span", { "data-measurement": "measured", children: t('run.result.measured', { speedup: speedup(result.measuredSpeedup) }) })
+                        : result.estimatedSpeedup !== undefined
+                            ? _jsx("span", { "data-measurement": "estimated", children: t('run.result.estimated', { speedup: speedup(result.estimatedSpeedup) }) })
+                            : _jsx("span", { "data-measurement": "pending", children: t('run.result.unmeasured') })] }), result.candidates.length > 0
+                ? (_jsx("ul", { className: css.candidates, children: result.candidates.map(candidate => (_jsxs("li", { className: css.candidate, "data-selected": candidate.id === result.selectedCandidateId, children: [_jsx("span", { className: css.mono, children: candidate.id }), candidate.expectedCycles !== undefined
+                                ? _jsx("span", { children: t('run.result.cycles', { cycles: candidate.expectedCycles.toLocaleString() }) })
+                                : null, candidate.id === result.selectedCandidateId ? _jsx("span", { children: t('run.result.chosen') }) : null] }, candidate.id))) }))
+                : null] }));
+}
+function workflowResultOf(view) {
+    const nested = view.result;
+    const candidates = view.candidates ?? nested?.candidates ?? [];
+    const stage = view.candidateStage ?? nested?.stage;
+    const selectedCandidateId = view.selectedCandidateId ?? nested?.selectedCandidateId;
+    const expectedCycles = view.expectedCycles ?? nested?.expectedCycles;
+    const estimatedSpeedup = view.estimatedSpeedup ?? nested?.estimatedSpeedup;
+    const measuredSpeedup = view.measuredSpeedup ?? nested?.measuredSpeedup;
+    if (stage === undefined && selectedCandidateId === undefined && expectedCycles === undefined
+        && estimatedSpeedup === undefined && measuredSpeedup === undefined && candidates.length === 0)
+        return undefined;
+    return {
+        ...(stage === undefined ? {} : { stage }),
+        ...(selectedCandidateId === undefined ? {} : { selectedCandidateId }),
+        ...(expectedCycles === undefined ? {} : { expectedCycles }),
+        ...(estimatedSpeedup === undefined ? {} : { estimatedSpeedup }),
+        ...(measuredSpeedup === undefined ? {} : { measuredSpeedup }),
+        candidates,
+    };
+}
 function RunDetail({ view, t }) {
-    return (_jsxs("div", { className: css.runDetail, children: [_jsxs("div", { className: css.runHead, children: [_jsx("span", { className: css.runId, title: view.runDir, children: view.runId }), _jsxs("span", { className: css.statusTail, "data-status": view.status, children: [_jsx(StateDot, { state: runDotState(view.status) }), _jsx("span", { children: t(RUN_STATUS_KEYS[view.status]) })] })] }), _jsxs("div", { className: css.runMeta, children: [view.currentPhase.length > 0 ? _jsx("span", { children: t('run.currentPhase', { phase: view.currentPhase }) }) : null, _jsx("span", { children: t('run.calls', { calls: view.totals.calls }) }), view.totals.tokens > 0 ? _jsx("span", { children: t('run.tokens', { tokens: view.totals.tokens.toLocaleString() }) }) : null] }), view.error !== undefined ? _jsx("div", { className: css.runError, children: t('run.error', { message: view.error }) }) : null, view.phases.map(phase => _jsx(PhaseSection, { phase: phase, t: t }, `${phase.index}-${phase.title}`))] }));
+    const result = workflowResultOf(view);
+    return (_jsxs("div", { className: css.runDetail, children: [_jsxs("div", { className: css.runHead, children: [_jsx("span", { className: css.workflowIdentity, title: view.scriptHash, children: view.workflow ?? view.runId }), _jsx("span", { className: css.runId, title: view.runDir, children: view.runId }), _jsxs("span", { className: css.statusTail, "data-status": view.status, children: [_jsx(StateDot, { state: runDotState(view.status) }), _jsx("span", { children: t(RUN_STATUS_KEYS[view.status]) })] })] }), _jsxs("div", { className: css.runMeta, children: [view.currentPhase.length > 0 ? _jsx("span", { children: t('run.currentPhase', { phase: view.currentPhase }) }) : null, _jsx("span", { children: t('run.calls', { calls: view.totals.calls }) }), view.totals.tokens > 0 ? _jsx("span", { children: t('run.tokens', { tokens: view.totals.tokens.toLocaleString() }) }) : null] }), view.error !== undefined ? _jsx("div", { className: css.runError, children: t('run.error', { message: view.error }) }) : null, view.phases.length > 0 ? _jsx(WorkflowPipeline, { view: view, t: t }) : null, result !== undefined ? _jsx(WorkflowResult, { result: result, t: t }) : null, view.phases.map(phase => _jsx(PhaseSection, { phase: phase, t: t }, `${phase.index}-${phase.title}`))] }));
 }
 function LauncherControls({ launcher, busy, start, stop, t }) {
     const labels = new Map(launcher.tasks.map(task => [task.id, task.label]));
@@ -250,15 +293,32 @@ function viewerHealth(snapshot) {
         ...(issue === undefined ? {} : { issue }),
     };
 }
-/** Sidebar footer panel: trigger row plus the fixed inventory popup. */
-export function KersorPanel({ t, store, refresh, loadClassic, start, stop }) {
-    const [open, setOpen] = useState(false);
+/** First-class KerSor view rendered beside Chat and Trajectory. */
+export function KersorView({ t, store, refresh, loadRun, loadClassic, start, stop, }) {
     const [busy, setBusy] = useState();
     const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
     const rows = store.rows;
     const classicSessions = state.snapshot?.classic.sessions ?? [];
     const health = state.snapshot === undefined ? undefined : viewerHealth(state.snapshot);
     const view = store.activeView;
+    useEffect(() => {
+        void refresh();
+    }, [refresh]);
+    useEffect(() => {
+        if (store.selectedRunDir !== undefined || rows.length === 0)
+            return;
+        const preferredSession = classicSessions.find(session => session.health === 'active') ?? classicSessions[0];
+        const matching = preferredSession === undefined
+            ? []
+            : rows.filter(row => row.sessionDir === preferredSession.session_dir);
+        const target = matching.sort((left, right) => (right.round ?? 0) - (left.round ?? 0))[0]
+            ?? rows.find(row => row.discovery === 'active')
+            ?? rows[0];
+        if (target === undefined)
+            return;
+        store.select(target.runDir);
+        void loadRun(target.runDir);
+    }, [classicSessions, loadRun, rows, store]);
     const runStart = async (taskId) => {
         setBusy(`start:${taskId}`);
         try {
@@ -285,49 +345,45 @@ export function KersorPanel({ t, store, refresh, loadClassic, start, stop }) {
         store.selectClassic(sessionDir);
         void loadClassic(sessionDir);
     };
-    return (_jsxs("div", { className: css.layer, children: [_jsxs("button", { type: "button", className: css.trigger, "aria-expanded": open, "aria-label": t('panel.trigger'), onClick: () => {
-                    setOpen(!open);
-                    if (!open)
-                        void refresh();
-                }, children: [_jsx("span", { className: css.triggerIcon, children: _jsx(IconChevronRightOutline14, {}) }), _jsx("span", { className: css.triggerLabel, children: t('panel.trigger') }), rows.some(row => row.discovery === 'active')
-                        || classicSessions.some(session => session.health === 'active')
-                        ? _jsx("span", { className: css.triggerBadge, children: _jsx(StateDot, { state: "ongoing" }) })
-                        : null] }), open
-                ? (_jsxs("div", { className: css.panel, role: "dialog", "aria-label": t('panel.title'), children: [_jsxs("div", { className: css.header, children: [_jsx("span", { className: css.title, children: t('panel.title') }), _jsx("span", { className: css.note, children: t('panel.hint') })] }), _jsxs("div", { className: css.body, children: [state.launcher !== undefined
-                                    ? _jsx(LauncherControls, { launcher: state.launcher, busy: busy, start: runStart, stop: runStop, t: t })
-                                    : null, state.transportError !== undefined
-                                    ? _jsx("div", { className: css.readError, children: t('panel.readFailed', { message: state.transportError }) })
-                                    : null, health !== undefined && health.state !== 'healthy'
-                                    ? (_jsx("div", { className: css.readError, "data-source-health": health.state, children: t(health.state === 'failed' ? 'panel.sourcesFailed' : 'panel.sourcesDegraded', {
-                                            roots: health.roots,
-                                            readers: health.readers,
-                                            sources: health.sources,
-                                            stage: health.issue?.stage ?? 'source',
-                                            code: health.issue?.code ?? 'unavailable',
-                                            occurrences: health.issue?.occurrences ?? 1,
-                                        }) }))
-                                    : null, state.loading ? _jsx("div", { className: css.note, children: t('panel.loading') }) : null, !state.loading
-                                    && state.transportError === undefined
-                                    && health?.state === 'healthy'
-                                    && rows.length === 0
-                                    && classicSessions.length === 0
-                                    ? _jsx("div", { className: css.note, children: t('panel.empty', { roots: health.roots }) })
-                                    : null, classicSessions.length > 0
-                                    ? (_jsxs("section", { className: css.activitySection, "aria-label": t('session.title'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('session.title') }), _jsx("span", { className: css.sectionSummary, children: t('session.summary', {
-                                                            count: classicSessions.length,
-                                                            active: classicSessions.filter(session => session.health === 'active').length,
-                                                        }) })] }), _jsx("ul", { className: css.classicRows, children: classicSessions.map(session => (_jsx(ClassicSessionRow, { session: session, selected: store.selectedClassicSessionDir === session.session_dir, loading: state.classicDetailLoading === session.session_dir, ...(state.classicDetails.get(session.session_dir) === undefined
-                                                        ? {}
-                                                        : { detail: state.classicDetails.get(session.session_dir) }), ...(state.classicDetailError?.startsWith(`${session.session_dir}: `) === true
-                                                        ? { error: state.classicDetailError.slice(session.session_dir.length + 2) }
-                                                        : {}), onToggle: () => { toggleClassic(session.session_dir); }, t: t }, session.session_dir))) })] }))
-                                    : null, rows.length > 0
-                                    ? (_jsxs("section", { className: css.activitySection, "aria-label": t('run.sectionTitle'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('run.sectionTitle') }), _jsx("span", { className: css.sectionSummary, children: rows.length })] }), _jsx("ul", { className: css.rows, children: rows.map(row => (_jsxs("li", { className: css.row, "data-run-status": row.discovery, children: [_jsxs("button", { type: "button", className: css.rowHead, "aria-pressed": store.selectedRunDir === row.runDir, onClick: () => { store.select(store.selectedRunDir === row.runDir ? undefined : row.runDir); }, children: [_jsx(StateDot, { state: row.discovery === 'active' ? 'ongoing' : row.discovery === 'failed' ? 'error' : 'done' }), _jsx("span", { className: css.runId, children: row.runId }), _jsx("span", { className: css.rowPath, title: row.runDir, children: row.sessionDir })] }), store.selectedRunDir === row.runDir && row.view !== undefined
-                                                            ? _jsx(RunDetail, { view: row.view, t: t })
-                                                            : null] }, row.runDir))) })] }))
-                                    : null, rows.length > 0 && view !== undefined && !rows.some(row => row.runDir === store.selectedRunDir)
-                                    ? _jsx(RunDetail, { view: view, t: t })
-                                    : null] })] }))
-                : null] }));
+    return (_jsxs("section", { className: css.view, "data-conversation-composer-overlay": "", "aria-label": t('panel.title'), children: [_jsxs("div", { className: css.header, children: [_jsx("span", { className: css.title, children: t('panel.title') }), _jsx("span", { className: css.note, children: t('panel.hint') })] }), _jsxs("div", { className: css.body, children: [state.launcher !== undefined
+                        ? _jsx(LauncherControls, { launcher: state.launcher, busy: busy, start: runStart, stop: runStop, t: t })
+                        : null, state.transportError !== undefined
+                        ? _jsx("div", { className: css.readError, children: t('panel.readFailed', { message: state.transportError }) })
+                        : null, health !== undefined && health.state !== 'healthy'
+                        ? (_jsx("div", { className: css.readError, "data-source-health": health.state, children: t(health.state === 'failed' ? 'panel.sourcesFailed' : 'panel.sourcesDegraded', {
+                                roots: health.roots,
+                                readers: health.readers,
+                                sources: health.sources,
+                                stage: health.issue?.stage ?? 'source',
+                                code: health.issue?.code ?? 'unavailable',
+                                occurrences: health.issue?.occurrences ?? 1,
+                            }) }))
+                        : null, state.loading ? _jsx("div", { className: css.note, children: t('panel.loading') }) : null, !state.loading
+                        && state.transportError === undefined
+                        && health?.state === 'healthy'
+                        && rows.length === 0
+                        && classicSessions.length === 0
+                        ? _jsx("div", { className: css.note, children: t('panel.empty', { roots: health.roots }) })
+                        : null, classicSessions.length > 0
+                        ? (_jsxs("section", { className: css.activitySection, "aria-label": t('session.title'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('session.title') }), _jsx("span", { className: css.sectionSummary, children: t('session.summary', {
+                                                count: classicSessions.length,
+                                                active: classicSessions.filter(session => session.health === 'active').length,
+                                            }) })] }), _jsx("ul", { className: css.classicRows, children: classicSessions.map(session => (_jsx(ClassicSessionRow, { session: session, selected: store.selectedClassicSessionDir === session.session_dir, loading: state.classicDetailLoading === session.session_dir, ...(state.classicDetails.get(session.session_dir) === undefined
+                                            ? {}
+                                            : { detail: state.classicDetails.get(session.session_dir) }), ...(state.classicDetailError?.startsWith(`${session.session_dir}: `) === true
+                                            ? { error: state.classicDetailError.slice(session.session_dir.length + 2) }
+                                            : {}), onToggle: () => { toggleClassic(session.session_dir); }, t: t }, session.session_dir))) })] }))
+                        : null, rows.length > 0
+                        ? (_jsxs("section", { className: css.activitySection, "aria-label": t('run.sectionTitle'), children: [_jsxs("div", { className: css.sectionHead, children: [_jsx("span", { className: css.sectionTitle, children: t('run.sectionTitle') }), _jsx("span", { className: css.sectionSummary, children: rows.length })] }), _jsx("ul", { className: css.rows, children: rows.map(row => (_jsxs("li", { className: css.row, "data-run-status": row.discovery, children: [_jsxs("button", { type: "button", className: css.rowHead, "aria-pressed": store.selectedRunDir === row.runDir, onClick: () => {
+                                                    const next = store.selectedRunDir === row.runDir ? undefined : row.runDir;
+                                                    store.select(next);
+                                                    if (next !== undefined)
+                                                        void loadRun(next);
+                                                }, children: [_jsx(StateDot, { state: row.discovery === 'active' ? 'ongoing' : row.discovery === 'failed' ? 'error' : 'done' }), _jsx("span", { className: css.runId, children: row.runId }), _jsx("span", { className: css.rowPath, title: row.runDir, children: row.sessionDir })] }), store.selectedRunDir === row.runDir && row.view !== undefined
+                                                ? _jsx(RunDetail, { view: row.view, t: t })
+                                                : null] }, row.runDir))) })] }))
+                        : null, rows.length > 0 && view !== undefined && !rows.some(row => row.runDir === store.selectedRunDir)
+                        ? _jsx(RunDetail, { view: view, t: t })
+                        : null] })] }));
 }
-//# sourceMappingURL=KersorPanel.js.map
+//# sourceMappingURL=KersorView.js.map

@@ -1,9 +1,9 @@
 /**
  * KerSor viewer browser half: one atomic Host snapshot plus optional launcher
- * process ownership, rendered in the sidebar.
+ * process ownership, rendered as a first-class conversation view.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
-import { KersorPanel } from "./KersorPanel.js";
+import { KersorView } from "./KersorView.js";
 import { KersorViewerStore } from "./store.js";
 import { en, NS, zh } from "./locales.js";
 export { KersorViewerStore as KersorViewerStoreClass } from "./store.js";
@@ -77,6 +77,28 @@ export function apply(ctx) {
             store.setLauncherUnavailable();
         }
     };
+    const loadRun = async (runDir) => {
+        try {
+            const remote = viewerRemote();
+            const [backlog, result] = await Promise.all([
+                remote.runBacklog(runDir),
+                remote.runResult(runDir),
+            ]);
+            if (!backlog.ok) {
+                store.setTransportError(`${backlog.error.code}: ${backlog.error.message}`);
+                return;
+            }
+            if (!result.ok) {
+                store.setTransportError(`${result.error.code}: ${result.error.message}`);
+                return;
+            }
+            store.setBacklog(runDir, backlog.value);
+            store.setRunResult(runDir, result.value);
+        }
+        catch (error) {
+            store.setTransportError(error instanceof Error ? error.message : String(error));
+        }
+    };
     const loadClassic = async (sessionDir) => {
         store.setClassicDetailLoading(sessionDir);
         try {
@@ -146,12 +168,15 @@ export function apply(ctx) {
         store.applyActiveFrame(frame);
     });
     void refresh();
-    const face = { store, refresh, loadClassic, start, stop };
-    ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-        name: 'sidebar.footer.action',
-        id: 'kersor-panel',
+    const face = { store, refresh, loadRun, loadClassic, start, stop };
+    const t = ctx.locale.bind(NS);
+    ctx.slots.inject('conversation.view', () => ctx.slots.register({
+        name: 'conversation.view',
+        id: 'kersor',
+        order: 20,
         locale: NS,
+        label: () => t('view.kersor'),
         inject: () => face,
-    }, KersorPanel));
+    }, KersorView));
 }
 //# sourceMappingURL=index.js.map

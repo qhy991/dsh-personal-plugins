@@ -56,6 +56,8 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema = z.u
   'runDir': z.string().readonly(),
   'sessionDir': z.string().readonly(),
   'status': z.union([z.literal("running"), z.literal("failed"), z.literal("completed"), z.literal("unknown")]),
+  'workflow': z.union([z.undefined(), z.string()]).optional(),
+  'scriptHash': z.union([z.undefined(), z.string()]).optional(),
   'startedTs': z.union([z.undefined(), z.string()]).optional(),
   'endedTs': z.union([z.undefined(), z.string()]).optional(),
   'currentPhase': z.string(),
@@ -83,6 +85,38 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema = z.u
   'tokens': z.number(),
 }),
   'error': z.union([z.undefined(), z.string()]).optional(),
+  'result': z.union([z.undefined(), z.object({
+  'stage': z.string().readonly().optional(),
+  'selectedCandidateId': z.string().readonly().optional(),
+  'expectedCycles': z.number().readonly().optional(),
+  'estimatedSpeedup': z.number().readonly().optional(),
+  'measuredSpeedup': z.union([z.literal(null), z.number()]).readonly().optional(),
+  'candidates': z.array(z.object({
+  'id': z.string().readonly(),
+  'expectedCycles': z.number().readonly().optional(),
+})).readonly(),
+})]).optional(),
+  'candidateStage': z.union([z.undefined(), z.string()]).optional(),
+  'selectedCandidateId': z.union([z.undefined(), z.string()]).optional(),
+  'expectedCycles': z.union([z.undefined(), z.number()]).optional(),
+  'estimatedSpeedup': z.union([z.undefined(), z.number()]).optional(),
+  'measuredSpeedup': z.union([z.undefined(), z.literal(null), z.number()]).optional(),
+  'candidates': z.union([z.undefined(), z.array(z.object({
+  'id': z.string().readonly(),
+  'expectedCycles': z.number().readonly().optional(),
+}))]).optional(),
+})])
+const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runResult_parameter_0$schema = z.string()
+const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runResult_result$schema = z.union([z.undefined(), z.object({
+  'stage': z.string().readonly().optional(),
+  'selectedCandidateId': z.string().readonly().optional(),
+  'expectedCycles': z.number().readonly().optional(),
+  'estimatedSpeedup': z.number().readonly().optional(),
+  'measuredSpeedup': z.union([z.literal(null), z.number()]).readonly().optional(),
+  'candidates': z.array(z.object({
+  'id': z.string().readonly(),
+  'expectedCycles': z.number().readonly().optional(),
+})).readonly(),
 })])
 const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.object({
   'asOf': z.string().readonly(),
@@ -91,6 +125,19 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'runDir': z.string().readonly(),
   'sessionDir': z.string().readonly(),
   'root': z.string().readonly(),
+  'kind': z.union([z.literal("autonomous"), z.literal("classic-round")]).readonly(),
+  'round': z.number().readonly().optional(),
+  'result': z.object({
+  'stage': z.string().readonly().optional(),
+  'selectedCandidateId': z.string().readonly().optional(),
+  'expectedCycles': z.number().readonly().optional(),
+  'estimatedSpeedup': z.number().readonly().optional(),
+  'measuredSpeedup': z.union([z.literal(null), z.number()]).readonly().optional(),
+  'candidates': z.array(z.object({
+  'id': z.string().readonly(),
+  'expectedCycles': z.number().readonly().optional(),
+})).readonly(),
+}).readonly().optional(),
   'discovery': z.union([z.literal("failed"), z.literal("active"), z.literal("completed")]).readonly(),
 })).readonly(),
   'classic': z.object({
@@ -219,7 +266,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/classicSessionDetail:result',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_classicSessionDetail_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":150,"column":9},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":163,"column":9},
     },
     {
       id: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runBacklog',
@@ -244,7 +291,32 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runBacklog:result',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":140,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":142,"column":9},
+    },
+    {
+      id: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runResult',
+      service: 'kersorViewer',
+      namespace: 'kersorViewer',
+      method: 'runResult',
+      invocation: { kind: 'direct' },
+      parameters: [
+        {
+          name: 'runDir',
+          wire: 'runDir',
+          source: 'json',
+          codec: {
+            mode: 'strict',
+            typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runResult:runDir',
+            schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_runResult_parameter_0$schema,
+          },
+        },
+      ],
+      result: {
+        mode: 'strict',
+        typeSymbol: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/runResult:result',
+        schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_runResult_result$schema,
+      },
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":152,"column":9},
     },
     {
       id: '@deepseek-ai/dsh-kersor-viewer#kersorViewer/snapshot',
@@ -259,7 +331,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor-viewer/types#KersorViewerSnapshot',
         schema: _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":124,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor-viewer/src/service.ts","line":126,"column":3},
     },
   ],
   model: {

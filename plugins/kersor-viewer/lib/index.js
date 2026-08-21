@@ -1,7 +1,7 @@
 import { Service } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import { execFile } from "node:child_process";
-import { access, open, readFile, readdir } from "node:fs/promises";
+import { access, open, readFile, readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -859,7 +859,7 @@ function installedBridge() {
 function kersorPython() {
 	return process.env.KERSOR_PYTHON?.trim() || "python3";
 }
-function optionalString(value) {
+function optionalString$1(value) {
 	return value === void 0 || value === null || typeof value === "string";
 }
 function optionalDetailString(value) {
@@ -868,7 +868,7 @@ function optionalDetailString(value) {
 function optionalBoolean(value) {
 	return value === void 0 || value === null || typeof value === "boolean";
 }
-function optionalNumber(value) {
+function optionalNumber$1(value) {
 	return value === void 0 || value === null || typeof value === "number";
 }
 function optionalGate(value) {
@@ -953,11 +953,11 @@ function isClassicSessionDetail(value) {
 function isClassicSession(value) {
 	if (value === null || typeof value !== "object") return false;
 	const row = value;
-	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && optionalString(row.kernel_language) && optionalString(row.backend) && optionalString(row.integration_pattern) && optionalBoolean(row.allow_workflow_authoring) && optionalNumber(row.workflow_authoring_budget) && (row.selection_status === void 0 || row.selection_status === null || [
+	return typeof row.session_id === "string" && typeof row.session_dir === "string" && (row.storage_kind === "v2" || row.storage_kind === "legacy") && (row.lifecycle === "active" || row.lifecycle === "completed" || row.lifecycle === "stalled" || row.lifecycle === "cancelled") && (row.health === "active" || row.health === "stale" || row.health === "needs_resume" || row.health === "terminal" || row.health === "unknown") && (row.status === "terminal-complete" || row.status === "terminal-stalled" || row.status === "terminal-cancelled" || row.status === "resumable" || row.status === "in-progress" || row.status === "pre-round-1") && optionalString$1(row.kernel_language) && optionalString$1(row.backend) && optionalString$1(row.integration_pattern) && optionalBoolean(row.allow_workflow_authoring) && optionalNumber$1(row.workflow_authoring_budget) && (row.selection_status === void 0 || row.selection_status === null || [
 		"pending",
 		"stalled",
 		"selected"
-	].includes(row.selection_status)) && optionalString(row.decision) && optionalString(row.fit_confidence) && optionalGate(row.baseline_witness) && optionalBaselineAction(row.baseline_next_action) && optionalString(row.baseline_reason) && optionalGate(row.profile_evidence) && optionalString(row.profile_reason) && optionalString(row.profile_owner) && optionalGate(row.dsh_compatibility) && optionalGate(row.candidate_ownership) && optionalGate(row.fresh_session) && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
+	].includes(row.selection_status)) && optionalString$1(row.decision) && optionalString$1(row.fit_confidence) && optionalGate(row.baseline_witness) && optionalBaselineAction(row.baseline_next_action) && optionalString$1(row.baseline_reason) && optionalGate(row.profile_evidence) && optionalString$1(row.profile_reason) && optionalString$1(row.profile_owner) && optionalGate(row.dsh_compatibility) && optionalGate(row.candidate_ownership) && optionalGate(row.fresh_session) && Array.isArray(row.warnings) && row.warnings.every((item) => typeof item === "string");
 }
 function projectSession(row) {
 	return {
@@ -1121,6 +1121,48 @@ function ensurePhase(view, title) {
 	view.phases.push(phase);
 	return phase;
 }
+function workflowName(script) {
+	const parts = script.replaceAll("\\", "/").split("/").filter(Boolean);
+	return parts.length > 1 ? parts.at(-2) : parts.at(-1);
+}
+/** Copy one canonical result into the flat wire projection and its grouped view. */
+function applyWorkflowResult(view, result) {
+	view.result = result;
+	view.candidateStage = result.stage;
+	view.selectedCandidateId = result.selectedCandidateId;
+	view.expectedCycles = result.expectedCycles;
+	view.estimatedSpeedup = result.estimatedSpeedup;
+	view.measuredSpeedup = result.measuredSpeedup;
+	view.candidates = result.candidates;
+}
+function foldWorkflowLog(view, message) {
+	const candidate = /: candidate ([A-Za-z0-9._-]+) accepted, expected_cycles=([0-9]+)/.exec(message);
+	if (candidate !== null) {
+		const id = candidate[1];
+		const expectedCycles = Number(candidate[2]);
+		if (id === void 0 || !Number.isFinite(expectedCycles)) return;
+		const current = view.result ?? { candidates: [] };
+		const candidates = current.candidates.some((row) => row.id === id) ? current.candidates : [...current.candidates, {
+			id,
+			expectedCycles
+		}];
+		applyWorkflowResult(view, {
+			...current,
+			candidates
+		});
+		return;
+	}
+	const selected = /: selected ([A-Za-z0-9._-]+) \(/.exec(message);
+	if (selected?.[1] !== void 0) {
+		const current = view.result ?? { candidates: [] };
+		const chosen = current.candidates.find((row) => row.id === selected[1]);
+		applyWorkflowResult(view, {
+			...current,
+			selectedCandidateId: selected[1],
+			...chosen?.expectedCycles === void 0 ? {} : { expectedCycles: chosen.expectedCycles }
+		});
+	}
+}
 function callBucket(view, event, kind) {
 	const seq = typeof event.seq === "number" ? event.seq : -1;
 	const callId = typeof event.call_id === "string" ? event.call_id : `${event.phase ?? ""}/${event.label ?? ""}/${seq}`;
@@ -1148,6 +1190,8 @@ function foldEvent(view, event) {
 		case "workflow.started":
 			view.status = "running";
 			view.startedTs = event.ts;
+			if (typeof event.script === "string") view.workflow = workflowName(event.script);
+			if (typeof event.script_hash === "string") view.scriptHash = event.script_hash;
 			return;
 		case "phase.changed": {
 			const title = typeof event.phase === "string" ? event.phase : "";
@@ -1235,6 +1279,9 @@ function foldEvent(view, event) {
 			if (row) row.rolledBack = true;
 			return;
 		}
+		case "workflow.log":
+			if (typeof event.message === "string") foldWorkflowLog(view, event.message);
+			return;
 		default: return;
 	}
 }
@@ -1254,6 +1301,60 @@ function createRunView(runId, runDir, sessionDir) {
 			tokens: 0
 		}
 	};
+}
+//#endregion
+//#region lib/types/result.js
+/** Bounded projection of a Workflow Host output for browser visualization. */
+const MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
+const MAX_CANDIDATES = 20;
+function optionalString(value) {
+	return typeof value === "string" && value.length > 0 ? value : void 0;
+}
+function optionalNumber(value) {
+	return typeof value === "number" && Number.isFinite(value) ? value : void 0;
+}
+/**
+* Read one canonical output without forwarding candidate source or arbitrary report text.
+* @param runDir - Exact discovered run directory.
+* @returns Bounded candidate-selection facts, or `undefined` when absent or invalid.
+*/
+async function readWorkflowResult(runDir) {
+	const file = path.join(runDir, "output.json");
+	try {
+		const info = await stat(file);
+		if (!info.isFile() || info.size > MAX_OUTPUT_BYTES) return void 0;
+		const decoded = JSON.parse(await readFile(file, "utf8"));
+		if (decoded === null || typeof decoded !== "object" || Array.isArray(decoded)) return void 0;
+		const value = decoded;
+		const candidates = (Array.isArray(value.candidate_log) ? value.candidate_log : []).slice(0, MAX_CANDIDATES).flatMap((candidate) => {
+			if (candidate === null || typeof candidate !== "object" || Array.isArray(candidate)) return [];
+			const row = candidate;
+			const id = optionalString(row.candidate_id);
+			if (id === void 0) return [];
+			const expectedCycles = optionalNumber(row.expected_cycles);
+			return [{
+				id,
+				...expectedCycles === void 0 ? {} : { expectedCycles }
+			}];
+		});
+		const stage = optionalString(value.arch_stage);
+		const selectedCandidateId = optionalString(value.selected_candidate_id);
+		const expectedCycles = optionalNumber(value.expected_cycles_estimate);
+		const estimatedSpeedup = optionalNumber(value.estimated_speedup);
+		const measured = value.overall_speedup;
+		const measuredSpeedup = measured === null ? null : optionalNumber(measured);
+		if (stage === void 0 && selectedCandidateId === void 0 && expectedCycles === void 0 && estimatedSpeedup === void 0 && measuredSpeedup === void 0 && candidates.length === 0) return void 0;
+		return {
+			...stage === void 0 ? {} : { stage },
+			...selectedCandidateId === void 0 ? {} : { selectedCandidateId },
+			...expectedCycles === void 0 ? {} : { expectedCycles },
+			...estimatedSpeedup === void 0 ? {} : { estimatedSpeedup },
+			...measuredSpeedup === void 0 ? {} : { measuredSpeedup },
+			candidates
+		};
+	} catch {
+		return;
+	}
 }
 //#endregion
 //#region lib/types/scanner.js
@@ -1322,16 +1423,12 @@ async function readSummary(file) {
 	return { value: decoded };
 }
 async function scanSession(sessionDir, root) {
-	const runsDir = path.join(sessionDir, "autonomous-runs");
-	let children;
+	const autonomousDir = path.join(sessionDir, "autonomous-runs");
+	let autonomousChildren = [];
 	try {
-		children = await readdir(runsDir, { withFileTypes: true });
+		autonomousChildren = await readdir(autonomousDir, { withFileTypes: true });
 	} catch (error) {
-		if (errorCode(error) === "ENOENT") return {
-			runs: [],
-			issues: []
-		};
-		return {
+		if (errorCode(error) !== "ENOENT") return {
 			runs: [],
 			issues: [],
 			issue: issueFromError("runs_scan", error, "warning")
@@ -1339,10 +1436,17 @@ async function scanSession(sessionDir, root) {
 	}
 	const runs = [];
 	const issues = [];
-	for (const child of children) {
-		if (!child.isDirectory() && !child.isSymbolicLink()) continue;
-		const runId = child.name;
-		const runDir = path.join(runsDir, runId);
+	const appendRun = async (runId, runDir, kind, round) => {
+		if (kind === "classic-round") try {
+			await access(path.join(runDir, ".runtime", "events.jsonl"));
+		} catch (error) {
+			if (errorCode(error) === "ENOENT") return;
+			issues.push({
+				runDir,
+				issue: issueFromError("runs_scan", error, "warning")
+			});
+			return;
+		}
 		const summary = await readSummary(path.join(runDir, ".runtime", "summary.json"));
 		let discovery = "active";
 		if (summary.value !== void 0) {
@@ -1358,13 +1462,38 @@ async function scanSession(sessionDir, root) {
 			runDir,
 			issue: summary.issue
 		});
+		const result = await readWorkflowResult(runDir);
 		runs.push({
 			runId,
 			runDir,
 			sessionDir,
 			root,
+			kind,
+			...round === void 0 ? {} : { round },
+			...result === void 0 ? {} : { result },
 			discovery
 		});
+	};
+	for (const child of autonomousChildren) {
+		if (!child.isDirectory() && !child.isSymbolicLink()) continue;
+		const runId = child.name;
+		await appendRun(runId, path.join(autonomousDir, runId), "autonomous");
+	}
+	let sessionChildren;
+	try {
+		sessionChildren = await readdir(sessionDir, { withFileTypes: true });
+	} catch (error) {
+		return {
+			runs,
+			issues,
+			issue: issueFromError("runs_scan", error, "warning")
+		};
+	}
+	for (const child of sessionChildren) {
+		if (!child.isDirectory() && !child.isSymbolicLink()) continue;
+		const match = /^run-([1-9][0-9]*)$/.exec(child.name);
+		if (match === null) continue;
+		await appendRun(child.name, path.join(sessionDir, child.name), "classic-round", Number(match[1]));
 	}
 	return {
 		runs,
@@ -1651,12 +1780,14 @@ let KersorViewerService = (() => {
 	let _instanceExtraInitializers = [];
 	let _snapshot_decorators;
 	let _runBacklog_decorators;
+	let _runResult_decorators;
 	let _classicSessionDetail_decorators;
 	return class KersorViewerService extends _classSuper {
 		static {
 			const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
 			_snapshot_decorators = [Remote("snapshot")];
 			_runBacklog_decorators = [Remote("runBacklog")];
+			_runResult_decorators = [Remote("runResult")];
 			_classicSessionDetail_decorators = [Remote("classicSessionDetail")];
 			__esDecorate(this, null, _snapshot_decorators, {
 				kind: "method",
@@ -1677,6 +1808,17 @@ let KersorViewerService = (() => {
 				access: {
 					has: (obj) => "runBacklog" in obj,
 					get: (obj) => obj.runBacklog
+				},
+				metadata: _metadata
+			}, null, _instanceExtraInitializers);
+			__esDecorate(this, null, _runResult_decorators, {
+				kind: "method",
+				name: "runResult",
+				static: false,
+				private: false,
+				access: {
+					has: (obj) => "runResult" in obj,
+					get: (obj) => obj.runResult
 				},
 				metadata: _metadata
 			}, null, _instanceExtraInitializers);
@@ -1776,8 +1918,17 @@ let KersorViewerService = (() => {
 			};
 		}
 		/** Full folded view of one run (panel open / reconnect backlog). */
-		runBacklog(runDir) {
-			return this.tracked.get(runDir)?.view;
+		async runBacklog(runDir) {
+			const tracked = this.tracked.get(runDir);
+			if (tracked === void 0) return void 0;
+			const result = tracked.view.result ?? await readWorkflowResult(runDir);
+			if (result !== void 0) applyWorkflowResult(tracked.view, result);
+			return tracked.view;
+		}
+		/** Bounded candidate-selection result for one discovered run. */
+		async runResult(runDir) {
+			if (!this.tracked.has(runDir)) return void 0;
+			return readWorkflowResult(runDir);
 		}
 		/**
 		* Read sealed, bounded detail for one classic Session present in the snapshot.
@@ -1854,8 +2005,10 @@ let KersorViewerService = (() => {
 								state: existing.observation.lastIssue === void 0 ? "complete" : "degraded"
 							};
 							this.publishRun(existing.view);
+							this.loadRunResult(existing);
 						} else this.attachTailer(existing);
 					}
+					if (existing.view.result === void 0 && ref.discovery !== "active") this.loadRunResult(existing);
 					continue;
 				}
 				const tracked = {
@@ -1906,6 +2059,8 @@ let KersorViewerService = (() => {
 				this.foldLine(tracked, line);
 			}
 			if (view.status !== "completed" && view.status !== "failed") view.status = terminalStatus(ref);
+			const result = await readWorkflowResult(ref.runDir);
+			if (result !== void 0) applyWorkflowResult(view, result);
 			tracked.observation = {
 				...tracked.observation,
 				state: tracked.observation.lastIssue === void 0 ? "complete" : "degraded",
@@ -1938,6 +2093,7 @@ let KersorViewerService = (() => {
 						state: tracked.observation.lastIssue === void 0 ? "complete" : "degraded"
 					};
 					tailer.stop();
+					this.loadRunResult(tracked);
 				}
 			}, () => {
 				if (tracked.tailer === tailer) tracked.tailer = void 0;
@@ -1969,6 +2125,12 @@ let KersorViewerService = (() => {
 				};
 				this.publishSnapshot();
 			}
+		}
+		async loadRunResult(tracked) {
+			const result = await readWorkflowResult(tracked.ref.runDir);
+			if (result === void 0 || this.tracked.get(tracked.ref.runDir) !== tracked) return;
+			applyWorkflowResult(tracked.view, result);
+			this.publishRun(tracked.view);
 		}
 		foldLine(tracked, line) {
 			let decoded;

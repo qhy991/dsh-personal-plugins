@@ -11,7 +11,16 @@ import type { KersorRunRef, KersorScanObservation } from './scanner.ts'
 
 // Re-exported here so every `@Remote` boundary type resolves from the public
 // `./types` subpath, as the Typert generator's boundary rule requires.
-export type { KersorRunStatus, KersorCallStatus, KersorCallKind, KersorCallView, KersorPhaseView, KersorRunView } from './fold.ts'
+export type {
+  KersorCandidateResultView,
+  KersorRunStatus,
+  KersorCallStatus,
+  KersorCallKind,
+  KersorCallView,
+  KersorPhaseView,
+  KersorRunView,
+  KersorWorkflowResultView,
+} from './fold.ts'
 export type {
   KersorBaselineAction,
   KersorClassicArtifact,
@@ -34,7 +43,14 @@ export type {
   KersorClassicWorkflowDesign,
 } from './classic.ts'
 export type { KersorDiagnosticCode, KersorDiagnosticIssue, KersorDiagnosticStage } from './diagnostics.ts'
-export type { KersorRootObservation, KersorRootOrigin, KersorRunDiscovery, KersorRunRef, KersorScanObservation } from './scanner.ts'
+export type {
+  KersorRootObservation,
+  KersorRootOrigin,
+  KersorRunDiscovery,
+  KersorRunKind,
+  KersorRunRef,
+  KersorScanObservation,
+} from './scanner.ts'
 
 /** Current ingestion state for one discovered run. */
 export interface KersorRunObservation {

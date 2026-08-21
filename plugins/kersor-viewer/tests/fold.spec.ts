@@ -129,4 +129,30 @@ describe('phase and call folding', () => {
     expect(view.phases).toEqual([])
     expect(view.totals.calls).toBe(0)
   })
+
+  it('projects candidate creation and reviewer selection from bounded Workflow log records', () => {
+    const view = createRunView('r1', '/runs/r1', '/sessions/s1')
+    foldAll(view, events(
+      {
+        type: 'workflow.log', phase: 'Author',
+        message: 'vliw-pack: candidate pack-scalar-v1 accepted, expected_cycles=8700, tag=x',
+      },
+      {
+        type: 'workflow.log', phase: 'Author',
+        message: 'vliw-pack: candidate simd-batch-v1 accepted, expected_cycles=2140, tag=y',
+      },
+      {
+        type: 'workflow.log', phase: 'Review',
+        message: 'vliw-pack: selected simd-batch-v1 (reviewer selection)',
+      },
+    ))
+    expect(view.result).toEqual({
+      selectedCandidateId: 'simd-batch-v1',
+      expectedCycles: 2140,
+      candidates: [
+        { id: 'pack-scalar-v1', expectedCycles: 8700 },
+        { id: 'simd-batch-v1', expectedCycles: 2140 },
+      ],
+    })
+  })
 })

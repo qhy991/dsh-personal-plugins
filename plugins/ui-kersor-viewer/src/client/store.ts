@@ -11,6 +11,7 @@ import type {
   KersorRunView,
   KersorViewerFrame,
   KersorViewerSnapshot,
+  KersorWorkflowResultView,
 } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorActiveFrame, KersorActiveLaunch, KersorTaskRef } from '@deepseek-ai/dsh-kersor/types'
 
@@ -60,7 +61,7 @@ export class KersorViewerStore {
   get rows(): readonly KersorRunRow[] {
     return (this.state.snapshot?.runs ?? []).map(ref => ({
       ...ref,
-      view: this.state.views.get(ref.runDir),
+      view: this.withInventoryResult(ref.runDir, this.state.views.get(ref.runDir)),
     }))
   }
 
@@ -115,8 +116,10 @@ export class KersorViewerStore {
       this.selectedClassic = undefined
     }
     const { transportError: _, ...state } = this.state
-    const loading = snapshot.diagnostics.scan.state === 'never'
+    const loading = this.state.snapshot === undefined && (
+      snapshot.diagnostics.scan.state === 'never'
       || snapshot.diagnostics.scan.state === 'running'
+    )
     this.state = { ...state, snapshot, views, classicDetails, loading }
     this.emit()
   }
@@ -197,7 +200,7 @@ export class KersorViewerStore {
       return
     }
     const views = new Map(this.state.views)
-    views.set(frame.run.runDir, frame.run)
+    views.set(frame.run.runDir, this.withInventoryResult(frame.run.runDir, frame.run) ?? frame.run)
     this.state = { ...this.state, views, loading: false }
     this.emit()
   }
@@ -206,8 +209,28 @@ export class KersorViewerStore {
   setBacklog(runDir: string, view: KersorRunView | undefined): void {
     if (view === undefined) return
     const views = new Map(this.state.views)
-    views.set(runDir, view)
+    views.set(runDir, this.withInventoryResult(runDir, view) ?? view)
     this.state = { ...this.state, views, loading: false }
+    this.emit()
+  }
+
+  /** Attach one separately loaded bounded Workflow result to its folded run view. */
+  setRunResult(runDir: string, result: KersorWorkflowResultView | undefined): void {
+    if (result === undefined) return
+    const existing = this.state.views.get(runDir)
+    if (existing === undefined) return
+    const views = new Map(this.state.views)
+    views.set(runDir, {
+      ...existing,
+      result,
+      candidateStage: result.stage,
+      selectedCandidateId: result.selectedCandidateId,
+      expectedCycles: result.expectedCycles,
+      estimatedSpeedup: result.estimatedSpeedup,
+      measuredSpeedup: result.measuredSpeedup,
+      candidates: result.candidates,
+    })
+    this.state = { ...this.state, views }
     this.emit()
   }
 
@@ -217,6 +240,23 @@ export class KersorViewerStore {
     this.selected = undefined
     this.selectedClassic = undefined
     this.emit()
+  }
+
+  private withInventoryResult(runDir: string, view: KersorRunView | undefined): KersorRunView | undefined {
+    if (view === undefined || view.result !== undefined) return view
+    const result = this.state.snapshot?.runs.find(ref => ref.runDir === runDir)?.result
+    return result === undefined
+      ? view
+      : {
+        ...view,
+        result,
+        candidateStage: result.stage,
+        selectedCandidateId: result.selectedCandidateId,
+        expectedCycles: result.expectedCycles,
+        estimatedSpeedup: result.estimatedSpeedup,
+        measuredSpeedup: result.measuredSpeedup,
+        candidates: result.candidates,
+      }
   }
 
   private emit(): void {

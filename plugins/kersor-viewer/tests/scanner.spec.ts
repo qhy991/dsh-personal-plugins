@@ -1,5 +1,5 @@
 // The scanner: session-v2 recognition (session-config.json + state.json),
-// autonomous-runs discovery, summary-based classification, and quiet skips
+// autonomous and classic-round discovery, summary-based classification, and quiet skips
 // for absent roots.
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -64,10 +64,34 @@ describe('run discovery', () => {
     expect(byDir.get(failedRun)!.discovery).toBe('failed')
     expect(byDir.get(activeRun)!.runId).toBe('20260814T100000Z')
     expect(byDir.get(activeRun)!.sessionDir).toBe(active)
+    expect(byDir.get(activeRun)).toMatchObject({ kind: 'autonomous' })
     expect(found.observation).toMatchObject({
       state: 'healthy',
       roots: [{ root, origin: 'configured', state: 'healthy', sessionsAccepted: 4, runsFound: 4 }],
     })
+  })
+
+  it('discovers classic run-N runtime events and ignores preparation-only directories', async () => {
+    const root = await tempRoot()
+    const session = await makeSession(root, 'sess-classic')
+    const completed = path.join(session, 'run-3')
+    await mkdir(path.join(completed, '.runtime'), { recursive: true })
+    await writeFile(path.join(completed, '.runtime', 'events.jsonl'), [
+      '{"type":"workflow.started"}',
+      '{"type":"workflow.completed"}',
+      '',
+    ].join('\n'))
+    await writeFile(path.join(completed, '.runtime', 'summary.json'), JSON.stringify({ status: 'completed' }))
+    await mkdir(path.join(session, 'run-4'), { recursive: true })
+    await writeFile(path.join(session, 'run-4', 'dispatch-args.json'), '{}')
+
+    const found = await scanRoots([root], false)
+
+    expect(found.runs).toEqual([{
+      runId: 'run-3', runDir: completed, sessionDir: session, root,
+      kind: 'classic-round', round: 3, discovery: 'completed',
+    }])
+    expect(found.observation.roots[0]).toMatchObject({ runsFound: 1 })
   })
 
   it('skips directories that are not session v2', async () => {

@@ -27,7 +27,7 @@
       "path": "../../client/runtime"
     },
     {
-      "path": "../../client/ui-sidebar"
+      "path": "../../client/ui-conversation"
     },
     {
       "path": "../../client/ui-primitives"

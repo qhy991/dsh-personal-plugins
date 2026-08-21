@@ -12,7 +12,8 @@ import type { KersorActiveFrame, KersorRunId, KersorTaskId } from '@deepseek-ai/
 import { KersorViewerStore } from '../src/client/store.ts'
 
 const REF = {
-  runId: 'r1', runDir: '/runs/r1', sessionDir: '/sessions/s1', root: '/root', discovery: 'active',
+  runId: 'r1', runDir: '/runs/r1', sessionDir: '/sessions/s1', root: '/root',
+  kind: 'autonomous', discovery: 'active',
 } as const
 
 const CLASSIC_DETAIL: KersorClassicSessionDetail = {
@@ -82,6 +83,30 @@ describe('Host snapshot', () => {
     expect(store.getSnapshot().loading).toBe(false)
   })
 
+  it('keeps background rescans out of the visible loading state after first data', () => {
+    const store = new KersorViewerStore()
+    store.setSnapshot(snapshot({
+      diagnostics: {
+        scan: {
+          state: 'running', startedAt: '2026-08-21T00:00:00.000Z', roots: [],
+        },
+        runs: [],
+      },
+    }))
+    expect(store.getSnapshot().loading).toBe(true)
+
+    store.setSnapshot(snapshot())
+    store.setSnapshot(snapshot({
+      diagnostics: {
+        scan: {
+          state: 'running', startedAt: '2026-08-21T00:00:05.000Z', roots: [],
+        },
+        runs: [],
+      },
+    }))
+    expect(store.getSnapshot().loading).toBe(false)
+  })
+
   it('a snapshot frame preserves a folded view for a still-discovered run', () => {
     const store = new KersorViewerStore()
     store.applyFrame(runFrame())
@@ -125,6 +150,18 @@ describe('folded run views', () => {
     expect(store.activeView).toBeUndefined()
     store.setBacklog('/runs/r1', runView('completed'))
     expect(store.activeView?.status).toBe('completed')
+  })
+
+  it('attaches a separately loaded bounded Workflow result', () => {
+    const store = new KersorViewerStore()
+    store.setSnapshot(snapshot())
+    store.setBacklog('/runs/r1', runView('completed'))
+    store.setRunResult('/runs/r1', {
+      selectedCandidateId: 'candidate-a', candidates: [{ id: 'candidate-a' }],
+    })
+    expect(store.activeView?.result).toEqual({
+      selectedCandidateId: 'candidate-a', candidates: [{ id: 'candidate-a' }],
+    })
   })
 })
 

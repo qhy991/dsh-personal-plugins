@@ -4,7 +4,7 @@
  * ownership remain orthogonal client-side accounts.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
-import type { KersorClassicSessionDetail, KersorRunRef, KersorRunView, KersorViewerFrame, KersorViewerSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types';
+import type { KersorClassicSessionDetail, KersorRunRef, KersorRunView, KersorViewerFrame, KersorViewerSnapshot, KersorWorkflowResultView } from '@deepseek-ai/dsh-kersor-viewer/types';
 import type { KersorActiveFrame, KersorActiveLaunch, KersorTaskRef } from '@deepseek-ai/dsh-kersor/types';
 export interface KersorRunRow extends KersorRunRef {
     readonly view?: KersorRunView | undefined;
@@ -87,8 +87,11 @@ export declare class KersorViewerStore {
     applyFrame(frame: KersorViewerFrame): void;
     /** Store a successful `runBacklog` answer. Undefined never fabricates zeros. */
     setBacklog(runDir: string, view: KersorRunView | undefined): void;
+    /** Attach one separately loaded bounded Workflow result to its folded run view. */
+    setRunResult(runDir: string, result: KersorWorkflowResultView | undefined): void;
     /** Drop connection-scoped state. */
     reset(): void;
+    private withInventoryResult;
     private emit;
 }
 export {};

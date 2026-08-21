@@ -1,20 +1,20 @@
 /**
  * KerSor viewer browser half: one atomic Host snapshot plus optional launcher
- * process ownership, rendered in the sidebar.
+ * process ownership, rendered as a first-class conversation view.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-kersor/remote'
 import type {} from '@deepseek-ai/dsh-kersor-viewer/remote'
 import type { KersorViewerFrame } from '@deepseek-ai/dsh-kersor-viewer/types'
 import type { KersorActiveFrame, KersorTaskId } from '@deepseek-ai/dsh-kersor/types'
-import { KersorPanel } from './KersorPanel.tsx'
+import { KersorView } from './KersorView.tsx'
 import { KersorViewerStore } from './store.ts'
-import type { KersorPanelFace } from './slots.ts'
+import type { KersorViewFace } from './slots.ts'
 import { en, NS, zh } from './locales.ts'
 import type { KersorViewerKey } from './locales.ts'
 
@@ -29,7 +29,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteEventSelection extends Record<'kersor/event' | 'kersor/active', true> {}
 }
 
-export type { KersorPanelFace } from './slots.ts'
+export type { KersorViewFace } from './slots.ts'
 export type { KersorViewerState, KersorViewerStore, KersorRunRow } from './store.ts'
 export { KersorViewerStore as KersorViewerStoreClass } from './store.ts'
 export { NS }
@@ -109,6 +109,28 @@ export function apply(ctx: ClientContext): void {
     }
   }
 
+  const loadRun = async (runDir: string): Promise<void> => {
+    try {
+      const remote = viewerRemote()
+      const [backlog, result] = await Promise.all([
+        remote.runBacklog(runDir),
+        remote.runResult(runDir),
+      ])
+      if (!backlog.ok) {
+        store.setTransportError(`${backlog.error.code}: ${backlog.error.message}`)
+        return
+      }
+      if (!result.ok) {
+        store.setTransportError(`${result.error.code}: ${result.error.message}`)
+        return
+      }
+      store.setBacklog(runDir, backlog.value)
+      store.setRunResult(runDir, result.value)
+    } catch (error) {
+      store.setTransportError(error instanceof Error ? error.message : String(error))
+    }
+  }
+
   const loadClassic = async (sessionDir: string): Promise<void> => {
     store.setClassicDetailLoading(sessionDir)
     try {
@@ -180,12 +202,15 @@ export function apply(ctx: ClientContext): void {
   })
   void refresh()
 
-  const face: KersorPanelFace = { store, refresh, loadClassic, start, stop }
-  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-    name: 'sidebar.footer.action',
-    id: 'kersor-panel',
+  const face: KersorViewFace = { store, refresh, loadRun, loadClassic, start, stop }
+  const t = ctx.locale.bind(NS)
+  ctx.slots.inject('conversation.view', () => ctx.slots.register({
+    name: 'conversation.view',
+    id: 'kersor',
+    order: 20,
     locale: NS,
+    label: () => t('view.kersor'),
     inject: () => face,
-  }, KersorPanel))
+  }, KersorView))
 
 }

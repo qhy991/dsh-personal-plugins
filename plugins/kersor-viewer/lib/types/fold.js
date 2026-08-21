@@ -27,6 +27,45 @@ function ensurePhase(view, title) {
     view.phases.push(phase);
     return phase;
 }
+function workflowName(script) {
+    const parts = script.replaceAll('\\', '/').split('/').filter(Boolean);
+    return parts.length > 1 ? parts.at(-2) : parts.at(-1);
+}
+/** Copy one canonical result into the flat wire projection and its grouped view. */
+export function applyWorkflowResult(view, result) {
+    view.result = result;
+    view.candidateStage = result.stage;
+    view.selectedCandidateId = result.selectedCandidateId;
+    view.expectedCycles = result.expectedCycles;
+    view.estimatedSpeedup = result.estimatedSpeedup;
+    view.measuredSpeedup = result.measuredSpeedup;
+    view.candidates = result.candidates;
+}
+function foldWorkflowLog(view, message) {
+    const candidate = /: candidate ([A-Za-z0-9._-]+) accepted, expected_cycles=([0-9]+)/.exec(message);
+    if (candidate !== null) {
+        const id = candidate[1];
+        const expectedCycles = Number(candidate[2]);
+        if (id === undefined || !Number.isFinite(expectedCycles))
+            return;
+        const current = view.result ?? { candidates: [] };
+        const candidates = current.candidates.some(row => row.id === id)
+            ? current.candidates
+            : [...current.candidates, { id, expectedCycles }];
+        applyWorkflowResult(view, { ...current, candidates });
+        return;
+    }
+    const selected = /: selected ([A-Za-z0-9._-]+) \(/.exec(message);
+    if (selected?.[1] !== undefined) {
+        const current = view.result ?? { candidates: [] };
+        const chosen = current.candidates.find(row => row.id === selected[1]);
+        applyWorkflowResult(view, {
+            ...current,
+            selectedCandidateId: selected[1],
+            ...(chosen?.expectedCycles === undefined ? {} : { expectedCycles: chosen.expectedCycles }),
+        });
+    }
+}
 function callBucket(view, event, kind) {
     const seq = typeof event.seq === 'number' ? event.seq : -1;
     const callId = typeof event.call_id === 'string' ? event.call_id : `${event.phase ?? ''}/${event.label ?? ''}/${seq}`;
@@ -57,6 +96,10 @@ export function foldEvent(view, event) {
         case 'workflow.started': {
             view.status = 'running';
             view.startedTs = event.ts;
+            if (typeof event.script === 'string')
+                view.workflow = workflowName(event.script);
+            if (typeof event.script_hash === 'string')
+                view.scriptHash = event.script_hash;
             return;
         }
         case 'phase.changed': {
@@ -156,8 +199,13 @@ export function foldEvent(view, event) {
                 row.rolledBack = true;
             return;
         }
+        case 'workflow.log': {
+            if (typeof event.message === 'string')
+                foldWorkflowLog(view, event.message);
+            return;
+        }
         default:
-            // workflow.log, admission, resume, transaction progress, step detail:
+            // Admission, resume, transaction progress, step detail:
             // intentionally not projected into the view model.
             return;
     }

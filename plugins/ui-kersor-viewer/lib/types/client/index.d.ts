@@ -1,6 +1,6 @@
 /**
  * KerSor viewer browser half: one atomic Host snapshot plus optional launcher
- * process ownership, rendered in the sidebar.
+ * process ownership, rendered as a first-class conversation view.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
@@ -16,7 +16,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     interface TypertRemoteEventSelection extends Record<'kersor/event' | 'kersor/active', true> {
     }
 }
-export type { KersorPanelFace } from './slots.ts';
+export type { KersorViewFace } from './slots.ts';
 export type { KersorViewerState, KersorViewerStore, KersorRunRow } from './store.ts';
 export { KersorViewerStore as KersorViewerStoreClass } from './store.ts';
 export { NS };
