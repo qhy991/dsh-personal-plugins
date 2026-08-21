@@ -58,7 +58,8 @@ function harness(profile = 'p000') {
   const ctx = {
     tools: {
       schemas() {
-        return ['read', 'edit', 'ask_user_question', 'subagent_fork'].map(name => ({ name }))
+        return ['read', 'edit', 'ask_user_question', 'web_search', 'subagent_fork']
+          .map(name => ({ name }))
       },
     },
     agents: { list() { return [agent] } },
@@ -107,7 +108,9 @@ test('fixed Worker config keeps neutral untreated and qualifies p000', () => {
 
 test('qualified fixed Worker denies the fourth pre-edit read and lifts after edit', async () => {
   const runtime = harness('p000')
-  assert.deepEqual(runtime.restrictions, [{ deny: ['ask_user_question', 'subagent_fork'] }])
+  assert.deepEqual(runtime.restrictions, [{
+    deny: ['ask_user_question', 'web_search', 'subagent_fork'],
+  }])
   runtime.agent.session.events.push(
     nativeCall(0, 'read-a', 'read', { file_path: 'src/a.ts' }),
     nativeResult(1, 'read-a'),
@@ -127,7 +130,7 @@ test('qualified fixed Worker denies the fourth pre-edit read and lifts after edi
   assert.equal(denied.kind, 'deny')
   assert.match(denied.reason, /MODUS_PRE_EDIT_INFORMATION_LIMIT/)
   assert.deepEqual(runtime.restrictions, [
-    { deny: ['ask_user_question', 'subagent_fork'] },
+    { deny: ['ask_user_question', 'web_search', 'subagent_fork'] },
     { deny: ['read'] },
   ])
 
@@ -189,6 +192,6 @@ test('fixed Worker HMR reconstructs and later lifts the information-tool lock', 
   )
   runtime.handlers.get('agent/session-start')({ agent: runtime.agent })
   assert.deepEqual(runtime.restrictions.at(-1), {
-    deny: ['ask_user_question', 'subagent_fork'],
+    deny: ['ask_user_question', 'web_search', 'subagent_fork'],
   })
 })
