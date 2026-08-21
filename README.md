@@ -70,13 +70,15 @@ python3 scripts/install.py --kersor-root /absolute/path/to/KerSor --force
 dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
 ```
 
-发布者在测试通过后创建并推送 tag：
+发布者在测试通过后创建并推送不可变 tag（将 `<release-tag>` 替换为本次版本）：
 
 ```bash
-git tag v0.1.17
+git tag <release-tag>
 git push origin main
-git push origin v0.1.17
+git push origin <release-tag>
 ```
+
+公开 CI 只验证该 tag 自带的镜像清单、构建产物、安装器、桥接器、可移植性和无凭据合同，不读取发布者的私有 DSH fork。需要 DSH monorepo 的 Host／Client Vitest 集成套件属于镜像生成前的本地发布门；其结果不能由公开仓库在没有私有源码权限时重新生成。
 
 使用者应锁定 tag 或 commit；Git package 和本地 package 的安装代码运行在 agent 沙箱之外，只应安装可信源码。升级时先 `git pull` 或切换到新 tag，再按上文执行精确 remove／add 和 Web Host 重启。
 
