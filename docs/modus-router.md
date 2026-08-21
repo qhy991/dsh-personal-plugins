@@ -189,7 +189,7 @@ python3 scripts/check.py
 python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness
 ```
 
-最后一条命令使用真实 DSH 的 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 和内置 fork provider 做兼容性加载；测试包含“首个 Worker 请求受控、跨阈值后下一请求未到 adapter”，“p000 的第 4 次 pre-edit read 未进入 tool body、随后 typed edit 可执行”，以及“固定 p000 preset 隐藏 delegation 工具并复用同一行为门”。它默认同时要求 HEAD 与工作树匹配固定基线；`--allow-dirty` / `--allow-unpinned` 仅用于开发探测，不能作为固定兼容性证据。当前验证基线记录在 `presets/modus/compatibility.json`，升级 DSH 后应更新并重跑。覆盖安装会把不同的旧 preset 移到同级时间戳备份；完全相同的重装是 no-op。安装后需重启 DSH Web，并在新 task 中选择 Router 或对应的固定 Worker preset。
+最后一条命令使用真实 DSH 的 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 和内置 fork provider 做兼容性加载；测试包含“首个 Worker 请求受控、跨阈值后下一请求未到 adapter”，“p000 的第 4 次 pre-edit read 未进入 tool body、随后 typed edit 可执行”，以及“固定 p000 preset 同时从模型可见目录和工具执行路径排除 `ask_user_question`、`web_search` 与 delegation，并复用同一行为门”。它默认同时要求 HEAD 与工作树匹配固定基线；`--allow-dirty` / `--allow-unpinned` 仅用于开发探测，不能作为固定兼容性证据。当前验证基线记录在 `presets/modus/compatibility.json`，升级 DSH 后应更新并重跑。覆盖安装会把不同的旧 preset 移到同级时间戳备份；完全相同的重装是 no-op。安装后需重启 DSH Web，并在新 task 中选择 Router 或对应的固定 Worker preset。
 
 ## 下一迭代
 

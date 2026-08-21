@@ -24,7 +24,7 @@ import {
 
 const digest = value => createHash('sha256').update(value).digest('hex')
 const VISIBLE_WORKER_TOOL_NAMES = [
-  'ask_user_question', 'modus_delegate', 'subagent', 'subagent_fork', 'send_message',
+  'ask_user_question', 'web_search', 'modus_delegate', 'subagent', 'subagent_fork', 'send_message',
   'interrupt_agent', 'list_agents', 'workflow', 'ralph',
 ]
 const visibleWorkerToolSchemas = () =>

@@ -23,6 +23,7 @@
     "router-worker-shared-token-budget",
     "qualified-profile-pre-edit-information-gate",
     "matched-fixed-worker-presets",
+    "fixed-worker-auxiliary-tool-confinement",
     "qualified-profile-information-tool-lock"
   ]
 }

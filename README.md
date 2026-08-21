@@ -194,7 +194,7 @@ python3 scripts/check.py
 python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness
 ```
 
-`build.py` 在临时目录中复原 DSH monorepo 布局，借用指定 checkout 的固定 TypeScript 依赖重建 host reflection 与 browser bundle，但不修改 DSH 工作树。`check.py` 覆盖 metadata、preset-local skill 发现配置、安装器渲染与幂等性、强制更新备份、built plugin、behavior/token folds、governor 合同，以及仓库中意外出现的机器绝对路径。`check_dsh_compat.py` 针对 `presets/modus/compatibility.json` 固定的干净 DSH commit，使用真实 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 与内置 fork provider 加载 Modus，并证明跨阈值后的 Worker 请求不会到达模型 adapter；升级 DSH 后必须更新兼容性记录并重跑。`--allow-dirty` / `--allow-unpinned` 只表示开发探测，不构成固定兼容性证据。
+`build.py` 在临时目录中复原 DSH monorepo 布局，借用指定 checkout 的固定 TypeScript 依赖重建 host reflection 与 browser bundle，但不修改 DSH 工作树。`check.py` 覆盖 metadata、preset-local skill 发现配置、安装器渲染与幂等性、强制更新备份、built plugin、behavior/token folds、governor 合同，以及仓库中意外出现的机器绝对路径。`check_dsh_compat.py` 针对 `presets/modus/compatibility.json` 固定的干净 DSH commit，使用真实 Loader、Cordis、ToolRuntime、AgentRegistry、SubagentRuntime、AgentLoop 与内置 fork provider 加载 Modus，并证明固定 Worker 的模型可见工具目录和执行路径都排除 `ask_user_question`、`web_search` 及递归委派工具，且跨阈值后的 Worker 请求不会到达模型 adapter；升级 DSH 后必须更新兼容性记录并重跑。`--allow-dirty` / `--allow-unpinned` 只表示开发探测，不构成固定兼容性证据。
 
 ## 目录
 

@@ -265,6 +265,7 @@ describe('Modus Router against real DSH Loader and services', () => {
     let reads = 0
     let edits = 0
     let questions = 0
+    let webSearches = 0
     for (const tool of [
       defineTool({
         name: 'read',
@@ -297,6 +298,16 @@ describe('Modus Router against real DSH Loader and services', () => {
           render: (_args, value) => [{ type: 'text', text: value }],
         },
         execute: () => { questions += 1; return Promise.resolve('answered') },
+      }),
+      defineTool({
+        name: 'web_search',
+        description: 'An auxiliary-model tool hidden from fixed Workers.',
+        parameters: { query: { type: 'string' } },
+        output: {
+          schema: { type: 'string' },
+          render: (_args, value) => [{ type: 'text', text: value }],
+        },
+        execute: () => { webSearches += 1; return Promise.resolve('searched') },
       }),
       defineTool({
         name: 'subagent_fork',
@@ -347,6 +358,23 @@ describe('Modus Router against real DSH Loader and services', () => {
     const session = agent.session
     expect(ctx.tools.schemas(agent).map(tool => tool.name).sort()).toEqual(['edit', 'read'])
     expect(questions).toBe(0)
+    expect(webSearches).toBe(0)
+
+    for (const [name, callId, args] of [
+      ['ask_user_question', 'fixed-question-1', { question: 'Can I stop?' }],
+      ['web_search', 'fixed-web-search-1', { query: 'auxiliary model' }],
+    ] as const) {
+      const hidden = await ctx.tools.execute({
+        signal: new AbortController().signal,
+        callId: CallId(callId),
+        name,
+        arguments: args,
+        agent,
+      })
+      expect(hidden.isError).toBe(true)
+    }
+    expect(questions).toBe(0)
+    expect(webSearches).toBe(0)
 
     for (let index = 1; index <= 3; index += 1) {
       const callId = CallId(`fixed-read-${index}`)
