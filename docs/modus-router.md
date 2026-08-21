@@ -79,6 +79,13 @@ qualified preset 之外追加 `modus-fixed-p100-e1-v2`。候选文本和上游 S
 manipulation sentinel 前作为 Router action。该入口只用于比较 Profile 文本修订，实验记录
 必须同时保存 candidate id 与 digest。
 
+`--experimental-p010 t1-v1` 是另一个 fixed-only 开发入口。它从当前
+edit-topology M1 组件 SSOT 机械编译 `E0/T1/A0`，与 p000 只差 T0→T1，
+且保持 224 words。该 preset 保留相同 provider、budget 和辅助工具隔离，
+但不启用 p000/p100 的三次 pre-edit information lock；否则会在运行时抵消
+T1 的广泛调查处理。它不会进入 Router action space，只能用于预先冻结的
+p000/p010 单轴开发实验。
+
 ## Token 核算
 
 比较动态策略时，成本估计量必须是：
@@ -184,6 +191,10 @@ python3 scripts/install_modus_fixed.py --force \
 # 仅开发 sentinel；不会替换 Router 或 qualified p100
 python3 scripts/install_modus_fixed.py --force \
   --experimental-p100 e1-v2 \
+  --max-new-tokens 200000 --max-cache-read-tokens 2000000
+# 仅开发 T1 单轴候选；不会加入 Router
+python3 scripts/install_modus_fixed.py --force \
+  --experimental-p010 t1-v1 \
   --max-new-tokens 200000 --max-cache-read-tokens 2000000
 python3 scripts/check.py
 python3 scripts/check_dsh_compat.py --dsh-root /absolute/path/to/deepseek-harness

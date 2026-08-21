@@ -144,6 +144,53 @@ class ModusFixedInstallTests(unittest.TestCase):
             (candidate_root / "experimental-profiles/e1-v2/manifest.json").is_file()
         )
 
+    def test_experimental_p010_is_additive_single_axis_and_has_no_t0_gate(self) -> None:
+        candidate = INSTALLER.load_experimental_p010("t1-v1")
+        profiles = INSTALLER.load_profiles()
+        self.assertEqual(candidate["profile"], "p010")
+        self.assertEqual(candidate["preset_id"], "modus-fixed-p010-t1-v1")
+        self.assertEqual(
+            candidate["sha256"],
+            "8b0e10fb396407cce7c1d190aafa98c446115b68763a1f3a42222f2df7b53d48",
+        )
+        self.assertEqual(
+            candidate["text"].replace(
+                "Before changing code, inspect the instruction, connected implementation surfaces, "
+                "and every relevant public check. Map dependencies and form multiple concrete "
+                "hypotheses from that broader evidence, then choose an edit. Do not begin changing "
+                "files until all likely interactions, alternative designs, and the first testable "
+                "change are clear.",
+                "Before changing code, inspect only the instruction, directly named implementation "
+                "surface, and nearest relevant public check. Form one concrete hypothesis from that "
+                "bounded evidence, then begin editing. Do not map unrelated modules, search for "
+                "alternative designs, or continue gathering context once the first testable change "
+                "is clear.",
+            ),
+            profiles["p000"]["text"],
+        )
+
+        installed = INSTALLER.install_all(
+            dsh_home=self.dsh_home,
+            standard_preset=self.standard,
+            force=False,
+            dry_run=False,
+            token_budget=(200_000, 2_000_000),
+            experimental_p010="t1-v1",
+        )
+        self.assertEqual(
+            [row[0] for row in installed],
+            [*INSTALLER.PROFILE_IDS, "p010-t1-v1"],
+        )
+        candidate_root = self.dsh_home / ".agent-presets" / "modus-fixed-p010-t1-v1"
+        composition = (candidate_root / "agent.cordis.yml").read_text(encoding="utf-8")
+        self.assertIn("presetId: modus-fixed-p010-t1-v1", composition)
+        self.assertIn("profile: p010", composition)
+        self.assertIn("profileDigest: " + candidate["sha256"], composition)
+        self.assertNotIn("maxPreEditInformationAttempts", composition)
+        self.assertTrue(
+            (candidate_root / "experimental-profiles/t1-v1/manifest.json").is_file()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

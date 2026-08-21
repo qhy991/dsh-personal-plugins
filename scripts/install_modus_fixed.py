@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render and install matched neutral/p000/p100 DSH fixed Worker presets."""
+"""Render and install matched DSH fixed Worker presets and opt-in candidates."""
 
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ from install_modus import ASSET_ROOT, PERSONA_BLOCK, STANDARD_PERSONA, indent_bl
 PROFILE_IDS = ("neutral", "p000", "p100")
 QUALIFIED_PROFILE_IDS = ("p000", "p100")
 EXPERIMENTAL_P100_IDS = ("e1-v2",)
+EXPERIMENTAL_P010_IDS = ("t1-v1",)
+SUPPORTED_FIXED_PROFILE_IDS = (*PROFILE_IDS, "p010")
 FIXED_PLUGIN = "./plugins/modus-fixed-worker.mjs"
 
 
@@ -80,6 +82,35 @@ def load_experimental_p100(candidate_id: str) -> dict[str, str]:
     }
 
 
+def load_experimental_p010(candidate_id: str) -> dict[str, str]:
+    if candidate_id not in EXPERIMENTAL_P010_IDS:
+        raise RuntimeError(f"unsupported experimental p010 candidate: {candidate_id}")
+    root = ASSET_ROOT / "experimental-profiles" / candidate_id
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    expected = {"schema", "status", "profile", "candidate_id", "upstream", "path", "sha256"}
+    if not isinstance(manifest, dict) or set(manifest) != expected:
+        raise RuntimeError("experimental p010 manifest fields differ")
+    if manifest["schema"] != "dsh-modus-experimental-profile-candidate-v1":
+        raise RuntimeError("unsupported experimental p010 manifest")
+    if manifest["status"] != "unqualified-development-candidate":
+        raise RuntimeError("experimental p010 must remain explicitly unqualified")
+    if manifest["profile"] != "p010" or manifest["candidate_id"] != candidate_id:
+        raise RuntimeError("experimental p010 identity differs")
+    if manifest["path"] != "p010.md":
+        raise RuntimeError("experimental p010 path differs")
+    text = (root / manifest["path"]).read_text(encoding="utf-8")
+    digest = sha256_text(text)
+    if digest != manifest["sha256"]:
+        raise RuntimeError("experimental p010 digest mismatch")
+    return {
+        "profile": "p010",
+        "candidate_id": candidate_id,
+        "preset_id": f"modus-fixed-p010-{candidate_id}",
+        "text": text,
+        "sha256": digest,
+    }
+
+
 def plugin_row(
     profile: str,
     digest: str,
@@ -121,7 +152,7 @@ def render_fixed_composition(
     preset_id: str | None = None,
 ) -> str:
     catalog = load_profiles() if profiles is None else profiles
-    if profile not in PROFILE_IDS or profile not in catalog:
+    if profile not in SUPPORTED_FIXED_PROFILE_IDS or profile not in catalog:
         raise ValueError(f"unsupported fixed Worker profile: {profile}")
     if standard_source.count(PERSONA_BLOCK) != 1:
         raise RuntimeError(
@@ -206,6 +237,7 @@ def install_all(
     dry_run: bool,
     token_budget: tuple[int, int] | None = None,
     experimental_p100: str | None = None,
+    experimental_p010: str | None = None,
 ) -> list[tuple[str, Path, Path | None, bool]]:
     standard = locate_standard(dsh_home, standard_preset)
     source = standard.read_text(encoding="utf-8")
@@ -249,6 +281,27 @@ def install_all(
                 dry_run=dry_run,
             ),
         ))
+    if experimental_p010 is not None:
+        candidate = load_experimental_p010(experimental_p010)
+        candidate_catalog = {"p010": candidate}
+        composition = render_fixed_composition(
+            source,
+            "p010",
+            candidate_catalog,
+            token_budget,
+            preset_id=candidate["preset_id"],
+        )
+        installed.append((
+            f"p010-{experimental_p010}",
+            *install_one(
+                dsh_home=dsh_home,
+                install_id=candidate["preset_id"],
+                profile="p010",
+                composition=composition,
+                force=force,
+                dry_run=dry_run,
+            ),
+        ))
     return installed
 
 
@@ -261,6 +314,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--max-new-tokens", type=int)
     result.add_argument("--max-cache-read-tokens", type=int)
     result.add_argument("--experimental-p100", choices=EXPERIMENTAL_P100_IDS)
+    result.add_argument("--experimental-p010", choices=EXPERIMENTAL_P010_IDS)
     return result
 
 
@@ -280,6 +334,7 @@ def main(argv: list[str] | None = None) -> int:
         dry_run=options.dry_run,
         token_budget=token_budget,
         experimental_p100=options.experimental_p100,
+        experimental_p010=options.experimental_p010,
     ):
         state = "would install" if options.dry_run else ("installed" if changed else "unchanged")
         print(f"{profile}: {state} {destination}")

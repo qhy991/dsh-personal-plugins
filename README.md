@@ -36,6 +36,9 @@ Profile 修订必须与 qualified action 分开。开发性的 E1-v2 候选可�
 `--experimental-p100 e1-v2` 额外安装为 **Modus Fixed p100-e1-v2**；它有独立 manifest、
 上游 commit 和 digest，不会替换 Router 或 qualified p100。该候选在独立 manipulation
 sentinel 通过前保持 unqualified，不能因安装成功而升级为实验结论。
+开发性的 T1-v1 候选可用 `--experimental-p010 t1-v1` 额外安装为
+**Modus Fixed p010-t1-v1**。它从当前 M1 组件 SSOT 机械编译 E0/T1/A0，
+与 p000 只差 T 位；它不启用 T0 的三次调查锁，也不会进入 Router action space。
 
 ## 五分钟上手
 
@@ -222,7 +225,7 @@ scripts/install.py           # 从当前 standard preset 生成并安装
 scripts/build.py             # 在临时 DSH 布局中可复现地重建插件产物
 scripts/install_modus.py     # 生成并安装 Modus Router preset
 scripts/install_modus_fixed.py
-                             # 生成三种无 Router 的 matched 固定 Worker preset
+                             # 生成 matched 固定 Worker 与显式 opt-in 开发候选
 scripts/check.py             # 零依赖本地/CI 验证
 scripts/check_dsh_compat.py  # 对固定 DSH checkout 做真实运行时兼容性加载
 tests/                       # 安装合同回归测试

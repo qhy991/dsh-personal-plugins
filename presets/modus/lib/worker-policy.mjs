@@ -2,6 +2,11 @@
 
 export const QUALIFIED_PROFILE_IDS = Object.freeze(['p000', 'p100'])
 
+// Fixed-only development treatments. They are deliberately absent from the
+// Router action space until an independent manipulation and outcome gate
+// qualifies them.
+export const EXPERIMENTAL_FIXED_PROFILE_IDS = Object.freeze(['p010'])
+
 export const PRE_EDIT_INFORMATION_TOOLS = Object.freeze([
   'read',
   'read_image',

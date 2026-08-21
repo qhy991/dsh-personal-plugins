@@ -9,6 +9,7 @@ import {
 
 const EMPTY_SHA = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
 const P000_SHA = '4430eff8d5b732333319f93bf0a699c3593f6e6d708296d304c76c7161f67282'
+const P010_SHA = '8b0e10fb396407cce7c1d190aafa98c446115b68763a1f3a42222f2df7b53d48'
 
 function nativeCall(seq, callId, name, args) {
   return {
@@ -69,8 +70,10 @@ function harness(profile = 'p000') {
   apply(ctx, {
     presetId: `modus-fixed-${profile}`,
     profile,
-    profileDigest: profile === 'neutral' ? EMPTY_SHA : P000_SHA,
-    ...(profile === 'neutral' ? {} : { maxPreEditInformationAttempts: 3 }),
+    profileDigest: profile === 'neutral' ? EMPTY_SHA : profile === 'p010' ? P010_SHA : P000_SHA,
+    ...(profile === 'neutral' || profile === 'p010'
+      ? {}
+      : { maxPreEditInformationAttempts: 3 }),
   })
   return { agent, handlers, restrictions, cleanup: () => cleanup(), lifts: () => lifts }
 }
@@ -169,6 +172,45 @@ test('neutral fixed Worker retains the same tool surface without behavior denial
     signal: new AbortController().signal,
   }, async () => ({ kind: 'allow' }))
   assert.deepEqual(allowed, { kind: 'allow' })
+})
+
+test('experimental p010 retains broad pre-edit information access', async () => {
+  const config = resolveFixedWorkerConfig({
+    presetId: 'modus-fixed-p010-t1-v1',
+    profile: 'p010',
+    profileDigest: P010_SHA,
+  })
+  assert.equal(config.maxPreEditInformationAttempts, undefined)
+  assert.throws(
+    () => resolveFixedWorkerConfig({
+      presetId: 'modus-fixed-p010-t1-v1',
+      profile: 'p010',
+      profileDigest: P010_SHA,
+      maxPreEditInformationAttempts: 3,
+    }),
+    /p010 must not configure/,
+  )
+
+  const runtime = harness('p010')
+  runtime.agent.session.events.push(
+    nativeCall(0, 'read-a', 'read', { file_path: 'src/a.ts' }),
+    nativeResult(1, 'read-a'),
+    nativeCall(2, 'read-b', 'read', { file_path: 'src/b.ts' }),
+    nativeResult(3, 'read-b'),
+    nativeCall(4, 'read-c', 'read', { file_path: 'src/c.ts' }),
+    nativeResult(5, 'read-c'),
+  )
+  const allowed = await runtime.handlers.get('tools/pre-execute')({
+    agent: runtime.agent,
+    callId: 'read-d',
+    name: 'read',
+    arguments: { file_path: 'src/d.ts' },
+    signal: new AbortController().signal,
+  }, async () => ({ kind: 'allow' }))
+  assert.deepEqual(allowed, { kind: 'allow' })
+  assert.deepEqual(runtime.restrictions, [{
+    deny: ['ask_user_question', 'web_search', 'subagent_fork'],
+  }])
 })
 
 test('fixed Worker HMR reconstructs and later lifts the information-tool lock', () => {
