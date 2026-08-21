@@ -8,6 +8,7 @@ import {
 } from '../lib/trajectory.mjs'
 import {
   DEFAULT_WORKER_DENIED_TOOLS,
+  EXPERIMENTAL_FIXED_PROFILE_IDS,
   PRE_EDIT_INFORMATION_TOOLS,
   QUALIFIED_PROFILE_IDS,
 } from '../lib/worker-policy.mjs'
@@ -16,7 +17,11 @@ import {
 export const name = 'modus-fixed-worker'
 export const inject = ['tools', 'agents']
 
-const PROFILE_IDS = Object.freeze(['neutral', ...QUALIFIED_PROFILE_IDS])
+const PROFILE_IDS = Object.freeze([
+  'neutral',
+  ...QUALIFIED_PROFILE_IDS,
+  ...EXPERIMENTAL_FIXED_PROFILE_IDS,
+])
 const SHA256_PATTERN = /^[0-9a-f]{64}$/
 
 function plainObject(value, where) {
@@ -79,9 +84,9 @@ export function resolveFixedWorkerConfig(config = {}) {
     'deniedTools',
   ))
   let maxPreEditInformationAttempts
-  if (profile === 'neutral') {
+  if (profile === 'neutral' || EXPERIMENTAL_FIXED_PROFILE_IDS.includes(profile)) {
     if (config.maxPreEditInformationAttempts !== undefined) {
-      throw new Error('neutral must not configure maxPreEditInformationAttempts')
+      throw new Error(`${profile} must not configure maxPreEditInformationAttempts`)
     }
   } else {
     maxPreEditInformationAttempts = nonNegativeInteger(

@@ -321,31 +321,37 @@ describe('Modus Router against real DSH Loader and services', () => {
       }),
     ]) ctx.tools.register(tool)
     let agent: any
+    let p010Agent: any
     const FixedAgentFixture = {
       name: 'modus-fixed-agent-fixture',
       inject: ['agents', 'tools', 'systemPrompt'],
       apply(inner: Context) {
-        const id = SessionId('modus-fixed-p000-real')
-        const session = Session.create(id, undefined, {
-          version: 0, id, createdAt: 1, agentPreset: 'modus-fixed-p000', cwd: '/workspace',
-        })
-        const key: any = {}
-        const scope = createScope(inner, key)
-        agent = Object.assign(key, {
-          id,
-          options: {},
-          session,
-          inbox: { nextStep: [] },
-          status: 'idle',
-          ctx: scope.ctx.extend({ agent: key }),
-          cancel() {},
-          async whenIdle() {},
-          runMaintenance(task: (signal: AbortSignal) => Promise<unknown>) {
-            return task(new AbortController().signal)
-          },
-          send() {}, followup() {}, steer() {}, inject() {},
-        })
-        inner.agents.register(agent)
+        const createFixedAgent = (rawId: string, preset: string) => {
+          const id = SessionId(rawId)
+          const session = Session.create(id, undefined, {
+            version: 0, id, createdAt: 1, agentPreset: preset, cwd: '/workspace',
+          })
+          const key: any = {}
+          const scope = createScope(inner, key)
+          const value = Object.assign(key, {
+            id,
+            options: {},
+            session,
+            inbox: { nextStep: [] },
+            status: 'idle',
+            ctx: scope.ctx.extend({ agent: key }),
+            cancel() {},
+            async whenIdle() {},
+            runMaintenance(task: (signal: AbortSignal) => Promise<unknown>) {
+              return task(new AbortController().signal)
+            },
+            send() {}, followup() {}, steer() {}, inject() {},
+          })
+          inner.agents.register(value)
+          return value
+        }
+        agent = createFixedAgent('modus-fixed-p000-real', 'modus-fixed-p000')
+        p010Agent = createFixedAgent('modus-fixed-p010-real', 'modus-fixed-p010-t1-v1')
       },
     }
     await ctx.plugin(FixedAgentFixture)
@@ -416,6 +422,29 @@ describe('Modus Router against real DSH Loader and services', () => {
     expect(edited.isError).toBe(false)
     expect(edits).toBe(1)
     expect(ctx.tools.schemas(agent).map(tool => tool.name).sort()).toEqual(['edit', 'read'])
+
+    await ctx.plugin({
+      ...ModusFixedWorker,
+      name: 'modus-fixed-worker-p010-real-fixture',
+    }, {
+      presetId: 'modus-fixed-p010-t1-v1',
+      profile: 'p010',
+      profileDigest: '8b0e10fb396407cce7c1d190aafa98c446115b68763a1f3a42222f2df7b53d48',
+    })
+    expect(ctx.tools.schemas(p010Agent).map(tool => tool.name).sort()).toEqual(['edit', 'read'])
+    for (let index = 1; index <= 4; index += 1) {
+      const read = await ctx.tools.execute({
+        signal: new AbortController().signal,
+        callId: CallId(`p010-read-${index}`),
+        name: 'read',
+        arguments: { file_path: `src/p010-${index}.ts` },
+        agent: p010Agent,
+      })
+      expect(read.isError).toBe(false)
+    }
+    expect(reads).toBe(4)
+    expect(questions).toBe(0)
+    expect(webSearches).toBe(0)
   })
 
   it('loads, confines a scoped agent, executes an exact Worker request, and unloads cleanly', async () => {
