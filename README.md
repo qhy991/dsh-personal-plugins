@@ -1,6 +1,6 @@
 # dsh-personal-plugins
 
-统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、只读 run viewer、与 Chat／Trajectory 并列的 KerSor view，以及可选的有限 Mission 启动器；不复制 DSH 上游源码，也不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
+统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、对话绑定的 DSH 原生 Experiment 控制器、只读 run viewer、与 Chat／Trajectory 并列的 KerSor view，以及可选的有限 Mission 启动器；不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
 
 ## 五分钟上手
 
@@ -18,8 +18,8 @@
 
 3. **重启 DSH Web 进程**。已经运行的 Host 不会自动采用新 preset composition 或新的浏览器 bundle。
 4. 在 DSH 中添加目标工作区，新建会话，把 agent preset 从“标准模式”切换为 **KerSor**。
-5. 用任务合同描述目标、基线、权威验证命令、禁止修改的文件和停止条件。Agent 应先加载 `kersor` skill，再由 skill 路由到当前 KerSor checkout 的协议。
-6. 用 `kersor_status` 查看当前 Session；用会话标题下的 `KerSor` 标签查看优化会话、Workflow 执行图与候选选择。
+5. 用任务合同描述目标、基线、权威验证命令、禁止修改的文件和停止条件。顶层 Agent 加载 `kersor` skill 后调用 `kersor_start`；已有磁盘 Session 用 `kersor_attach`，之后只用 `kersor_resume` 恢复原 controller child。
+6. Chat 中的 KerSor Experiment 卡显示九阶段进度和下一动作；点击「查看 DSH 执行对话」进入完整控制器对话。会话标题下的 `KerSor` 标签继续提供跨工作区总览、Workflow 执行图与候选选择。
 
 ## 为什么安装时生成 composition
 
@@ -50,7 +50,9 @@ dsh plugin --profile web add "file:$PWD/bundles/kersor-web"
 
 若 `dsh` 未加入 `PATH`，可在 DSH checkout 中用 `pnpm dsh plugin --profile web add ...` 执行同一操作，并把 `file:` 后的路径写成此仓库 bundle 的绝对路径。
 
-该 bundle 会安装三个插件，但默认只挂载只读 viewer 与 UI。`@deepseek-ai/dsh-kersor` 启动器只有在 profile patch 中显式登记至少一个 `kersor-mission-v1` Mission 后才应挂载；配置合同见 [`plugins/kersor/README.zh.md`](plugins/kersor/README.zh.md)。
+该 bundle 会安装三个插件，但默认只在 Host 挂载只读 viewer 与 UI。Preset 会从已安装 package 的 `@deepseek-ai/dsh-kersor/control` 子路径挂载 `kersor_start`／`attach`／`resume`；包根启动器只有在 profile patch 中显式登记至少一个 `kersor-mission-v1` Mission 后才应挂载。配置合同见 [`plugins/kersor/README.zh.md`](plugins/kersor/README.zh.md)。
+
+当前对话事件要求 DSH build 已认识 `kersor/experiment-start` 与 `kersor/experiment-checkpoint`。在包含这些事件的正式 DSH release 发布前，应从本仓库镜像所对应的 DSH source checkout 启动 Web Host；旧 build 即使能加载插件，也会在重启读取日志时拒绝未知的必需事件。
 
 更新仓库后，先移除再重装这一精确 bundle，确保 pnpm 不复用旧的本地目录快照：
 
@@ -97,10 +99,10 @@ python3 scripts/install.py \
 
 | 任务 | 建议入口 | 权威状态／证据 |
 |---|---|---|
-| GPU kernel 或带 benchmark 的本地优化 | `kersor` skill → `compose optimize` → 当前 `commands/optimize.md` | Session v2、Attempt Result、实测 benchmark |
+| GPU kernel 或带 benchmark 的本地优化 | 顶层 `kersor_start` → continuable DSH controller → `runtime=dsh` optimize | 父 Experiment 绑定、Session v2、Attempt Result、实测 benchmark |
 | 通用本地任务的固定验证循环 | `kersor-task-v1` → `commands/evolve.md` | `output.json` 与 verifier evidence |
 | 自主 Workflow / Mission | `kersor-mission-v1` → `commands/evolve.md` | `result.json`、artifact receipts、独立 verifier |
-| 状态、恢复、诊断 | 先调用 `kersor_status`，再读取相应 command protocol | 当前磁盘 Session，不依赖聊天记忆 |
+| 状态、恢复、诊断 | child 调用 `kersor_status`；父对话用 `kersor_resume` 恢复同一 child | 当前磁盘 Session + 原 DSH child，不依赖聊天记忆 |
 
 不要把 CUDA Workflow 硬套到 Python、VLIW、Verilog 或普通工程任务。任务类型不匹配时，稳定 `optimize` 路径应先确定性拒绝不兼容的已发布 Workflow，再通过有界 workflow authoring 创作 task-native Proposal；workflow evolution 只属于显式 research runner。任务自己的测试命令始终是唯一验收门。
 
@@ -154,6 +156,8 @@ parent 代写、字段不规范、integration pattern 漂移或 seal 后修改�
 
 `kersor_status` 工具只读取当前 DSH task 的工作区，调用时使用空参数 `{}`，不要传 KerSor checkout 或其他路径。它展示阶段、当前轮次、workflow、最佳实测 speedup、目标、fit confidence、`language/backend`、integration pattern、authoring gate／预算、从零隔离、基线见证及其下一步／阻塞原因、Profile 证据／owner、DSH 兼容性、候选所有权和最近决策，并使用 DSH 原生可回放卡片呈现。单一工作区入口同时消除了路径猜测和 host-side bridge 越界面。
 
+Profile 只有在 KerSor 的权威 `profile-handoff.py verify` 通过且 seal 记录可归属的 DSH child Session id 时才显示 `pass`；缺失 id 以及 `none`、`null`、`unknown` 这类占位值均为失败证据。规范 phase 一旦为 `complete`、`stalled` 或 `cancelled`，残留的 profile、authoring staging 或 dispatch 标记不会再把任何步骤投影为 active，也不会把 Session 标成可继续或活跃。
+
 Web 侧栏同时显示最近 20 个经典／Session-v2 优化会话摘要，以及 autonomous run 的实时进度。它自动读取 DSH 已登记工作区，并扫描各工作区的 `.kersor/`，无需为当前项目重复配置路径；额外的集中式 Session 根仍可通过 viewer `roots` 配置。Session 卡会直接显示 `language/backend`、integration pattern、fresh／baseline／DSH compatibility／candidate ownership gates、selector 结果与 workflow authoring 预算；展开卡片可查看 artifact 派生的阶段时间线、authoring／seal／save、Proposal validation、dispatch／measurement，以及密封后的 metadata、文件 hash、rationale 和 `workflow.js`。seal 前或 hash 不匹配时不暴露 staging 内容。经典状态由 KerSor 自己的 `SessionStore`／`AttemptResultStore` 解析，并把规范 phase 与建议性 health 分开。Host 用一个原子 `snapshot` 同时发布 Session、run 清单和结构化来源健康，后续只在状态变化时推送替换事件；选中 run 才读取 `runBacklog`，展开经典 Session 才读取 `classicSessionDetail`。`waiting` 按本次 invocation 的终态处理；断连后重读同一 snapshot 路径恢复。viewer 优先使用 `KERSOR_ROOT`，否则复用 preset 的 `.local/kersor-root`。
 
 环境变量 `KERSOR_ROOT` 可以临时覆盖安装时记录的 checkout：
@@ -167,6 +171,8 @@ KERSOR_ROOT=/another/KerSor dsh
 [`docs/vliw-takehome-from-scratch.md`](docs/vliw-takehome-from-scratch.md) 给出完整案例：从 Anthropic 官方 `origin/main` 的 147734-cycle starter 创建隔离 worktree，在 DSH 中选择 KerSor preset，禁止读取任何既有优化解，组织架构分析、hazard 审计、向量化／调度和独立验证角色，依次冲击 `<18532` 与 `<2164`。
 
 这个案例同时验证五条链路：skill 发现、goal 持久化、subagent/Workflow 组织、权威 benchmark 守门、KerSor 状态与可视化。每轮实验总结收录在 [`docs/experiments/`](docs/experiments/README.md)。
+
+若要使用当前 DSH 原生对话控制器，并观察“每轮新候选、按需创作新 Workflow、Host-measured 门禁、Round tree 与增量／全链路 speedup”，参见[自主 Workflow 完整案例](docs/use-cases/kersor-autonomous-workflow.zh.md)（[English](docs/use-cases/kersor-autonomous-workflow.md)）。
 
 ## 故障排查
 
@@ -207,7 +213,7 @@ python3 scripts/check.py
 
 ```text
 bundles/kersor-web/         # Web profile 的只读 viewer + UI 组合层
-plugins/kersor/             # 可选有限 Mission 启动器（Host）
+plugins/kersor/             # DSH 原生对话控制器 + 可选有限 Mission 启动器
 plugins/kersor-viewer/      # Session 摘要、run 发现、tail、fold 与 snapshot remotes
 plugins/ui-kersor-viewer/   # 优化会话、执行图与候选选择的 KerSor view（Client）
 presets/kersor/

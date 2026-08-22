@@ -20,6 +20,14 @@ from typing import Any
 PRESET_ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILE = PRESET_ROOT / ".local" / "kersor-root"
 MINIMUM_PYTHON = (3, 10)
+TERMINAL_PHASES = frozenset({"complete", "stalled", "cancelled", "single_run"})
+UNATTRIBUTABLE_SESSION_IDS = frozenset({"none", "null", "unknown"})
+NUMBER_TOKEN = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
+CYCLES_PATTERN = re.compile(rf"\bCYCLES\s*:\s*({NUMBER_TOKEN})\b")
+OVERALL_SPEEDUP_PATTERN = re.compile(
+    rf"\bSpeedup\s+over\s+baseline\s*:\s*({NUMBER_TOKEN})\b",
+    re.IGNORECASE,
+)
 
 
 def require_supported_python(
@@ -141,6 +149,62 @@ def numeric(value: object) -> float | None:
     return number if number == number and abs(number) != float("inf") else None
 
 
+def positive_numeric(value: object) -> float | None:
+    """Normalize one finite positive measurement."""
+    number = numeric(value)
+    return number if number is not None and number > 0 else None
+
+
+def verified_host_metric(run_dir: Path) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Return the Host record and its metric only for a complete PASS review."""
+    host = read_json_object(run_dir / "host-verification.json")
+    correctness = host.get("correctness")
+    benchmark = host.get("benchmark")
+    metric = host.get("metric")
+    verified = (
+        host.get("schema_version") == 1
+        and host.get("verdict") == "pass"
+        and isinstance(correctness, dict)
+        and correctness.get("exit_code") == 0
+        and isinstance(benchmark, dict)
+        and benchmark.get("exit_code") == 0
+        and isinstance(metric, dict)
+        and (
+            positive_numeric(metric.get("speedup")) is not None
+            or positive_numeric(metric.get("candidate_speedup")) is not None
+        )
+    )
+    return host, metric if verified else None
+
+
+def verified_measured_speedup(
+    run_dir: Path, attempt: dict[str, Any]
+) -> float | None:
+    """Return only a correct, valid speedup measured by the Host reviewer.
+
+    Workflow output and legacy analysis may contain optimistic estimates.  The
+    bridge therefore fails closed unless the canonical Attempt Result confirms
+    compilation, correctness, and metric validity, while the Host record
+    independently proves both gates passed and owns the returned measurement.
+    """
+    outcome = attempt.get("outcome")
+    metric = attempt.get("metric_contract")
+    _, host_metric = verified_host_metric(run_dir)
+    if (
+        not isinstance(outcome, dict)
+        or outcome.get("compiled") is not True
+        or outcome.get("correct") is not True
+        or not isinstance(metric, dict)
+        or metric.get("valid") is not True
+        or positive_numeric(metric.get("speedup")) is None
+        or host_metric is None
+    ):
+        return None
+    return positive_numeric(host_metric.get("speedup")) or positive_numeric(
+        host_metric.get("candidate_speedup")
+    )
+
+
 def bounded_reason(value: object, limit: int = 240) -> str | None:
     """Normalize one bounded single-line diagnostic for browser projection."""
     if not isinstance(value, str):
@@ -189,9 +253,9 @@ def baseline_projection(
 
 
 def profile_projection(
-    session_dir: Path, round_number: int
+    root: Path, session_dir: Path, round_number: int
 ) -> tuple[str, str | None, str | None]:
-    """Project the Session-owned Phase 2 profile and its hard-gate failure."""
+    """Project Phase 2 through KerSor's verifier and attributable producer seal."""
     failure = read_json_object(
         session_dir / f"run-{round_number}" / "profile-gate.json"
     )
@@ -214,57 +278,57 @@ def profile_projection(
         isinstance(extensions, dict)
         and extensions.get("fresh_session_required") is True
     )
+
+    producer_id: str | None = None
+    if fresh_required and not (
+        isinstance(config.get("prepared_spec"), str)
+        and config["prepared_spec"].strip()
+    ):
+        handoff = read_json_object(session_dir / "profile-handoff" / "seal.json")
+        if not handoff:
+            return "fail", "profile handoff seal not found for fresh Session", None
+        producer = handoff.get("producer")
+        raw_producer_id = (
+            producer.get("session_id") if isinstance(producer, dict) else None
+        )
+        if not isinstance(raw_producer_id, str):
+            return "fail", "profile handoff producer provenance is invalid", None
+        producer_id = raw_producer_id.strip()
+        if (
+            not producer_id
+            or any(char.isspace() for char in producer_id)
+            or producer_id.casefold() in UNATTRIBUTABLE_SESSION_IDS
+        ):
+            return "fail", "profile handoff producer provenance is invalid", None
+
+    verifier = root / "scripts" / "profile-handoff.py"
+    if not verifier.is_file():
+        return "fail", "profile handoff verifier is unavailable", None
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(verifier),
+                "verify",
+                "--session",
+                str(session_dir),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return "fail", "profile handoff verification could not complete", None
+    if completed.returncode != 0:
+        detail = bounded_reason(completed.stderr) or "profile handoff verification failed"
+        if "profile handoff seal not found" in detail:
+            detail = "profile handoff seal not found for fresh Session"
+        return "fail", detail, None
     if not fresh_required:
         return "pass", None, "legacy-session"
     if isinstance(config.get("prepared_spec"), str) and config["prepared_spec"].strip():
         return "pass", None, "prepared-spec"
-
-    handoff = read_json_object(session_dir / "profile-handoff" / "seal.json")
-    if not handoff:
-        return "fail", "profile handoff seal not found for fresh Session", "unsealed"
-    if handoff.get("schema_version") != 1:
-        return "fail", "profile handoff schema is unsupported", "invalid"
-    try:
-        bound_session = Path(str(handoff.get("session_dir", ""))).resolve()
-    except OSError:
-        bound_session = Path(".")
-    if bound_session != session_dir.resolve():
-        return "fail", "profile handoff Session binding mismatch", "invalid"
-    if handoff.get("owner_role") != "kernel-profiler":
-        return "fail", "profile handoff owner is not kernel-profiler", "invalid"
-    producer = handoff.get("producer")
-    producer_id = producer.get("session_id") if isinstance(producer, dict) else None
-    if (
-        not isinstance(producer, dict)
-        or producer.get("runtime") != "dsh-subagent"
-        or not isinstance(producer_id, str)
-        or not producer_id.strip()
-    ):
-        return "fail", "profile handoff producer provenance is invalid", "invalid"
-
-    def digest(path: Path) -> str:
-        return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-    context = handoff.get("context")
-    sealed_profile = handoff.get("profile")
-    context_path = session_dir / "profile-handoff" / "context.json"
-    try:
-        context_matches = (
-            isinstance(context, dict)
-            and context.get("path") == "profile-handoff/context.json"
-            and context.get("sha256") == digest(context_path)
-        )
-        profile_matches = (
-            isinstance(sealed_profile, dict)
-            and sealed_profile.get("path") == "kernel-profile.md"
-            and sealed_profile.get("sha256") == digest(profile)
-        )
-    except OSError:
-        return "fail", "profile handoff files could not be verified", "invalid"
-    if not context_matches:
-        return "fail", "profile handoff context hash mismatch", "invalid"
-    if not profile_matches:
-        return "fail", "profile hash mismatch after handoff seal", "invalid"
     return "pass", None, f"kernel-profiler · {producer_id}"
 
 
@@ -395,6 +459,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             "candidate_ownership": None,
             "fresh_session": None,
             "best_speedup": None,
+            "steps": [],
             "rounds": [],
             "warnings": warnings,
         }
@@ -416,9 +481,7 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
             if attempt_store.storage_kind != "missing":
                 try:
                     attempt = attempt_store.snapshot(allow_legacy=True)
-                    metric = attempt.get("metric_contract")
-                    if isinstance(metric, dict):
-                        speedup = numeric(metric.get("speedup"))
+                    speedup = verified_measured_speedup(run_dir, attempt)
                 except AttemptResultError as error:
                     warnings.append(f"unusable run-{number} Attempt Result: {error}")
         decision = round_decision(session_dir, number)
@@ -463,13 +526,10 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         root, session_dir, round_number
     )
     profile_evidence, profile_reason, profile_owner = profile_projection(
-        session_dir, round_number
+        root, session_dir, round_number
     )
-    terminal_before_baseline = (
-        snapshot.get("phase") in {"complete", "stalled", "cancelled", "single_run"}
-        and baseline_witness == "pending"
-    )
-    if fresh_session == "fail" or terminal_before_baseline:
+    terminal = snapshot.get("phase") in TERMINAL_PHASES
+    if fresh_session == "fail" or terminal:
         baseline_next_action = None
     return {
         "found": True,
@@ -510,6 +570,12 @@ def status(root: Path, requested: Path) -> dict[str, Any]:
         "candidate_ownership": candidate_ownership_gate(session_dir, round_number),
         "fresh_session": fresh_session,
         "best_speedup": best_speedup,
+        "steps": session_detail(
+            root,
+            session_dir,
+            phase=snapshot.get("phase"),
+            profile_status=profile_evidence,
+        )["steps"],
         "rounds": rounds,
         "warnings": warnings,
     }
@@ -594,6 +660,126 @@ def session_health(
     return status, "needs_resume" if status == "resumable" else "stale"
 
 
+def last_reported_number(value: object, pattern: re.Pattern[str]) -> float | None:
+    """Read the last finite positive number matching one bounded stdout pattern."""
+    if not isinstance(value, str):
+        return None
+    matches = pattern.findall(value)
+    if not matches:
+        return None
+    try:
+        return positive_numeric(float(matches[-1]))
+    except ValueError:
+        return None
+
+
+def baseline_cycle_seed(session_dir: Path) -> tuple[float | None, float | None]:
+    """Read Session and task baseline cycles from the verified witness output."""
+    witness = read_json_object(session_dir / "baseline-witness.json")
+    if witness.get("schema_version") != 1 or witness.get("verdict") != "pass":
+        return None, None
+    executions = witness.get("executions")
+    if not isinstance(executions, list):
+        return None, None
+    session_cycles: float | None = None
+    reported_overall: float | None = None
+    for execution in executions:
+        if not isinstance(execution, dict) or execution.get("kind") != "benchmark":
+            continue
+        stdout = execution.get("stdout")
+        cycles = last_reported_number(stdout, CYCLES_PATTERN)
+        if cycles is not None:
+            session_cycles = cycles
+            reported_overall = last_reported_number(stdout, OVERALL_SPEEDUP_PATTERN)
+    task_cycles = (
+        session_cycles * reported_overall
+        if session_cycles is not None and reported_overall is not None
+        else None
+    )
+    return session_cycles, task_cycles
+
+
+def cycle_lineage(
+    session_dir: Path, *, baseline_verified: bool
+) -> dict[str, float] | None:
+    """Build a truth-grounded baseline-to-incumbent cycle lineage."""
+    if not baseline_verified:
+        return None
+    session_baseline, task_baseline = baseline_cycle_seed(session_dir)
+    if session_baseline is None:
+        return None
+    best_cycles = session_baseline
+    for number in candidate_rounds(session_dir):
+        _, metric = verified_host_metric(session_dir / f"run-{number}")
+        if metric is None:
+            continue
+        candidate_cycles = positive_numeric(metric.get("candidate_cycles"))
+        if candidate_cycles is not None:
+            best_cycles = min(best_cycles, candidate_cycles)
+    lineage = {
+        "session_baseline_cycles": session_baseline,
+        "best_cycles": best_cycles,
+        "session_speedup": session_baseline / best_cycles,
+    }
+    if task_baseline is not None:
+        lineage["task_baseline_cycles"] = task_baseline
+        lineage["overall_speedup"] = task_baseline / best_cycles
+    return lineage
+
+
+def workflow_authoring_used(session_dir: Path) -> int:
+    """Count attributable workflow-author attempts in the current Session."""
+    attempts = session_dir / "workflow-authoring" / "attempts"
+    try:
+        return sum(
+            1
+            for path in attempts.iterdir()
+            if path.is_dir()
+            and re.fullmatch(r"round-[1-9]\d*", path.name)
+            and (path / "author-context.json").is_file()
+        )
+    except OSError:
+        return 0
+
+
+def terminal_stop_reason(
+    value: dict[str, Any], *, authoring_used: int
+) -> str | None:
+    """Classify the canonical terminal cause without conflating candidate failure."""
+    phase = value.get("phase")
+    if phase not in TERMINAL_PHASES:
+        return None
+    if value.get("target_met") is True:
+        return "target_met"
+    if phase == "cancelled":
+        return "cancelled"
+    current_round = value.get("current_round")
+    max_workflows = value.get("max_workflows")
+    if (
+        isinstance(current_round, int)
+        and not isinstance(current_round, bool)
+        and isinstance(max_workflows, int)
+        and not isinstance(max_workflows, bool)
+        and max_workflows > 0
+        and current_round >= max_workflows
+    ):
+        return "execution_budget_exhausted"
+    if phase == "stalled":
+        budget = value.get("workflow_authoring_budget")
+        if (
+            value.get("allow_workflow_authoring") is True
+            and isinstance(budget, int)
+            and not isinstance(budget, bool)
+            and budget > 0
+            and authoring_used >= budget
+        ):
+            return "authoring_budget_exhausted"
+        return "selection_stalled"
+    if phase == "single_run":
+        return "single_run_complete"
+    return None
+
+
 def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
     """Return the bounded, path-light projection consumed by the DSH viewer."""
     session_dir = Path(str(value["session_dir"]))
@@ -628,6 +814,7 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
     selection_status = (
         "pending" if workflow is None else "stalled" if workflow == "STALLED" else "selected"
     )
+    authoring_used = workflow_authoring_used(session_dir)
     return {
         "session_id": session_dir.name,
         "session_dir": str(session_dir),
@@ -667,6 +854,12 @@ def session_summary(value: dict[str, Any], stale_after: int) -> dict[str, Any]:
         "candidate_ownership": value.get("candidate_ownership"),
         "fresh_session": value.get("fresh_session"),
         "best_speedup": value.get("best_speedup"),
+        "stop_reason": terminal_stop_reason(value, authoring_used=authoring_used),
+        "workflow_authoring_used": authoring_used,
+        "cycle_lineage": cycle_lineage(
+            session_dir,
+            baseline_verified=value.get("baseline_witness") == "pass",
+        ),
         "warnings": warnings,
     }
 
@@ -736,6 +929,12 @@ def sessions(
 DETAIL_FILES = ("workflow.js", "metadata.json", "rationale.md")
 MAX_WORKFLOW_BYTES = 512 * 1024
 MAX_RATIONALE_BYTES = 128 * 1024
+MAX_DSH_ENVELOPE_BYTES = 2 * 1024 * 1024
+MAX_DSH_COMPATIBILITY_BYTES = 128 * 1024
+MAX_CATALOG_ENTRY_BYTES = 256 * 1024
+MAX_DISPATCH_ARGS_BYTES = 1024 * 1024
+MAX_DESIGN_DESCRIPTION_BYTES = 32 * 1024
+MAX_DESIGN_PHASES = 64
 
 
 def file_sha256(path: Path) -> str:
@@ -755,6 +954,448 @@ def bounded_text(path: Path, maximum: int) -> str | None:
         return payload.decode("utf-8") if len(payload) <= maximum else None
     except (OSError, UnicodeDecodeError):
         return None
+
+
+def bounded_json_object(path: Path, maximum: int) -> dict[str, Any] | None:
+    """Read one bounded UTF-8 JSON object without exposing parse failures."""
+    payload = bounded_text(path, maximum)
+    if payload is None:
+        return None
+    try:
+        value = json.loads(payload)
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def round_workflow_origin(session_dir: Path, workflow: str) -> str:
+    """Distinguish a current-Session authored Proposal from a catalog entry."""
+    proposal = session_dir / "workflow-authoring" / "proposals" / workflow
+    return (
+        "authored"
+        if all((proposal / name).is_file() for name in DETAIL_FILES)
+        else "catalog"
+    )
+
+
+def round_failure_kind(host: dict[str, Any]) -> str | None:
+    """Classify a Host FAIL without presenting candidate failure as Host outage."""
+    if host.get("verdict") != "fail":
+        return None
+    correctness = host.get("correctness")
+    benchmark = host.get("benchmark")
+    if isinstance(correctness, dict):
+        exit_code = correctness.get("exit_code")
+        if isinstance(exit_code, int) and not isinstance(exit_code, bool) and exit_code != 0:
+            return "correctness"
+    if isinstance(benchmark, dict):
+        exit_code = benchmark.get("exit_code")
+        if isinstance(exit_code, int) and not isinstance(exit_code, bool) and exit_code != 0:
+            return "benchmark"
+    reason = host.get("reason")
+    rendered = reason.casefold() if isinstance(reason, str) else ""
+    if "correctness" in rendered:
+        return "correctness"
+    if "benchmark" in rendered or "measurement" in rendered:
+        return "benchmark"
+    if any(
+        token in rendered
+        for token in ("infrastructure", "dispatch", "runtime", "timeout", "host outage")
+    ):
+        return "infrastructure"
+    return None
+
+
+def round_estimate(host: dict[str, Any], output: dict[str, Any]) -> dict[str, float] | None:
+    """Project advisory Workflow estimates separately from Host measurement."""
+    claimed = host.get("workflow_estimate")
+    claimed = claimed if isinstance(claimed, dict) else {}
+    cycles = positive_numeric(claimed.get("cycles"))
+    if cycles is None:
+        cycles = positive_numeric(output.get("expected_cycles_estimate"))
+    if cycles is None:
+        cycles = positive_numeric(output.get("estimated_cycles"))
+    speedup = positive_numeric(claimed.get("speedup"))
+    if speedup is None:
+        speedup = positive_numeric(output.get("estimated_speedup"))
+    if speedup is None:
+        speedup = positive_numeric(output.get("overall_speedup"))
+    estimate: dict[str, float] = {}
+    if cycles is not None:
+        estimate["cycles"] = cycles
+    if speedup is not None:
+        estimate["speedup"] = speedup
+    return estimate or None
+
+
+def round_measurement(
+    host: dict[str, Any], metric: dict[str, Any] | None
+) -> dict[str, float | bool] | None:
+    """Project only a complete Host PASS measurement with explicit semantics."""
+    if metric is None:
+        return None
+    baseline_cycles = positive_numeric(metric.get("baseline_cycles"))
+    candidate_cycles = positive_numeric(metric.get("candidate_cycles"))
+    candidate_speedup = positive_numeric(metric.get("candidate_speedup"))
+    if candidate_speedup is None:
+        candidate_speedup = positive_numeric(metric.get("speedup"))
+    incumbent_cycles = positive_numeric(metric.get("incumbent_cycles"))
+    incumbent_speedup = positive_numeric(metric.get("incumbent_speedup"))
+    best_improved = metric.get("best_improved")
+    if not isinstance(best_improved, bool) and candidate_cycles is not None:
+        comparison = incumbent_cycles or baseline_cycles
+        if comparison is not None:
+            best_improved = candidate_cycles < comparison
+    benchmark = host.get("benchmark")
+    benchmark_stdout = benchmark.get("stdout") if isinstance(benchmark, dict) else None
+    overall_speedup = last_reported_number(
+        benchmark_stdout, OVERALL_SPEEDUP_PATTERN
+    )
+    values: tuple[tuple[str, float | bool | None], ...] = (
+        ("baseline_cycles", baseline_cycles),
+        ("candidate_cycles", candidate_cycles),
+        ("candidate_speedup", candidate_speedup),
+        ("incumbent_cycles", incumbent_cycles),
+        ("incumbent_speedup", incumbent_speedup),
+        ("best_improved", best_improved if isinstance(best_improved, bool) else None),
+        ("overall_speedup", overall_speedup),
+    )
+    measurement = {name: value for name, value in values if value is not None}
+    return measurement or None
+
+
+def round_history(session_dir: Path) -> list[dict[str, Any]]:
+    """Project at most the latest 100 rounds in strict ascending order."""
+    projected: list[dict[str, Any]] = []
+    for number in candidate_rounds(session_dir)[-100:]:
+        run_dir = session_dir / f"run-{number}"
+        workflow = selected_workflow(session_dir, number)
+        host, metric = verified_host_metric(run_dir)
+        raw_verdict = host.get("verdict")
+        host_verdict = raw_verdict if raw_verdict in {"pass", "fail"} else "pending"
+        output = bounded_json_object(run_dir / "output.json", MAX_DSH_ENVELOPE_BYTES) or {}
+        candidate = host.get("candidate")
+        candidate_id = (
+            candidate.get("id") if isinstance(candidate, dict) else None
+        )
+        if not isinstance(candidate_id, str) or not candidate_id.strip():
+            candidate_id = output.get("selected_candidate_id")
+        candidate_id = bounded_reason(candidate_id, limit=240)
+        estimate = round_estimate(host, output)
+        measurement = round_measurement(host, metric)
+        failure_kind = round_failure_kind(host)
+        decision = round_decision(session_dir, number)
+        row: dict[str, Any] = {
+            "number": number,
+            "host_verdict": host_verdict,
+        }
+        if workflow is not None and workflow != "STALLED":
+            row["workflow"] = workflow
+            row["workflow_origin"] = round_workflow_origin(session_dir, workflow)
+        if candidate_id is not None:
+            row["candidate_id"] = candidate_id
+        if failure_kind is not None:
+            row["failure_kind"] = failure_kind
+        if estimate is not None:
+            row["estimate"] = estimate
+        if measurement is not None:
+            row["measurement"] = measurement
+        if decision is not None:
+            row["decision"] = decision
+        projected.append(row)
+    return projected
+
+
+def sha256_text(value: str) -> str:
+    """Return one lowercase bare SHA-256 digest over exact UTF-8 text."""
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def normalized_sha256(value: object) -> str | None:
+    """Normalize a bare or prefixed lowercase SHA-256 claim."""
+    if not isinstance(value, str):
+        return None
+    digest = value.removeprefix("sha256:")
+    return digest if re.fullmatch(r"[0-9a-f]{64}", digest) else None
+
+
+def canonical_json_sha256(value: object) -> str | None:
+    """Mirror JSON.stringify for ordinary finite dispatch-argument objects."""
+    try:
+        encoded = json.dumps(
+            value,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError):
+        return None
+    return sha256_text(encoded)
+
+
+def bounded_string(value: object, maximum: int) -> str | None:
+    """Return one non-empty string only when its UTF-8 bytes fit the bound."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value if len(value.encode("utf-8")) <= maximum else None
+
+
+def bounded_string_array(
+    value: object,
+    *,
+    maximum_items: int = 128,
+    maximum_item_bytes: int = 1024,
+) -> list[str] | None:
+    """Validate one bounded string array for browser projection."""
+    if not isinstance(value, list) or len(value) > maximum_items:
+        return None
+    projected: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or len(item.encode("utf-8")) > maximum_item_bytes:
+            return None
+        projected.append(item)
+    return projected
+
+
+def bounded_phases(value: object) -> list[dict[str, str]] | None:
+    """Validate the DSH metadata phase list without forwarding extra fields."""
+    if value is None:
+        return []
+    if not isinstance(value, list) or len(value) > MAX_DESIGN_PHASES:
+        return None
+    phases: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            return None
+        title = bounded_string(item.get("title"), 1024)
+        detail_value = item.get("detail", "")
+        if title is None or not isinstance(detail_value, str):
+            return None
+        if len(detail_value.encode("utf-8")) > MAX_DESIGN_DESCRIPTION_BYTES:
+            return None
+        phases.append({"title": title, "detail": detail_value})
+    return phases
+
+
+def path_within(path: Path, roots: tuple[Path, ...]) -> bool:
+    """Return whether the resolved path is inside one allowed workflow root."""
+    return any(path == root or path.is_relative_to(root) for root in roots)
+
+
+def sealed_session_catalog_entry(
+    session_dir: Path,
+    run_dir: Path,
+    selected: str,
+) -> tuple[dict[str, Any] | None, bool]:
+    """Read the selected entry from the Host-sealed Session catalog.
+
+    The boolean reports whether either half of the sealed representation was
+    present.  Callers must fail closed instead of falling back to the legacy
+    per-run projection when a partial or invalid sealed representation exists.
+    """
+    catalog_path = session_dir / "workflow-catalog.json"
+    seal_path = run_dir / "candidate-ownership-seal.json"
+    present = catalog_path.exists() or seal_path.exists()
+    if not present or not catalog_path.is_file() or not seal_path.is_file():
+        return None, present
+
+    catalog_text = bounded_text(catalog_path, MAX_CATALOG_ENTRY_BYTES)
+    seal = bounded_json_object(seal_path, MAX_CATALOG_ENTRY_BYTES)
+    if catalog_text is None or seal is None:
+        return None, True
+    try:
+        catalog_document = json.loads(catalog_text)
+    except json.JSONDecodeError:
+        return None, True
+    if not isinstance(catalog_document, dict):
+        return None, True
+
+    dispatch_package = seal.get("dispatch_package")
+    if (
+        seal.get("schema_version") != 1
+        or seal.get("contract") != "candidate_output_ownership_v1"
+        or not isinstance(dispatch_package, dict)
+        or normalized_sha256(dispatch_package.get("catalog"))
+        != sha256_text(catalog_text)
+    ):
+        return None, True
+    try:
+        sealed_session = Path(str(seal.get("session_dir", ""))).expanduser().resolve()
+        sealed_run = Path(str(seal.get("run_dir", ""))).expanduser().resolve()
+    except OSError:
+        return None, True
+    if sealed_session != session_dir.resolve() or sealed_run != run_dir.resolve():
+        return None, True
+
+    workflows = catalog_document.get("workflows")
+    if not isinstance(workflows, list) or len(workflows) > 1024:
+        return None, True
+    matches = [
+        entry
+        for entry in workflows
+        if isinstance(entry, dict) and entry.get("name") == selected
+    ]
+    return (matches[0] if len(matches) == 1 else None), True
+
+
+def dispatched_workflow_design(
+    root: Path,
+    session_dir: Path,
+    round_number: int,
+    selected: str | None,
+) -> dict[str, Any] | None:
+    """Project one hash-bound prepared DSH Workflow, failing closed on drift."""
+    run_dir = session_dir / f"run-{round_number}"
+    envelope_path = run_dir / "dsh-workflow.json"
+    compatibility_path = run_dir / "dsh-compatibility.json"
+    legacy_catalog_path = run_dir / "catalog-entry.json"
+    if not envelope_path.exists():
+        return None
+    if (
+        selected is None
+        or selected == "STALLED"
+        or not envelope_path.is_file()
+        or not compatibility_path.is_file()
+    ):
+        return None
+
+    envelope = bounded_json_object(envelope_path, MAX_DSH_ENVELOPE_BYTES)
+    compatibility = bounded_json_object(
+        compatibility_path, MAX_DSH_COMPATIBILITY_BYTES
+    )
+    catalog, sealed_catalog_present = sealed_session_catalog_entry(
+        session_dir, run_dir, selected
+    )
+    if not sealed_catalog_present:
+        catalog = bounded_json_object(legacy_catalog_path, MAX_CATALOG_ENTRY_BYTES)
+    if envelope is None or compatibility is None or catalog is None:
+        return None
+    if (
+        envelope.get("schema_version") != 1
+        or envelope.get("contract") != "dsh_workflow_v1"
+        or compatibility.get("schema_version") != 1
+        or compatibility.get("gate") != "dsh_workflow_v1"
+        or compatibility.get("verdict") != "pass"
+        or compatibility.get("errors") != []
+    ):
+        return None
+
+    source = envelope.get("source")
+    meta = envelope.get("meta")
+    args = envelope.get("args")
+    body = envelope.get("script")
+    if (
+        not isinstance(source, dict)
+        or not isinstance(meta, dict)
+        or not isinstance(args, dict)
+        or not isinstance(body, str)
+        or len(body.encode("utf-8")) > MAX_WORKFLOW_BYTES
+        or meta.get("name") != selected
+        or catalog.get("name") != selected
+    ):
+        return None
+
+    workflow_path_value = source.get("workflow_path")
+    args_path_value = source.get("args_path")
+    if not isinstance(workflow_path_value, str) or not isinstance(args_path_value, str):
+        return None
+    try:
+        workflow_path = Path(workflow_path_value).expanduser().resolve()
+        args_path = Path(args_path_value).expanduser().resolve()
+        report_workflow = Path(str(compatibility.get("workflow_source", ""))).expanduser().resolve()
+        report_args = Path(str(compatibility.get("args_source", ""))).expanduser().resolve()
+        catalog_workflow = Path(str(catalog.get("js_path", ""))).expanduser().resolve()
+    except OSError:
+        return None
+    allowed_roots = (
+        (root / "workflows").resolve(),
+        (session_dir / "workflow-authoring" / "proposals").resolve(),
+    )
+    expected_args = (run_dir / "dispatch-args.json").resolve()
+    if (
+        not path_within(workflow_path, allowed_roots)
+        or workflow_path != report_workflow
+        or workflow_path != catalog_workflow
+        or args_path != expected_args
+        or args_path != report_args
+    ):
+        return None
+
+    persisted_args = bounded_json_object(args_path, MAX_DISPATCH_ARGS_BYTES)
+    if persisted_args is None or persisted_args != args:
+        return None
+    workflow_hash = normalized_sha256(source.get("workflow_sha256"))
+    args_hash = canonical_json_sha256(args)
+    body_hash = sha256_text(body)
+    if workflow_hash is None or args_hash is None:
+        return None
+    if (
+        normalized_sha256(compatibility.get("workflow_sha256")) != workflow_hash
+        or normalized_sha256(catalog.get("workflow_content_hash")) != workflow_hash
+        or normalized_sha256(source.get("args_sha256")) != args_hash
+        or normalized_sha256(compatibility.get("args_sha256")) != args_hash
+        or normalized_sha256(source.get("body_sha256")) != body_hash
+        or normalized_sha256(compatibility.get("body_sha256")) != body_hash
+    ):
+        return None
+
+    description = bounded_string(
+        meta.get("description"), MAX_DESIGN_DESCRIPTION_BYTES
+    )
+    catalog_description = bounded_string(
+        catalog.get("description"), MAX_DESIGN_DESCRIPTION_BYTES
+    )
+    if description is None or (
+        catalog_description is not None and catalog_description != description
+    ):
+        return None
+    when_to_use = bounded_string(
+        meta.get("whenToUse"), MAX_RATIONALE_BYTES
+    )
+    catalog_when = bounded_string(catalog.get("when_to_use"), MAX_RATIONALE_BYTES)
+    if (
+        when_to_use is not None
+        and catalog_when is not None
+        and not when_to_use.startswith(catalog_when)
+        and not catalog_when.startswith(when_to_use)
+    ):
+        return None
+    phases = bounded_phases(meta.get("phases"))
+    topology = bounded_string(catalog.get("topology"), 1024)
+    required_args = bounded_string_array(catalog.get("required_args"))
+    languages = bounded_string_array(catalog.get("languages"))
+    backends = bounded_string_array(catalog.get("backends"))
+    integration_patterns = bounded_string_array(catalog.get("integration_patterns"))
+    if (
+        phases is None
+        or topology is None
+        or required_args is None
+        or languages is None
+        or backends is None
+        or integration_patterns is None
+    ):
+        return None
+    rationale = when_to_use or catalog_when or description
+    design: dict[str, Any] = {
+        "name": selected,
+        "description": description,
+        **({"whenToUse": when_to_use} if when_to_use is not None else {}),
+        "phases": phases,
+        "topology": topology,
+        "requiredArgs": required_args,
+        "languages": languages,
+        "backends": backends,
+        "integrationPatterns": integration_patterns,
+        "rationale": rationale,
+        "source": body,
+    }
+    method_category = bounded_string(catalog.get("method_category"), 1024)
+    if method_category is not None:
+        design["methodCategory"] = method_category
+    technique = bounded_string(catalog.get("technique"), 1024)
+    if technique is not None:
+        design["technique"] = technique
+    return design
 
 
 def sealed_staging(session_dir: Path) -> tuple[Path | None, str | None]:
@@ -889,6 +1530,8 @@ def dispatch_detail(session_dir: Path, round_number: int) -> dict[str, Any]:
 def step_statuses(
     session_dir: Path,
     round_number: int,
+    phase: object,
+    profile_status: str,
     selection_status: str,
     authoring_status: str,
     validation_status: str,
@@ -912,10 +1555,14 @@ def step_statuses(
     measurement = "completed" if (session_dir / f"run-{round_number}" / "attempt-result.json").exists() else (
         "failed" if dispatch["status"] == "failed" else "pending"
     )
-    return [
+    profile_step = {
+        "pass": "completed", "not_required": "completed",
+        "pending": "pending", "fail": "failed",
+    }.get(profile_status, "failed")
+    steps = [
         {"id": "setup", "status": present("session-config.json")},
         {"id": "baseline", "status": present("test-method.md")},
-        {"id": "profile", "status": present("kernel-profile.md")},
+        {"id": "profile", "status": profile_step},
         {"id": "selection", "status": "pending" if selection_status == "pending" else "completed"},
         {"id": "authoring", "status": author_step},
         {"id": "validation", "status": validation_step},
@@ -923,9 +1570,21 @@ def step_statuses(
         {"id": "measurement", "status": measurement},
         {"id": "decision", "status": "completed" if round_decision(session_dir, round_number) else "pending"},
     ]
+    if phase in TERMINAL_PHASES:
+        replacement = "failed" if phase == "stalled" else "pending"
+        for step in steps:
+            if step["status"] == "active":
+                step["status"] = replacement
+    return steps
 
 
-def session_detail(session: Path) -> dict[str, Any]:
+def session_detail(
+    root: Path,
+    session: Path,
+    *,
+    phase: object | None = None,
+    profile_status: str | None = None,
+) -> dict[str, Any]:
     """Return on-demand, seal-aware Workflow design and execution progress."""
     session_dir = session.expanduser().resolve()
     if not session_dir.is_dir() or not (
@@ -949,7 +1608,8 @@ def session_detail(session: Path) -> dict[str, Any]:
 
     proposal = saved_proposal(session_dir, selected)
     sealed, seal_error = sealed_staging(session_dir)
-    phase = state.get("phase")
+    if phase is None:
+        phase = state.get("phase")
     author_context = (session_dir / "workflow-authoring" / "author-context.json").is_file()
     if proposal is not None:
         authoring_status = "saved"
@@ -966,6 +1626,9 @@ def session_detail(session: Path) -> dict[str, Any]:
     else:
         authoring_status = "not_started"
         design_root = None
+
+    if phase in TERMINAL_PHASES and authoring_status == "in_progress":
+        authoring_status = "rejected" if phase == "stalled" else "not_started"
 
     files: list[dict[str, Any]] = []
     design: dict[str, Any] | None = None
@@ -984,12 +1647,20 @@ def session_detail(session: Path) -> dict[str, Any]:
         authoring["omittedReason"] = omitted
     validation = validation_detail(proposal, authoring_status == "rejected")
     dispatch = dispatch_detail(session_dir, round_number)
+    if phase in TERMINAL_PHASES and dispatch["status"] in {"preparing", "running"}:
+        dispatch["status"] = "failed" if phase == "stalled" else "pending"
+    if profile_status is None:
+        profile_status = profile_projection(root, session_dir, round_number)[0]
+    dispatch_design = dispatched_workflow_design(
+        root, session_dir, round_number, selected
+    )
     return {
         "session_id": session_dir.name,
         "session_dir": str(session_dir),
         "current_round": round_number,
         "steps": step_statuses(
-            session_dir, round_number, selection_status, authoring_status,
+            session_dir, round_number, phase, profile_status,
+            selection_status, authoring_status,
             str(validation["status"]), dispatch,
         ),
         "selection": {
@@ -999,8 +1670,10 @@ def session_detail(session: Path) -> dict[str, Any]:
             "rejectedCount": rejected_count,
         },
         "authoring": authoring,
+        **({"workflow": dispatch_design} if dispatch_design is not None else {}),
         "validation": validation,
         "dispatch": dispatch,
+        "rounds": round_history(session_dir),
     }
 
 
@@ -1093,7 +1766,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if options.action == "session-detail":
             detail_options = session_detail_parser().parse_args(options.args)
-            print(json.dumps(session_detail(detail_options.session), ensure_ascii=False))
+            print(json.dumps(session_detail(root, detail_options.session), ensure_ascii=False))
             return 0
         exec_compose(root, options.args)
     except RuntimeError as error:

@@ -33,6 +33,10 @@ KERSOR_STATUS_ENTRY = (
     "- id: kersor-status\n"
     "  name: './plugins/kersor-status.mjs'"
 )
+KERSOR_CONTROL_ENTRY = (
+    "- id: kersor-control\n"
+    "  name: '@deepseek-ai/dsh-kersor/control'"
+)
 
 
 def default_dsh_home() -> Path:
@@ -118,7 +122,7 @@ def render_composition(standard_source: str, *, skill_dir: Path) -> str:
     )
     rendered = rendered.replace(
         TOOL_SKILL_ENTRY,
-        f"{TOOL_SKILL_ENTRY}\n\n{KERSOR_STATUS_ENTRY}",
+        f"{TOOL_SKILL_ENTRY}\n\n{KERSOR_STATUS_ENTRY}\n\n{KERSOR_CONTROL_ENTRY}",
         1,
     )
     return rendered.rstrip("\n") + "\n"

@@ -88,6 +88,13 @@ class InstallTests(unittest.TestCase):
         (self.kersor / "AGENTS.md").write_text("# Rules\n", encoding="utf-8")
         (self.kersor / "scripts" / "compose.py").write_text("", encoding="utf-8")
         (self.kersor / "scripts" / "doctor.sh").write_text("", encoding="utf-8")
+        (self.kersor / "scripts" / "profile-handoff.py").write_text(
+            "import sys\n"
+            "if sys.argv[1] != 'verify': raise SystemExit(2)\n"
+            "print('PROFILE_EVIDENCE=pass')\n"
+            "print('PROFILE_SOURCE=sealed-kernel-profiler')\n",
+            encoding="utf-8",
+        )
         (self.kersor / "kersor_core").mkdir()
         (self.kersor / "kersor_core" / "__init__.py").write_text(
             FAKE_KERSOR_CORE, encoding="utf-8"
@@ -114,6 +121,7 @@ class InstallTests(unittest.TestCase):
         self.assertIn("The `kersor` agent preset", composition)
         self.assertIn(INSTALLER.KERSOR_LINE, composition)
         self.assertIn("name: './plugins/kersor-status.mjs'", composition)
+        self.assertIn("name: '@deepseek-ai/dsh-kersor/control'", composition)
         self.assertIn("customSkillDirs:", composition)
         self.assertIn(str((destination / "skills").resolve()), composition)
         self.assertNotIn(str(self.kersor), composition)
@@ -179,6 +187,11 @@ class InstallTests(unittest.TestCase):
         self.assertIn("--integration-pattern custom_simulator", skill)
         self.assertIn("--allow-workflow-authoring", skill)
         self.assertIn("--workflow-authoring-budget 1", skill)
+        self.assertIn('--workflow-authoring-budget "$WORKFLOW_AUTHORING_BUDGET"', skill)
+        self.assertIn('--max-workflows "$MAX_WORKFLOWS"', skill)
+        self.assertIn('--transfer-mode "$TRANSFER_MODE"', skill)
+        self.assertNotIn("--max-workflows 1", skill)
+        self.assertIn("explicit `measured-only` transfer", skill)
         self.assertIn("selection must\nremain `STALLED`", skill)
         self.assertIn("research-only\nworkflow evolution", skill)
         self.assertIn('--store "$SESSION_DIR/workflow-authoring/proposals"', skill)
@@ -187,17 +200,33 @@ class InstallTests(unittest.TestCase):
         self.assertIn("transition the Session to `stalled`", skill)
         self.assertIn("prove candidate binding", skill)
         self.assertIn("same Session-local candidate", skill)
+        self.assertIn("foreground `session-synthesizer` is the sole writer", skill)
+        self.assertIn("Only\n`normalize-transfer.py` may atomically advance", skill)
+        self.assertIn("Never\ncall `kersor-state.sh ... set current_round ...`", skill)
         self.assertIn("workflow-author in the foreground", skill)
         self.assertIn("`author-context.json.dispatch`", skill)
         self.assertIn("`description`, `run_in_background`, and `prompt`", skill)
         self.assertIn("blocking result is the completion\nnotification", skill)
         self.assertIn("Never call `list_agents`", skill)
         self.assertIn("`scripts/seal-author-handoff.py`", skill)
-        self.assertIn("`workflow-authoring/author-handoff.json`", skill)
-        self.assertIn("Save exactly once\nwith `--handoff`", skill)
+        self.assertIn(
+            "`workflow-authoring/attempts/round-$CURRENT_ROUND/author-handoff.json`",
+            skill,
+        )
+        self.assertIn(
+            '--out "$SESSION_DIR/workflow-authoring/attempts/round-$CURRENT_ROUND/author-context.json"',
+            skill,
+        )
+        self.assertIn(
+            "Proposal persistence remains shared at\n"
+            "`workflow-authoring/proposals`",
+            skill,
+        )
+        self.assertIn("never reuse a sibling round's attempt owners", skill)
+        self.assertIn("Save exactly once with `--handoff`", skill)
         self.assertIn("must never repair them", skill)
-        self.assertIn("extra staging file or directory is mixed provenance", skill)
-        self.assertIn("canonical `stalled`, not a patch or\nretry", skill)
+        self.assertIn("file or directory is mixed provenance", skill)
+        self.assertIn("canonical `stalled`, not a patch or retry", skill)
         self.assertIn("Do not accept a prose-only baseline", skill)
         self.assertIn("scripts/baseline-witness.py", skill)
         self.assertIn("baseline-witness.py\" init", skill)
@@ -215,6 +244,67 @@ class InstallTests(unittest.TestCase):
         self.assertIn("scripts/profile-handoff.py\" verify", skill)
         self.assertIn("The first parent action after that result", skill)
         self.assertIn("both\nre-verify this boundary", skill)
+        self.assertNotIn(
+            'python3 "$kersor_root/scripts/profile-handoff.py"', skill
+        )
+        self.assertNotIn(
+            'python3 "$kersor_root/scripts/baseline-witness.py"', skill
+        )
+        self.assertIn(
+            '"${KERSOR_PYTHON:-python3}" '
+            '"$kersor_root/scripts/profile-handoff.py"',
+            skill,
+        )
+        self.assertIn('kersor_python="${KERSOR_PYTHON:-python3}"', skill)
+        self.assertIn(
+            "The DSH controller prompt freezes the Host's validated absolute "
+            "interpreter\npath.",
+            skill,
+        )
+        self.assertIn(
+            "never use `which`, PATH search, filesystem search, or\nversion "
+            "substitution",
+            skill,
+        )
+        self.assertIn(
+            '"$kersor_python" "$kersor_root/scripts/baseline-witness.py" init',
+            skill,
+        )
+        self.assertIn('--python-interpreter "$kersor_python"', skill)
+        self.assertIn(
+            "must invoke an existing task-owned authoritative harness directly",
+            skill,
+        )
+        self.assertIn(
+            "A non-zero benchmark is admissible only when\nit produced non-empty "
+            "stdout execution evidence",
+            skill,
+        )
+        self.assertIn(
+            'bash "$kersor_root/scripts/run-kersor-python.sh" '
+            'author-workflow-context.py',
+            skill,
+        )
+        self.assertIn(
+            "Never execute\n`run-kersor-python.sh` with a Python interpreter",
+            skill,
+        )
+        self.assertIn(
+            "After any successful `kersor_start`, `kersor_attach`, or "
+            "`kersor_resume` call,\nend the parent turn immediately.",
+            skill,
+        )
+        self.assertIn(
+            "must not call `kersor_status`,\n`list_agents`, subagent, job, "
+            "Workflow, Bash, Read, or Glob",
+            skill,
+        )
+        self.assertIn(
+            "After `kersor_status` reports `complete`, `single_run`, `stalled`, or\n"
+            "`cancelled`, stop the controller turn immediately.",
+            skill,
+        )
+        self.assertIn("or any other tool after that status", skill)
         self.assertIn('bash "$kersor_root/scripts/setup-session.sh" "$TASK_DIR"', skill)
         self.assertIn("Never call it from `commands/`", skill)
         self.assertIn('kersor-state.sh" "$SESSION_DIR" get fresh_session_required', skill)
@@ -222,9 +312,14 @@ class InstallTests(unittest.TestCase):
         self.assertIn("scripts/prepare-dsh-workflow.mjs", skill)
         self.assertIn('--out "$RUN_DIR/dsh-workflow.json"', skill)
         self.assertIn('--report "$RUN_DIR/dsh-compatibility.json"', skill)
-        self.assertIn("Workflow({meta: envelope.meta, script: envelope.script, args: envelope.args})", skill)
+        self.assertIn("Call `kersor_workflow` exactly once", skill)
+        self.assertIn('`{"exp_dir":"<exact absolute RUN_DIR>"}`', skill)
+        self.assertIn("Never call raw `workflow`", skill)
         self.assertIn("candidate-ownership.py\" seal", skill)
         self.assertIn("candidate-ownership.py\" verify", skill)
+        self.assertIn('check-runtime-budget.sh"', skill)
+        self.assertIn('mark-dispatch-start.sh" "$RUN_DIR"', skill)
+        self.assertIn("canonical distinction between a\nprepared run", skill)
         self.assertIn("first parent action", skill)
         self.assertIn("Never pass `scriptPath`", skill)
         self.assertIn("not rewrite the author-owned script, retry dispatch, or optimize directly", skill)
@@ -324,7 +419,33 @@ class InstallTests(unittest.TestCase):
             encoding="utf-8",
         )
         (run / "attempt-result.json").write_text(
-            json.dumps({"metric_contract": {"speedup": 1.25}}),
+            json.dumps(
+                {
+                    "outcome": {"compiled": True, "correct": True},
+                    "metric_contract": {"speedup": 1.25, "valid": True},
+                    "optimization": {"best_improved": True},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (run / "host-verification.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "gate": "authored_candidate_host_review_v1",
+                    "verdict": "pass",
+                    "correctness": {"exit_code": 0},
+                    "benchmark": {"exit_code": 0},
+                    "candidate": {"id": "fresh29-r1"},
+                    "metric": {
+                        "name": "cycles",
+                        "baseline_cycles": 125,
+                        "candidate_cycles": 100,
+                        "speedup": 1.25,
+                    },
+                    "workflow_estimate": {"cycles": 105, "speedup": 1.19},
+                }
+            ),
             encoding="utf-8",
         )
         (session / "round-2-selection.json").write_text(
@@ -344,6 +465,159 @@ class InstallTests(unittest.TestCase):
             encoding="utf-8",
         )
         return project
+
+    def make_dispatch_design(self, project: Path) -> dict[str, object]:
+        """Create one internally hash-bound prepared DSH Workflow projection."""
+        session = project / ".kersor" / "20260817-120000"
+        run = session / "run-2"
+        workflow = self.kersor / "workflows" / "adaexplore" / "workflow.js"
+        workflow.parent.mkdir(parents=True, exist_ok=True)
+        description = "Inspect one prepared stock Workflow."
+        when_to_use = "Use when the selected workflow is ready for DSH dispatch."
+        workflow_source = (
+            "export const meta = {\n"
+            "  name: 'adaexplore',\n"
+            f"  description: {description!r},\n"
+            f"  whenToUse: {when_to_use!r},\n"
+            "  phases: [{ title: 'Inspect', detail: 'Read the current kernel.' }],\n"
+            "}\n"
+            "phase('Inspect')\n"
+            "return { ok: true }\n"
+        )
+        body = "phase('Inspect')\nreturn { ok: true }"
+        args = {"kernel_path": "kernel.cu", "target_speedup": 1.5}
+        workflow.write_text(workflow_source, encoding="utf-8")
+        args_path = run / "dispatch-args.json"
+        args_path.write_text(json.dumps(args, indent=2) + "\n", encoding="utf-8")
+
+        def digest(value: str) -> str:
+            return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+        workflow_hash = digest(workflow_source)
+        args_hash = digest(
+            json.dumps(args, ensure_ascii=False, separators=(",", ":"))
+        )
+        body_hash = digest(body)
+        envelope = {
+            "schema_version": 1,
+            "contract": "dsh_workflow_v1",
+            "source": {
+                "workflow_path": str(workflow.resolve()),
+                "workflow_sha256": workflow_hash,
+                "args_path": str(args_path.resolve()),
+                "args_sha256": args_hash,
+                "body_sha256": body_hash,
+            },
+            "meta": {
+                "name": "adaexplore",
+                "description": description,
+                "whenToUse": when_to_use,
+                "phases": [
+                    {"title": "Inspect", "detail": "Read the current kernel."}
+                ],
+            },
+            "script": body,
+            "args": args,
+        }
+        compatibility = {
+            "schema_version": 1,
+            "gate": "dsh_workflow_v1",
+            "verdict": "pass",
+            "workflow_source": str(workflow.resolve()),
+            "workflow_sha256": workflow_hash,
+            "args_source": str(args_path.resolve()),
+            "args_sha256": args_hash,
+            "body_sha256": body_hash,
+            "errors": [],
+        }
+        catalog = {
+            "name": "adaexplore",
+            "directory": "adaexplore",
+            "js_path": str(workflow.resolve()),
+            "description": description,
+            "when_to_use": when_to_use,
+            "topology": "pipeline",
+            "method_category": "analysis",
+            "workflow_content_hash": f"sha256:{workflow_hash}",
+            "languages": ["python_reference"],
+            "backends": ["python"],
+            "integration_patterns": ["custom_simulator"],
+            "required_args": ["kernel_path"],
+        }
+        envelope_path = run / "dsh-workflow.json"
+        compatibility_path = run / "dsh-compatibility.json"
+        catalog_path = run / "catalog-entry.json"
+        envelope_path.write_text(json.dumps(envelope), encoding="utf-8")
+        compatibility_path.write_text(json.dumps(compatibility), encoding="utf-8")
+        catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
+        return {
+            "session": session,
+            "workflow_path": workflow,
+            "envelope_path": envelope_path,
+            "compatibility_path": compatibility_path,
+            "catalog_path": catalog_path,
+            "description": description,
+            "when_to_use": when_to_use,
+            "body": body,
+        }
+
+    def use_sealed_session_catalog(
+        self,
+        fixture: dict[str, object],
+        entries: list[dict[str, object]] | None = None,
+    ) -> tuple[Path, Path]:
+        """Replace the legacy per-run catalog projection with the sealed SSOT."""
+        session = fixture["session"]
+        legacy_path = fixture["catalog_path"]
+        self.assertIsInstance(session, Path)
+        self.assertIsInstance(legacy_path, Path)
+        catalog_entry = json.loads(legacy_path.read_text(encoding="utf-8"))
+        catalog_path = session / "workflow-catalog.json"
+        catalog_text = json.dumps(
+            {"workflows": entries if entries is not None else [catalog_entry]},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        catalog_path.write_text(catalog_text, encoding="utf-8")
+        run = session / "run-2"
+        seal_path = run / "candidate-ownership-seal.json"
+        seal_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "contract": "candidate_output_ownership_v1",
+                    "session_dir": str(session.resolve()),
+                    "run_dir": str(run.resolve()),
+                    "dispatch_package": {
+                        "catalog": hashlib.sha256(
+                            catalog_text.encode("utf-8")
+                        ).hexdigest()
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        legacy_path.unlink()
+        return catalog_path, seal_path
+
+    def read_session_detail(self, destination: Path, session: Path) -> dict[str, object]:
+        """Read one installed bridge session-detail answer."""
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "session-detail",
+                "--session",
+                str(session),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        value = json.loads(completed.stdout)
+        self.assertIsInstance(value, dict)
+        return value
 
     def test_status_bridge_uses_structured_kersor_stores(self) -> None:
         destination, _, _ = self.run_install()
@@ -381,7 +655,248 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(value["dsh_compatibility"], "pass")
         self.assertEqual(value["candidate_ownership"], "pass")
         self.assertEqual(value["fresh_session"], "pass")
+        self.assertEqual(
+            [step["id"] for step in value["steps"]],
+            [
+                "setup", "baseline", "profile", "selection", "authoring",
+                "validation", "dispatch", "measurement", "decision",
+            ],
+        )
         self.assertEqual(value["rounds"][0]["decision"].split(":", 1)[0], "CONTINUE")
+
+    def test_status_bridge_excludes_incorrect_estimates_from_historical_best(self) -> None:
+        """Fresh24-style estimates cannot outrank a Fresh29-style Host result."""
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        run = session / "run-2"
+        (run / "attempt-result.json").write_text(
+            json.dumps(
+                {
+                    "outcome": {
+                        "compiled": True,
+                        "correct": False,
+                        "failure_class": "correctness_mismatch",
+                    },
+                    "metric_contract": {
+                        "speedup": 17.924532880368844,
+                        "valid": True,
+                    },
+                    "optimization": {"best_improved": None},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (run / "host-verification.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "gate": "authored_candidate_host_review_v1",
+                    "verdict": "fail",
+                    "reason": "candidate correctness command failed",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (session / "round-2-summary.md").write_text(
+            "# Round 2\n\nSTALLED: candidate correctness failed.\n",
+            encoding="utf-8",
+        )
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "status",
+                "--path",
+                str(project),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        value = json.loads(completed.stdout)
+        self.assertEqual(value["best_speedup"], 1.25)
+        self.assertIs(value["target_met"], False)
+        failed_round = next(row for row in value["rounds"] if row["round"] == 2)
+        self.assertIsNone(failed_round["speedup"])
+
+    def test_fresh29_wire_projects_terminal_lineage_and_round_history(self) -> None:
+        (self.kersor / "scripts" / "baseline-witness.py").write_text(
+            "import sys\n"
+            "if sys.argv[1] != 'verify': raise SystemExit(2)\n"
+            "print('BASELINE_WITNESS=pass')\n",
+            encoding="utf-8",
+        )
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        config_path = session / "session-config.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["max_workflows"] = 2
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        state_path = session / "state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["phase"] = "stalled"
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        (session / "baseline-witness.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "verdict": "pass",
+                    "executions": [
+                        {
+                            "kind": "benchmark",
+                            "exit_code": 0,
+                            "stdout": (
+                                "CYCLES: 125\n"
+                                "Speedup over baseline: 10.0\n"
+                            ),
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        (session / "run-1" / "output.json").write_text(
+            json.dumps(
+                {
+                    "selected_candidate_id": "fresh29-r1",
+                    "estimated_cycles": 105,
+                    "estimated_speedup": 1.19,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        run = session / "run-2"
+        (run / "host-verification.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "gate": "authored_candidate_host_review_v1",
+                    "verdict": "fail",
+                    "reason": "candidate correctness command failed",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (run / "output.json").write_text(
+            json.dumps(
+                {
+                    "selected_candidate_id": "fresh29-authored-r2",
+                    "expected_cycles_estimate": 90,
+                    "estimated_speedup": 1.3888888888888888,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (session / "round-2-summary.md").write_text(
+            "# Round 2\n\n"
+            "STALLED: execution budget exhausted; retain the verified incumbent.\n",
+            encoding="utf-8",
+        )
+        attempt = session / "workflow-authoring" / "attempts" / "round-2"
+        attempt.mkdir(parents=True)
+        (attempt / "author-context.json").write_text("{}\n", encoding="utf-8")
+        proposal = (
+            session / "workflow-authoring" / "proposals" / "adaexplore"
+        )
+        proposal.mkdir(parents=True)
+        (proposal / "workflow.js").write_text(
+            "return { ok: true }\n", encoding="utf-8"
+        )
+        (proposal / "metadata.json").write_text(
+            json.dumps({"name": "adaexplore"}), encoding="utf-8"
+        )
+        (proposal / "rationale.md").write_text(
+            "Authored after the catalog route exhausted.\n", encoding="utf-8"
+        )
+
+        detail = self.read_session_detail(destination, session)
+        self.assertEqual([row["number"] for row in detail["rounds"]], [1, 2])
+        verified, failed = detail["rounds"]
+        self.assertEqual(verified["workflow_origin"], "catalog")
+        self.assertEqual(verified["candidate_id"], "fresh29-r1")
+        self.assertEqual(verified["host_verdict"], "pass")
+        self.assertEqual(verified["estimate"], {"cycles": 105.0, "speedup": 1.19})
+        self.assertEqual(verified["measurement"]["candidate_cycles"], 100.0)
+        self.assertEqual(verified["measurement"]["candidate_speedup"], 1.25)
+        self.assertIs(verified["measurement"]["best_improved"], True)
+        self.assertEqual(failed["workflow_origin"], "authored")
+        self.assertEqual(failed["candidate_id"], "fresh29-authored-r2")
+        self.assertEqual(failed["host_verdict"], "fail")
+        self.assertEqual(failed["failure_kind"], "correctness")
+        self.assertEqual(
+            failed["estimate"],
+            {"cycles": 90.0, "speedup": 1.3888888888888888},
+        )
+        self.assertNotIn("measurement", failed)
+
+        checkout_session = self.kersor / ".kersor" / session.name
+        checkout_session.parent.mkdir()
+        shutil.copytree(session, checkout_session)
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "sessions",
+                "--limit",
+                "1",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        summary = json.loads(completed.stdout)["sessions"][0]
+        self.assertEqual(summary["stop_reason"], "execution_budget_exhausted")
+        self.assertEqual(summary["workflow_authoring_used"], 1)
+        self.assertEqual(
+            summary["cycle_lineage"],
+            {
+                "session_baseline_cycles": 125.0,
+                "best_cycles": 100.0,
+                "session_speedup": 1.25,
+                "task_baseline_cycles": 1250.0,
+                "overall_speedup": 12.5,
+            },
+        )
+
+        state_path = checkout_session / "state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state.update({"phase": "stalled", "current_round": 1, "max_workflows": 3})
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        retried = subprocess.run(
+            [
+                sys.executable,
+                str(destination / "bin" / "kersor_bridge.py"),
+                "sessions",
+                "--limit",
+                "1",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(retried.returncode, 0, retried.stderr)
+        self.assertEqual(
+            json.loads(retried.stdout)["sessions"][0]["stop_reason"],
+            "authoring_budget_exhausted",
+        )
+
+    def test_session_detail_caps_round_history_at_latest_100_in_order(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        for number in range(3, 103):
+            (session / f"run-{number}").mkdir()
+
+        detail = self.read_session_detail(destination, session)
+        numbers = [row["number"] for row in detail["rounds"]]
+        self.assertEqual(len(numbers), 100)
+        self.assertEqual(numbers, list(range(3, 103)))
 
     def test_status_bridge_projects_profile_failure_reason(self) -> None:
         destination, _, _ = self.run_install()
@@ -444,7 +959,136 @@ class InstallTests(unittest.TestCase):
             value["profile_reason"],
             "profile handoff seal not found for fresh Session",
         )
-        self.assertEqual(value["profile_owner"], "unsealed")
+        self.assertIsNone(value["profile_owner"])
+
+    def test_status_bridge_rejects_unattributable_profile_producers(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        seal_path = session / "profile-handoff" / "seal.json"
+        original = json.loads(seal_path.read_text(encoding="utf-8"))
+
+        for producer_session_id in ("none", "null", "unknown", None):
+            with self.subTest(producer_session_id=producer_session_id):
+                seal = json.loads(json.dumps(original))
+                producer = seal["producer"]
+                if producer_session_id is None:
+                    producer.pop("session_id")
+                else:
+                    producer["session_id"] = producer_session_id
+                seal_path.write_text(json.dumps(seal), encoding="utf-8")
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        str(destination / "bin" / "kersor_bridge.py"),
+                        "status",
+                        "--path",
+                        str(project),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                value = json.loads(completed.stdout)
+                self.assertEqual(value["profile_evidence"], "fail")
+                self.assertEqual(
+                    value["profile_reason"],
+                    "profile handoff producer provenance is invalid",
+                )
+                self.assertIsNone(value["profile_owner"])
+                profile_step = next(
+                    step for step in value["steps"] if step["id"] == "profile"
+                )
+                self.assertEqual(profile_step["status"], "failed")
+
+    def test_terminal_phase_suppresses_residual_active_artifacts(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        session = project / ".kersor" / "20260817-120000"
+        state_path = session / "state.json"
+        authoring = session / "workflow-authoring"
+        staging = authoring / "staging"
+        staging.mkdir(parents=True)
+        (authoring / "author-context.json").write_text("{}\n", encoding="utf-8")
+        (staging / "workflow.js").write_text("return {}\n", encoding="utf-8")
+        (session / "run-2" / ".dispatch-in-progress").write_text(
+            "running\n", encoding="utf-8"
+        )
+        expected = {
+            "stalled": ("stalled", "terminal-stalled"),
+            "complete": ("completed", "terminal-complete"),
+            "cancelled": ("cancelled", "terminal-cancelled"),
+        }
+
+        for phase, (expected_lifecycle, expected_status) in expected.items():
+            with self.subTest(phase=phase):
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+                state["phase"] = phase
+                state_path.write_text(json.dumps(state), encoding="utf-8")
+
+                status_result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(destination / "bin" / "kersor_bridge.py"),
+                        "status",
+                        "--path",
+                        str(project),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(status_result.returncode, 0, status_result.stderr)
+                status_value = json.loads(status_result.stdout)
+                self.assertEqual(status_value["phase"], phase)
+                self.assertIsNone(status_value["baseline_next_action"])
+                self.assertNotIn(
+                    "active", {step["status"] for step in status_value["steps"]}
+                )
+
+                detail_result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(destination / "bin" / "kersor_bridge.py"),
+                        "session-detail",
+                        "--session",
+                        str(session),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(detail_result.returncode, 0, detail_result.stderr)
+                detail = json.loads(detail_result.stdout)
+                self.assertNotEqual(detail["authoring"]["status"], "in_progress")
+                self.assertNotIn(detail["dispatch"]["status"], {"preparing", "running"})
+                self.assertNotIn(
+                    "active", {step["status"] for step in detail["steps"]}
+                )
+
+                sessions_result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(destination / "bin" / "kersor_bridge.py"),
+                        "sessions",
+                        "--limit",
+                        "1",
+                        "--workspace",
+                        str(project),
+                        "--no-checkout-root",
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(sessions_result.returncode, 0, sessions_result.stderr)
+                row = json.loads(sessions_result.stdout)["sessions"][0]
+                self.assertEqual(row["lifecycle"], expected_lifecycle)
+                self.assertEqual(row["status"], expected_status)
+                self.assertEqual(row["health"], "terminal")
+                self.assertNotEqual(row["status"], "resumable")
+                self.assertNotEqual(row["health"], "active")
 
     def test_status_bridge_projects_a_fresh_boundary_failure(self) -> None:
         destination, _, _ = self.run_install()
@@ -654,6 +1298,180 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(row["status"], "resumable")
         self.assertEqual(row["health"], "needs_resume")
 
+    def test_session_detail_projects_hash_bound_dispatch_design(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        fixture = self.make_dispatch_design(project)
+        detail = self.read_session_detail(destination, fixture["session"])
+        design = detail["workflow"]
+        self.assertEqual(design["name"], "adaexplore")
+        self.assertEqual(design["description"], fixture["description"])
+        self.assertEqual(design["whenToUse"], fixture["when_to_use"])
+        self.assertEqual(
+            design["phases"],
+            [{"title": "Inspect", "detail": "Read the current kernel."}],
+        )
+        self.assertEqual(design["topology"], "pipeline")
+        self.assertEqual(design["methodCategory"], "analysis")
+        self.assertEqual(design["requiredArgs"], ["kernel_path"])
+        self.assertEqual(design["languages"], ["python_reference"])
+        self.assertEqual(design["backends"], ["python"])
+        self.assertEqual(design["integrationPatterns"], ["custom_simulator"])
+        self.assertEqual(design["rationale"], fixture["when_to_use"])
+        self.assertEqual(design["source"], fixture["body"])
+        self.assertEqual(detail["selection"]["workflow"], "adaexplore")
+        self.assertEqual(detail["dispatch"]["status"], "preparing")
+        self.assertEqual(
+            detail["authoring"], {"status": "not_started", "files": []}
+        )
+
+    def test_session_detail_projects_design_from_sealed_session_catalog(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        fixture = self.make_dispatch_design(project)
+        self.use_sealed_session_catalog(fixture)
+
+        detail = self.read_session_detail(destination, fixture["session"])
+
+        self.assertEqual(detail["workflow"]["name"], "adaexplore")
+        self.assertEqual(detail["workflow"]["topology"], "pipeline")
+        self.assertEqual(detail["workflow"]["source"], fixture["body"])
+
+    def test_session_detail_rejects_invalid_sealed_session_catalog(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+
+        for failure in ("tampered", "duplicate", "missing_seal"):
+            with self.subTest(failure=failure):
+                fixture = self.make_dispatch_design(project)
+                legacy_path = fixture["catalog_path"]
+                self.assertIsInstance(legacy_path, Path)
+                entry = json.loads(legacy_path.read_text(encoding="utf-8"))
+                entries = [entry, dict(entry)] if failure == "duplicate" else [entry]
+                catalog_path, seal_path = self.use_sealed_session_catalog(
+                    fixture, entries
+                )
+                if failure == "tampered":
+                    catalog_path.write_text(
+                        catalog_path.read_text(encoding="utf-8") + "\n",
+                        encoding="utf-8",
+                    )
+                elif failure == "missing_seal":
+                    seal_path.unlink()
+
+                detail = self.read_session_detail(destination, fixture["session"])
+                self.assertEqual(detail["selection"]["workflow"], "adaexplore")
+                self.assertNotIn("workflow", detail)
+
+    def test_session_detail_keeps_historical_dispatch_after_checkout_changes(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        fixture = self.make_dispatch_design(project)
+        fixture["workflow_path"].write_text(
+            "export const meta = { name: 'new-version' }\n",
+            encoding="utf-8",
+        )
+        detail = self.read_session_detail(destination, fixture["session"])
+        self.assertEqual(detail["workflow"]["name"], "adaexplore")
+        self.assertEqual(detail["workflow"]["topology"], "pipeline")
+        self.assertEqual(detail["workflow"]["source"], fixture["body"])
+        self.assertEqual(
+            detail["authoring"], {"status": "not_started", "files": []}
+        )
+
+    def test_session_detail_rejects_workflow_source_path_outside_allowed_roots(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        fixture = self.make_dispatch_design(project)
+        outside = self.root / "outside-workflow.js"
+        outside.write_text("return { outside: true }\n", encoding="utf-8")
+        envelope_path = fixture["envelope_path"]
+        compatibility_path = fixture["compatibility_path"]
+        catalog_path = fixture["catalog_path"]
+        envelope = json.loads(envelope_path.read_text(encoding="utf-8"))
+        compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        envelope["source"]["workflow_path"] = str(outside.resolve())
+        compatibility["workflow_source"] = str(outside.resolve())
+        catalog["js_path"] = str(outside.resolve())
+        envelope_path.write_text(json.dumps(envelope), encoding="utf-8")
+        compatibility_path.write_text(json.dumps(compatibility), encoding="utf-8")
+        catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
+        detail = self.read_session_detail(destination, fixture["session"])
+        self.assertNotIn("workflow", detail)
+        self.assertEqual(
+            detail["authoring"], {"status": "not_started", "files": []}
+        )
+
+    def test_session_detail_rejects_dispatch_hash_tampering(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+
+        for field in ("workflow_sha256", "args_sha256", "body_sha256"):
+            with self.subTest(field=field):
+                fixture = self.make_dispatch_design(project)
+                compatibility_path = fixture["compatibility_path"]
+                compatibility = json.loads(
+                    compatibility_path.read_text(encoding="utf-8")
+                )
+                compatibility[field] = "0" * 64
+                compatibility_path.write_text(
+                    json.dumps(compatibility), encoding="utf-8"
+                )
+                detail = self.read_session_detail(destination, fixture["session"])
+                self.assertEqual(detail["selection"]["workflow"], "adaexplore")
+                self.assertNotIn("workflow", detail)
+                self.assertEqual(
+                    detail["authoring"], {"status": "not_started", "files": []}
+                )
+
+    def test_session_detail_rejects_dispatch_name_tampering(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+
+        for target in ("envelope", "catalog"):
+            with self.subTest(target=target):
+                fixture = self.make_dispatch_design(project)
+                path = (
+                    fixture["envelope_path"]
+                    if target == "envelope"
+                    else fixture["catalog_path"]
+                )
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if target == "envelope":
+                    payload["meta"]["name"] = "other-workflow"
+                else:
+                    payload["name"] = "other-workflow"
+                path.write_text(json.dumps(payload), encoding="utf-8")
+                detail = self.read_session_detail(destination, fixture["session"])
+                self.assertEqual(detail["selection"]["workflow"], "adaexplore")
+                self.assertNotIn("workflow", detail)
+                self.assertEqual(
+                    detail["authoring"], {"status": "not_started", "files": []}
+                )
+
+    def test_session_detail_rejects_oversized_dispatch_body(self) -> None:
+        destination, _, _ = self.run_install()
+        project = self.make_status_project()
+        fixture = self.make_dispatch_design(project)
+        envelope_path = fixture["envelope_path"]
+        compatibility_path = fixture["compatibility_path"]
+        envelope = json.loads(envelope_path.read_text(encoding="utf-8"))
+        compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
+        oversized = "x" * (512 * 1024 + 1)
+        body_hash = hashlib.sha256(oversized.encode("utf-8")).hexdigest()
+        envelope["script"] = oversized
+        envelope["source"]["body_sha256"] = body_hash
+        compatibility["body_sha256"] = body_hash
+        envelope_path.write_text(json.dumps(envelope), encoding="utf-8")
+        compatibility_path.write_text(json.dumps(compatibility), encoding="utf-8")
+        detail = self.read_session_detail(destination, fixture["session"])
+        self.assertEqual(detail["selection"]["workflow"], "adaexplore")
+        self.assertNotIn("workflow", detail)
+        self.assertEqual(
+            detail["authoring"], {"status": "not_started", "files": []}
+        )
+
     def test_session_detail_withholds_design_until_a_verified_seal(self) -> None:
         destination, _, _ = self.run_install()
         project = self.make_status_project()
@@ -691,6 +1509,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(before.returncode, 0, before.stderr)
         before_value = json.loads(before.stdout)
         self.assertEqual(before_value["authoring"], {"status": "in_progress", "files": []})
+        self.assertNotIn("workflow", before_value)
 
         sealed = {
             "schema_version": 1,
@@ -706,6 +1525,7 @@ class InstallTests(unittest.TestCase):
         after_value = json.loads(after.stdout)
         self.assertEqual(after_value["authoring"]["status"], "sealed")
         self.assertEqual(after_value["authoring"]["design"]["name"], "vliw-author")
+        self.assertNotIn("workflow", after_value)
         self.assertNotIn("methodCategory", after_value["authoring"]["design"])
         self.assertNotIn("topology", after_value["authoring"]["design"])
         self.assertIn("Bundle independent slots", after_value["authoring"]["design"]["rationale"])
@@ -778,6 +1598,8 @@ console.log(JSON.stringify({
         self.assertEqual(completed.returncode, 0, completed.stderr)
         result = json.loads(completed.stdout)
         self.assertEqual(result["name"], "kersor_status")
+        self.assertEqual(result["meta"]["kind"], "kersor-status")
+        self.assertEqual(len(result["meta"]["steps"]), 9)
         self.assertEqual(result["value"]["started_at"], "2026-08-17T12:00:00+08:00")
         self.assertEqual(result["meta"]["started_at"], "2026-08-17T12:00:00+08:00")
         self.assertEqual(result["meta"]["integration_pattern"], "custom_simulator")
