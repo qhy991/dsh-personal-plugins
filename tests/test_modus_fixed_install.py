@@ -191,6 +191,45 @@ class ModusFixedInstallTests(unittest.TestCase):
             (candidate_root / "experimental-profiles/t1-v1/manifest.json").is_file()
         )
 
+    def test_experimental_e1_minimal_v3_changes_only_representation_policy(self) -> None:
+        candidate = INSTALLER.load_experimental_p100("e1-minimal-v3")
+        base = INSTALLER.load_experimental_p100("e1-v2")
+        self.assertEqual(candidate["profile"], "p100")
+        self.assertEqual(candidate["preset_id"], "modus-fixed-p100-e1-minimal-v3")
+        self.assertEqual(
+            candidate["sha256"],
+            "4c8c3c325792267bbda83de0167ec026700989be9fb5f38ae16c033e95ad8280",
+        )
+        added = (
+            "Prepare the smallest query-ready representation that directly supports target "
+            "outputs: compute reusable final aggregates during preparation, and do not retain "
+            "source-level containers, add wrapper objects, create immutable copies, or defer "
+            "reusable aggregation to the target unless the visible contract requires it. "
+        )
+        self.assertEqual(candidate["text"].replace(added, ""), base["text"])
+
+        installed = INSTALLER.install_all(
+            dsh_home=self.dsh_home,
+            standard_preset=self.standard,
+            force=False,
+            dry_run=False,
+            token_budget=(200_000, 2_000_000),
+            experimental_p100="e1-minimal-v3",
+        )
+        self.assertEqual(
+            [row[0] for row in installed],
+            [*INSTALLER.PROFILE_IDS, "p100-e1-minimal-v3"],
+        )
+        candidate_root = self.dsh_home / ".agent-presets" / "modus-fixed-p100-e1-minimal-v3"
+        composition = (candidate_root / "agent.cordis.yml").read_text(encoding="utf-8")
+        self.assertIn("presetId: modus-fixed-p100-e1-minimal-v3", composition)
+        self.assertIn("profile: p100", composition)
+        self.assertIn("profileDigest: " + candidate["sha256"], composition)
+        self.assertIn("maxPreEditInformationAttempts: 3", composition)
+        self.assertTrue(
+            (candidate_root / "experimental-profiles/e1-minimal-v3/manifest.json").is_file()
+        )
+
     def test_experimental_p000_v2_changes_only_bounded_workload_information(self) -> None:
         candidate = INSTALLER.load_experimental_p000("t0-workload-v2")
         profiles = INSTALLER.load_profiles()

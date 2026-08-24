@@ -21,7 +21,7 @@ from install_modus import ASSET_ROOT, PERSONA_BLOCK, STANDARD_PERSONA, indent_bl
 
 PROFILE_IDS = ("neutral", "p000", "p100")
 QUALIFIED_PROFILE_IDS = ("p000", "p100")
-EXPERIMENTAL_P100_IDS = ("e1-v2",)
+EXPERIMENTAL_P100_IDS = ("e1-v2", "e1-minimal-v3")
 EXPERIMENTAL_P000_IDS = ("t0-workload-v2",)
 EXPERIMENTAL_P010_IDS = ("t1-v1",)
 EXPERIMENTAL_P001_IDS = ("a1-v1",)
