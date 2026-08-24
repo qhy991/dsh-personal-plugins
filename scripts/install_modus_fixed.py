@@ -22,9 +22,11 @@ from install_modus import ASSET_ROOT, PERSONA_BLOCK, STANDARD_PERSONA, indent_bl
 PROFILE_IDS = ("neutral", "p000", "p100")
 QUALIFIED_PROFILE_IDS = ("p000", "p100")
 EXPERIMENTAL_P100_IDS = ("e1-v2",)
+EXPERIMENTAL_P000_IDS = ("t0-workload-v2",)
 EXPERIMENTAL_P010_IDS = ("t1-v1",)
 EXPERIMENTAL_P001_IDS = ("a1-v1",)
 EXPERIMENTAL_PROFILE_IDS = {
+    "p000": EXPERIMENTAL_P000_IDS,
     "p001": EXPERIMENTAL_P001_IDS,
     "p010": EXPERIMENTAL_P010_IDS,
     "p100": EXPERIMENTAL_P100_IDS,
@@ -92,6 +94,10 @@ def load_experimental_candidate(profile: str, candidate_id: str) -> dict[str, st
 
 def load_experimental_p100(candidate_id: str) -> dict[str, str]:
     return load_experimental_candidate("p100", candidate_id)
+
+
+def load_experimental_p000(candidate_id: str) -> dict[str, str]:
+    return load_experimental_candidate("p000", candidate_id)
 
 
 def load_experimental_p010(candidate_id: str) -> dict[str, str]:
@@ -228,6 +234,7 @@ def install_all(
     dry_run: bool,
     token_budget: tuple[int, int] | None = None,
     experimental_p100: str | None = None,
+    experimental_p000: str | None = None,
     experimental_p010: str | None = None,
     experimental_p001: str | None = None,
 ) -> list[tuple[str, Path, Path | None, bool]]:
@@ -253,6 +260,7 @@ def install_all(
         for profile in PROFILE_IDS
     ]
     for profile, candidate_id in (
+        ("p000", experimental_p000),
         ("p001", experimental_p001),
         ("p010", experimental_p010),
         ("p100", experimental_p100),
@@ -291,6 +299,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--max-new-tokens", type=int)
     result.add_argument("--max-cache-read-tokens", type=int)
     result.add_argument("--experimental-p100", choices=EXPERIMENTAL_P100_IDS)
+    result.add_argument("--experimental-p000", choices=EXPERIMENTAL_P000_IDS)
     result.add_argument("--experimental-p010", choices=EXPERIMENTAL_P010_IDS)
     result.add_argument("--experimental-p001", choices=EXPERIMENTAL_P001_IDS)
     return result
@@ -312,6 +321,7 @@ def main(argv: list[str] | None = None) -> int:
         dry_run=options.dry_run,
         token_budget=token_budget,
         experimental_p100=options.experimental_p100,
+        experimental_p000=options.experimental_p000,
         experimental_p010=options.experimental_p010,
         experimental_p001=options.experimental_p001,
     ):
