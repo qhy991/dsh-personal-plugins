@@ -36,6 +36,11 @@ Profile 修订必须与 qualified action 分开。开发性的 E1-v2 候选可�
 `--experimental-p100 e1-v2` 额外安装为 **Modus Fixed p100-e1-v2**；它有独立 manifest、
 上游 commit 和 digest，不会替换 Router 或 qualified p100。该候选在独立 manipulation
 sentinel 通过前保持 unqualified，不能因安装成功而升级为实验结论。
+开发性的 E1-minimal-v3 候选可用
+`--experimental-p100 e1-minimal-v3` 额外安装为
+**Modus Fixed p100-e1-minimal-v3**。它保持 T0/A0 和三模块协调边界不变，
+只要求共享阶段生成最小、查询就绪的最终聚合表示；在新的 P2l 前瞻消融通过前
+保持 unqualified，也不会替换 e1-v2 或 Router 中的 p100。
 开发性的 p000 workload-aware 候选可用
 `--experimental-p000 t0-workload-v2` 额外安装为
 **Modus Fixed p000-t0-workload-v2**。它保持 E0/A0 与 target-only 边界不变，
