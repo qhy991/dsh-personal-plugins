@@ -191,6 +191,55 @@ class ModusFixedInstallTests(unittest.TestCase):
             (candidate_root / "experimental-profiles/t1-v1/manifest.json").is_file()
         )
 
+    def test_experimental_p000_v2_changes_only_bounded_workload_information(self) -> None:
+        candidate = INSTALLER.load_experimental_p000("t0-workload-v2")
+        profiles = INSTALLER.load_profiles()
+        self.assertEqual(candidate["profile"], "p000")
+        self.assertEqual(candidate["preset_id"], "modus-fixed-p000-t0-workload-v2")
+        self.assertEqual(
+            candidate["sha256"],
+            "e71273a512395cefab042a176e46fcc81fbed542715986e10e48e8f34847ebd0",
+        )
+        self.assertEqual(
+            candidate["text"].replace(
+                "Before changing code, inspect only the instruction, directly named implementation "
+                "surface, directly named representative benchmark, and nearest relevant public "
+                "check. Extract one explicit workload asymmetry from that bounded evidence, such "
+                "as data-to-query cardinality or reuse across calls. Form one concrete "
+                "implementation hypothesis that exploits that asymmetry, then begin editing. Do "
+                "not map unrelated modules, search for alternative designs, or continue gathering "
+                "context once the first testable change is clear.",
+                "Before changing code, inspect only the instruction, directly named implementation "
+                "surface, and nearest relevant public check. Form one concrete hypothesis from that "
+                "bounded evidence, then begin editing. Do not map unrelated modules, search for "
+                "alternative designs, or continue gathering context once the first testable change "
+                "is clear.",
+            ),
+            profiles["p000"]["text"],
+        )
+
+        installed = INSTALLER.install_all(
+            dsh_home=self.dsh_home,
+            standard_preset=self.standard,
+            force=False,
+            dry_run=False,
+            token_budget=(200_000, 2_000_000),
+            experimental_p000="t0-workload-v2",
+        )
+        self.assertEqual(
+            [row[0] for row in installed],
+            [*INSTALLER.PROFILE_IDS, "p000-t0-workload-v2"],
+        )
+        candidate_root = self.dsh_home / ".agent-presets" / "modus-fixed-p000-t0-workload-v2"
+        composition = (candidate_root / "agent.cordis.yml").read_text(encoding="utf-8")
+        self.assertIn("presetId: modus-fixed-p000-t0-workload-v2", composition)
+        self.assertIn("profile: p000", composition)
+        self.assertIn("profileDigest: " + candidate["sha256"], composition)
+        self.assertIn("maxPreEditInformationAttempts: 3", composition)
+        self.assertTrue(
+            (candidate_root / "experimental-profiles/t0-workload-v2/manifest.json").is_file()
+        )
+
     def test_experimental_p001_is_additive_single_axis_and_keeps_t0_gate(self) -> None:
         candidate = INSTALLER.load_experimental_p001("a1-v1")
         profiles = INSTALLER.load_profiles()

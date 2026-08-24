@@ -36,6 +36,11 @@ Profile 修订必须与 qualified action 分开。开发性的 E1-v2 候选可�
 `--experimental-p100 e1-v2` 额外安装为 **Modus Fixed p100-e1-v2**；它有独立 manifest、
 上游 commit 和 digest，不会替换 Router 或 qualified p100。该候选在独立 manipulation
 sentinel 通过前保持 unqualified，不能因安装成功而升级为实验结论。
+开发性的 p000 workload-aware 候选可用
+`--experimental-p000 t0-workload-v2` 额外安装为
+**Modus Fixed p000-t0-workload-v2**。它保持 E0/A0 与 target-only 边界不变，
+只把直接命名的代表性 benchmark 和一个显式 workload asymmetry 纳入 T0 的有限
+pre-edit 信息；在新的前瞻消融通过前保持 unqualified，也不会替换 Router 中的 p000。
 开发性的 T1-v1 候选可用 `--experimental-p010 t1-v1` 额外安装为
 **Modus Fixed p010-t1-v1**。它从当前 M1 组件 SSOT 机械编译 E0/T1/A0，
 与 p000 只差 T 位；它不启用 T0 的三次调查锁，也不会进入 Router action space。
