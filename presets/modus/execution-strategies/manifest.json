@@ -1,0 +1,16 @@
+{
+  "schema": "dsh-modus-execution-strategy-catalog-v1",
+  "strategies": {
+    "target-scoped-optimization": {
+      "manifest": "target-scoped-optimization/manifest.json",
+      "profile": "target-scoped-optimization/profile.md",
+      "sha256": "e71273a512395cefab042a176e46fcc81fbed542715986e10e48e8f34847ebd0"
+    },
+    "prepared-shared-optimization": {
+      "manifest": "prepared-shared-optimization/manifest.json",
+      "profile": "prepared-shared-optimization/profile.md",
+      "sha256": "4c8c3c325792267bbda83de0167ec026700989be9fb5f38ae16c033e95ad8280"
+    }
+  },
+  "history_boundary": "Experimental-profile paths remain only for reproduction of already frozen experiments. New Router protocols use these semantic strategy IDs."
+}

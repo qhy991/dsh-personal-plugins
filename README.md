@@ -53,6 +53,13 @@ pre-edit 信息；在新的前瞻消融通过前保持 unqualified，也不会�
 **Modus Fixed p001-a1-v1**。它机械编译 E0/T0/A1，与 p000 只差 A 位，
 并保留相同的 T0 三次调查锁；它同样不进入 Router。
 
+新的 Router 经验迁移实验不再向 Agent 暴露这些历史位编码。正式执行策略由
+[`presets/modus/execution-strategies/manifest.json`](presets/modus/execution-strategies/manifest.json)
+统一命名为 `target-scoped-optimization` 和
+`prepared-shared-optimization`，并保留与既有冻结 Profile 完全相同的字节和 SHA-256。
+旧目录只用于复现已经提交的实验；新 Router 协议只使用语义化 strategy id、正式
+manifest 和 evidence reference。
+
 ## 五分钟上手
 
 1. 安装或更新 preset：

@@ -1,0 +1,13 @@
+{
+  "schema": "dsh-modus-execution-strategy-v1",
+  "strategy_id": "target-scoped-optimization",
+  "status": "evidence-bounded-transfer-strategy",
+  "behavior_contract": {
+    "topology": "target-only",
+    "reusable_preparation": "absent"
+  },
+  "path": "profile.md",
+  "sha256": "e71273a512395cefab042a176e46fcc81fbed542715986e10e48e8f34847ebd0",
+  "evidence_ref": "evidence:profile-affinity:target-scoped-optimization",
+  "claim_boundary": "Qualified for prospective transfer only where the Router evidence registry reports an applicable task signature."
+}
