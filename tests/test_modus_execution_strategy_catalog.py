@@ -21,7 +21,11 @@ class ModusExecutionStrategyCatalogTest(unittest.TestCase):
         value = json.loads(CATALOG.read_text())
         self.assertEqual(
             set(value["strategies"]),
-            {"target-scoped-optimization", "prepared-shared-optimization"},
+            {
+                "target-scoped-optimization",
+                "prepared-shared-optimization",
+                "invariant-specialized-optimization",
+            },
         )
         for strategy_id, row in value["strategies"].items():
             self.assertNotRegex(strategy_id.lower(), r"p\d{3}|e\dv\d|p2[a-z]")
@@ -39,6 +43,25 @@ class ModusExecutionStrategyCatalogTest(unittest.TestCase):
         for strategy_id, legacy in LEGACY.items():
             profile = CATALOG.parent / value["strategies"][strategy_id]["profile"]
             self.assertEqual(profile.read_bytes(), legacy.read_bytes())
+
+    def test_invariant_specialization_is_explicitly_unqualified(self):
+        value = json.loads(CATALOG.read_text())
+        row = value["strategies"]["invariant-specialized-optimization"]
+        manifest = json.loads((CATALOG.parent / row["manifest"]).read_text())
+        profile = (CATALOG.parent / row["profile"]).read_text()
+        self.assertEqual(manifest["status"], "unqualified-development-candidate")
+        self.assertEqual(
+            manifest["behavior_contract"]["reusable_preparation"],
+            "loop-invariant-configuration-only",
+        )
+        self.assertRegex(
+            profile,
+            r"specialize loop-invariant configuration exactly\s+once",
+        )
+        self.assertRegex(
+            profile,
+            r"not a substitute\s+for repeated-data aggregation",
+        )
 
 
 if __name__ == "__main__":
