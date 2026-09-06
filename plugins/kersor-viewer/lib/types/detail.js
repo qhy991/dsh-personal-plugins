@@ -36,16 +36,20 @@ async function readBoundedJson(file) {
         return undefined;
     }
 }
-async function readEventsPrefix(file) {
+async function readEventsTail(file) {
     let handle;
     try {
         handle = await open(file, 'r');
-        const buffer = Buffer.alloc(MAX_EVENTS_BYTES + 1);
-        const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-        const truncated = bytesRead > MAX_EVENTS_BYTES;
-        let text = buffer.subarray(0, Math.min(bytesRead, MAX_EVENTS_BYTES)).toString('utf8');
+        const { size } = await handle.stat();
+        const start = Math.max(0, size - MAX_EVENTS_BYTES);
+        const buffer = Buffer.alloc(Math.min(size, MAX_EVENTS_BYTES));
+        const { bytesRead } = await handle.read(buffer, 0, buffer.length, start);
+        let text = buffer.subarray(0, bytesRead).toString('utf8');
+        const truncated = start > 0;
         if (truncated)
-            text = text.slice(0, Math.max(0, text.lastIndexOf('\n')));
+            text = text.slice(text.indexOf('\n') + 1);
+        // A writer may still be appending the final line.
+        text = text.slice(0, text.lastIndexOf('\n') + 1);
         return { text, truncated };
     }
     catch {
@@ -85,12 +89,13 @@ export async function readCallDetail(runDir, call) {
     const eventsFile = path.join(runDir, '.runtime', 'agent-results', `${stem}.codex-events.jsonl`);
     const [result, events] = await Promise.all([
         readBoundedJson(resultFile),
-        readEventsPrefix(eventsFile),
+        readEventsTail(eventsFile),
     ]);
     if (result === undefined && events.text === undefined)
         return undefined;
     const messages = [];
-    const activities = [];
+    const activities = new Map();
+    let streamedThreadId;
     let truncated = events.truncated;
     for (const line of events.text?.split('\n') ?? []) {
         if (line.length === 0)
@@ -103,38 +108,38 @@ export async function readCallDetail(runDir, call) {
             truncated = true;
             continue;
         }
-        if (event?.type !== 'item.completed')
+        if (event?.type === 'thread.started')
+            streamedThreadId = optionalString(event.thread_id);
+        if (event?.type !== 'item.completed' && event?.type !== 'item.started')
             continue;
         const item = record(event.item);
         const id = optionalString(item?.id);
-        if (item?.type === 'agent_message') {
+        if (item?.type === 'agent_message' && event.type === 'item.completed') {
             const text = optionalString(item.text);
             if (id === undefined || text === undefined)
                 continue;
             if (messages.length >= MAX_MESSAGES) {
                 truncated = true;
-                continue;
+                messages.shift();
             }
             if (text.length > MAX_MESSAGE_CHARS)
                 truncated = true;
             messages.push({ id, text: text.slice(0, MAX_MESSAGE_CHARS) });
             continue;
         }
-        if (activities.length >= MAX_ACTIVITIES) {
-            truncated = true;
-            continue;
-        }
+        const status = optionalString(item?.status) ?? (event.type === 'item.started' ? 'in_progress' : 'completed');
+        let activity;
         if (item?.type === 'mcp_tool_call') {
             const server = optionalString(item.server);
             const tool = optionalString(item.tool);
             if (id === undefined || tool === undefined)
                 continue;
-            activities.push({
+            activity = {
                 id,
                 kind: 'tool',
                 label: `${server === undefined ? '' : `${server}/`}${tool}`.slice(0, MAX_ACTIVITY_LABEL_CHARS),
-                status: optionalString(item.status) ?? 'completed',
-            });
+                status,
+            };
         }
         else if (item?.type === 'web_search') {
             const query = optionalString(item.query);
@@ -142,12 +147,25 @@ export async function readCallDetail(runDir, call) {
                 continue;
             if (query.length > MAX_ACTIVITY_LABEL_CHARS)
                 truncated = true;
-            activities.push({
+            activity = {
                 id,
                 kind: 'web-search',
                 label: query.slice(0, MAX_ACTIVITY_LABEL_CHARS),
-                status: 'completed',
-            });
+                status,
+            };
+        }
+        else if (item?.type === 'command_execution' && id !== undefined) {
+            activity = { id, kind: 'tool', label: 'command_execution', status };
+        }
+        if (activity !== undefined) {
+            activities.delete(activity.id);
+            activities.set(activity.id, activity);
+            if (activities.size > MAX_ACTIVITIES) {
+                const oldest = activities.keys().next().value;
+                if (oldest !== undefined)
+                    activities.delete(oldest);
+                truncated = true;
+            }
         }
     }
     const isolation = optionalString(record(result?.isolation)?.effective);
@@ -157,7 +175,7 @@ export async function readCallDetail(runDir, call) {
     const provider = result === undefined || result.provider === null
         ? result?.provider
         : optionalString(result.provider);
-    const threadId = optionalString(result?.thread_id);
+    const threadId = optionalString(result?.thread_id) ?? streamedThreadId;
     const usage = usageOf(result);
     return {
         callId: call.callId,
@@ -168,7 +186,7 @@ export async function readCallDetail(runDir, call) {
         ...(provider === undefined ? {} : { provider }),
         ...(isolation === undefined ? {} : { isolation }),
         messages,
-        activities,
+        activities: [...activities.values()],
         ...(usage === undefined ? {} : { usage }),
         truncated,
     };

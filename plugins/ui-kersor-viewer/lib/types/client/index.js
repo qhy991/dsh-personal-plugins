@@ -12,12 +12,12 @@ export { KersorViewerStore as KersorViewerStoreClass } from "./store.js";
 export { NS };
 /** Required services: viewer UI seams, assembled Remotes, and Host inventory. */
 export const inject = [
-    'slots', 'locale', 'remote', 'remote.pluginInventory', 'sessions', 'conversationEvents',
+    'slots', 'locale', 'remote', 'remote.pluginInventory', 'sessions', 'uiConversation',
 ];
 /** Mount the KerSor viewer surfaces over the API assembly's Remote namespaces. */
 export function apply(ctx) {
     ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'kersor-viewer: dictionaries');
-    ctx.conversationEvents.register(kersorExperimentDefinition);
+    ctx.uiConversation.events.register(kersorExperimentDefinition);
     ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
         name: 'conversation.chat.node',
         key: 'kersor-experiment',

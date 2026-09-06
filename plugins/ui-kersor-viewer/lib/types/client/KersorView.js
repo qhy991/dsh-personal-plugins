@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 /** KerSor conversation view: Session inventory with live Workflow progress. */
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { IconChevronRightOutline14, StateDot } from '@deepseek-ai/dsh-client-ui-primitives';
 import { visibleFitConfidence } from "./readiness.js";
 import css from './KersorView.module.css';
@@ -10,6 +10,14 @@ const RUN_STATUS_KEYS = {
     waiting: 'run.waiting',
     failed: 'run.failed',
     unknown: 'run.unknown',
+};
+const TASK_STOP_KEYS = {
+    'already-passed': 'task.stop.alreadyPassed',
+    'verifier-passed': 'task.stop.passed',
+    'declared-artifacts-unchanged': 'task.stop.unchanged',
+    'round-budget-exhausted': 'task.stop.roundLimit',
+    'token-budget-exhausted': 'task.stop.tokenBudget',
+    'provider-quota': 'task.stop.quota',
 };
 const CALL_STATUS_KEYS = {
     queued: 'call.queued',
@@ -210,7 +218,7 @@ function ClassicSessionDetail({ session, detail, t }) {
                                 : null, detail.dispatch.runDir !== undefined
                                 ? _jsx("span", { className: css.detailPath, title: detail.dispatch.runDir, children: detail.dispatch.runDir })
                                 : null] })] }), detail.authoring.files.length > 0
-                ? (_jsx("div", { className: css.artifacts, children: detail.authoring.files.map(file => (_jsxs("span", { title: file.sha256, children: [_jsx("span", { className: css.mono, children: file.name }), " \u00B7 ", file.bytes, " B \u00B7 ", file.sha256.slice(0, 18), "\u2026"] }, file.name))) }))
+                ? (_jsx("div", { className: css.artifacts, children: detail.authoring.files.map(file => (_jsxs("span", { title: file.sha256, children: [_jsx("span", { className: css.mono, children: file.name }), " \u00B7 ", t('detail.bytes', { bytes: file.bytes }), " \u00B7 ", file.sha256.slice(0, 18), "\u2026"] }, file.name))) }))
                 : null, design !== undefined
                 ? (_jsxs("div", { className: css.design, children: [_jsx("span", { className: css.detailTitle, children: t('detail.workflowDesign') }), _jsxs("div", { className: css.designMeta, children: [design.name !== undefined ? _jsx("span", { className: css.mono, children: design.name }) : null, design.technique !== undefined ? _jsx("span", { children: design.technique }) : null, design.methodCategory !== undefined ? _jsx("span", { children: design.methodCategory }) : null, design.topology !== undefined ? _jsx("span", { children: design.topology }) : null, design.languages.map(value => _jsx("span", { children: value }, `language:${value}`)), design.backends.map(value => _jsx("span", { children: value }, `backend:${value}`)), design.integrationPatterns.map(value => _jsx("span", { children: value }, `integration:${value}`))] }), design.description !== undefined
                             ? _jsx("p", { className: css.designText, children: design.description })
@@ -221,7 +229,7 @@ function ClassicSessionDetail({ session, detail, t }) {
                                                         ? 'done'
                                                         : detail.dispatch.status === 'running'
                                                             ? 'ongoing'
-                                                            : 'warning' }), _jsx("span", { className: css.mono, children: design.name ?? detail.selection.workflow ?? 'Workflow' })] }), _jsx("div", { className: css.workflowBranches, role: "group", children: phases.map((phase, index) => (_jsxs("div", { className: css.workflowPhase, role: "treeitem", children: [_jsx("span", { className: css.workflowBranch, "aria-hidden": "true", children: index === phases.length - 1 ? '└' : '├' }), _jsx("span", { className: css.workflowPhaseIndex, children: index + 1 }), _jsxs("span", { className: css.workflowPhaseBody, children: [_jsx("strong", { children: phase.title }), _jsx("span", { children: phase.detail })] })] }, `${index}:${phase.title}`))) })] }))
+                                                            : 'warning' }), _jsx("span", { className: css.mono, children: design.name ?? detail.selection.workflow ?? t('detail.workflowFallback') })] }), _jsx("div", { className: css.workflowBranches, role: "group", children: phases.map((phase, index) => (_jsxs("div", { className: css.workflowPhase, role: "treeitem", children: [_jsx("span", { className: css.workflowBranch, "aria-hidden": "true", children: index === phases.length - 1 ? '└' : '├' }), _jsx("span", { className: css.workflowPhaseIndex, children: index + 1 }), _jsxs("span", { className: css.workflowPhaseBody, children: [_jsx("strong", { children: phase.title }), _jsx("span", { children: phase.detail })] })] }, `${index}:${phase.title}`))) })] }))
                             : null, design.requiredArgs.length > 0
                             ? _jsxs("div", { className: css.requiredArgs, children: [t('detail.requiredArgs'), ": ", _jsx("span", { className: css.mono, children: design.requiredArgs.join(', ') })] })
                             : null, _jsxs("details", { className: css.designDisclosure, children: [_jsx("summary", { children: t('detail.rationale') }), _jsx("pre", { children: design.rationale })] }), design.whenToUse !== undefined
@@ -321,9 +329,9 @@ function belongsToWorkspace(sessionDir, workspace) {
 function sessionName(sessionDir) {
     return normalizedPath(sessionDir).split('/').at(-1) ?? sessionDir;
 }
-function runDisplayLabel(row, session) {
+function runDisplayLabel(row, session, t) {
     const round = row.round ?? session?.current_round ?? undefined;
-    const roundLabel = round === undefined ? row.runId : `R${String(round).padStart(2, '0')}`;
+    const roundLabel = round === undefined ? row.runId : t('detail.round.number', { round: String(round).padStart(2, '0') });
     const workflow = row.view?.workflow ?? session?.workflow ?? row.runId;
     if (row.kind === 'general-task')
         return workflow === row.runId ? row.runId : `${row.runId} · ${workflow}`;
@@ -333,13 +341,13 @@ function CallDetail({ detail, t }) {
     return (_jsxs("div", { className: css.callDetail, children: [_jsxs("div", { className: css.callDetailMeta, children: [_jsx("span", { children: detail.runner === 'codex-exec' ? t('call.runner.codex') : t('call.runner.unknown') }), _jsx("span", { children: t('call.model', { model: detail.model ?? t('call.modelUnknown') }) }), detail.modelRole != null ? _jsx("span", { children: t('call.modelRole', { role: detail.modelRole }) }) : null, detail.threadId !== undefined ? _jsx("span", { className: css.mono, children: detail.threadId }) : null, detail.isolation !== undefined ? _jsx("span", { children: detail.isolation }) : null] }), detail.messages.length > 0
                 ? (_jsx("div", { className: css.callMessages, children: detail.messages.map(message => _jsx("pre", { children: message.text }, message.id)) }))
                 : _jsx("div", { className: css.detailNote, children: t('call.noMessages') }), detail.activities.length > 0
-                ? (_jsx("ul", { className: css.callActivities, children: detail.activities.map(activity => (_jsxs("li", { children: [_jsx("span", { children: activity.kind === 'web-search' ? t('call.webSearch') : t('call.tool') }), _jsx("span", { className: css.mono, children: activity.label }), _jsx("span", { children: activity.status })] }, activity.id))) }))
+                ? (_jsx("ul", { className: css.callActivities, children: detail.activities.map(activity => (_jsxs("li", { children: [_jsx("span", { children: activity.kind === 'web-search' ? t('call.webSearch') : t('call.tool') }), _jsx("span", { className: css.mono, children: activity.label === 'command_execution' ? t('call.command') : activity.label }), _jsx("span", { children: activity.status })] }, activity.id))) }))
                 : null, detail.truncated ? _jsx("div", { className: css.detailNote, children: t('call.truncated') }) : null] }));
 }
 function CallTreeNode({ call, selectedCandidateId, selected, detail, loading, error, onToggle, t, }) {
     const duration = durationSeconds(call.startedTs, call.endedTs);
     const chosen = selectedCandidateId !== undefined && call.label.endsWith(selectedCandidateId);
-    return (_jsxs("li", { role: "treeitem", "aria-expanded": selected, className: css.callTreeItem, "data-call-status": call.status, children: [_jsxs("button", { type: "button", className: css.treeNodeButton, onClick: onToggle, "aria-label": t('call.open', { label: call.label }), children: [_jsx(StateDot, { state: callDotState(call.status) }), _jsx("span", { className: css.callLabel, title: call.callId, children: call.label }), chosen ? _jsx("span", { className: css.selectedBadge, children: t('run.result.chosen') }) : null, _jsxs("span", { className: css.callMeta, children: [call.kind === 'evaluation' ? t('call.evaluation') : null, call.rolledBack ? _jsx("span", { className: css.badge, children: t('call.rolledBack') }) : null, duration !== undefined ? _jsx("span", { children: duration }) : null, call.tokens !== undefined ? _jsxs("span", { children: [call.tokens.toLocaleString(), " tk"] }) : null] }), _jsx("span", { className: css.callStatus, children: t(CALL_STATUS_KEYS[call.status]) }), _jsx(IconChevronRightOutline14, {})] }), selected && loading ? _jsx("div", { className: css.detailNote, children: t('call.loading') }) : null, selected && error !== undefined ? _jsx("div", { className: css.detailError, children: error }) : null, selected && !loading && detail !== undefined ? _jsx(CallDetail, { detail: detail, t: t }) : null] }));
+    return (_jsxs("li", { role: "treeitem", "aria-expanded": selected, className: css.callTreeItem, "data-call-status": call.status, children: [_jsxs("button", { type: "button", className: css.treeNodeButton, onClick: onToggle, "aria-label": t('call.open', { label: call.label }), children: [_jsx(StateDot, { state: callDotState(call.status) }), _jsx("span", { className: css.callLabel, title: call.callId, children: call.label }), chosen ? _jsx("span", { className: css.selectedBadge, children: t('run.result.chosen') }) : null, _jsxs("span", { className: css.callMeta, children: [call.kind === 'evaluation' ? t('call.evaluation') : null, call.rolledBack ? _jsx("span", { className: css.badge, children: t('call.rolledBack') }) : null, duration !== undefined ? _jsx("span", { children: duration }) : null, call.tokens !== undefined ? _jsx("span", { children: t('run.tokens', { tokens: call.tokens.toLocaleString() }) }) : null] }), _jsx("span", { className: css.callStatus, children: t(CALL_STATUS_KEYS[call.status]) }), _jsx(IconChevronRightOutline14, {})] }), selected && loading ? _jsx("div", { className: css.detailNote, children: t('call.loading') }) : null, selected && error !== undefined ? _jsx("div", { className: css.detailError, children: error }) : null, selected && !loading && detail !== undefined ? _jsx(CallDetail, { detail: detail, t: t }) : null] }));
 }
 function hostStepStatus(detail, id) {
     return detail?.steps.find(step => step.id === id)?.status ?? 'pending';
@@ -376,7 +384,13 @@ function WorkflowTree({ row, view, session, sessionDetail, state, loadCallDetail
     const [selectedCallId, setSelectedCallId] = useState();
     const result = workflowResultOf(view);
     const detailKey = selectedCallId === undefined ? undefined : `${view.runDir}\u0000${selectedCallId}`;
-    return (_jsx("ul", { role: "tree", "aria-label": t('run.tree'), className: css.executionTree, children: _jsxs("li", { role: "treeitem", "aria-expanded": true, className: css.roundTreeItem, children: [_jsxs("div", { className: css.treeNode, children: [_jsx(StateDot, { state: session?.lifecycle === 'active' ? 'ongoing' : runDotState(view.status) }), _jsx("span", { children: session?.session_id ?? sessionName(view.sessionDir) }), _jsx("span", { children: row.round === undefined ? row.runId : `R${String(row.round).padStart(2, '0')}` })] }), _jsxs("ul", { role: "group", className: css.treeGroup, children: [_jsxs("li", { role: "treeitem", "aria-expanded": true, className: css.workflowTreeItem, children: [_jsxs("div", { className: css.treeNode, children: [_jsx(StateDot, { state: runDotState(view.status) }), _jsx("span", { children: view.workflow ?? view.runId }), _jsx("span", { children: t(RUN_STATUS_KEYS[view.status]) })] }), _jsx("ul", { role: "group", className: css.treeGroup, children: view.phases.map(phase => (_jsxs("li", { role: "treeitem", "aria-expanded": phase.calls.length > 0, className: css.phaseTreeItem, "data-phase-status": phase.status, "data-parallel": phase.calls.length > 1, children: [_jsxs("div", { className: css.treeNode, children: [_jsx(StateDot, { state: phaseDotState(phase.status) }), _jsx("span", { children: phase.title.length > 0 ? phase.title : t('phase.empty') }), _jsx("span", { children: phase.calls.length > 1
+    const selectedCallStatus = view.phases.flatMap(phase => phase.calls)
+        .find(call => call.callId === selectedCallId)?.status;
+    useEffect(() => {
+        if (selectedCallId !== undefined)
+            void loadCallDetail(view.runDir, selectedCallId);
+    }, [loadCallDetail, selectedCallId, selectedCallStatus, view.runDir]);
+    return (_jsx("ul", { role: "tree", "aria-label": t('run.tree'), className: css.executionTree, children: _jsxs("li", { role: "treeitem", "aria-expanded": true, className: css.roundTreeItem, children: [_jsxs("div", { className: css.treeNode, children: [_jsx(StateDot, { state: session?.lifecycle === 'active' ? 'ongoing' : runDotState(view.status) }), _jsx("span", { children: session?.session_id ?? sessionName(view.sessionDir) }), _jsx("span", { children: row.round === undefined ? row.runId : t('detail.round.number', { round: String(row.round).padStart(2, '0') }) })] }), _jsxs("ul", { role: "group", className: css.treeGroup, children: [_jsxs("li", { role: "treeitem", "aria-expanded": true, className: css.workflowTreeItem, children: [_jsxs("div", { className: css.treeNode, children: [_jsx(StateDot, { state: runDotState(view.status) }), _jsx("span", { children: view.workflow ?? view.runId }), _jsx("span", { children: t(RUN_STATUS_KEYS[view.status]) })] }), _jsx("ul", { role: "group", className: css.treeGroup, children: view.phases.map(phase => (_jsxs("li", { role: "treeitem", "aria-expanded": phase.calls.length > 0, className: css.phaseTreeItem, "data-phase-status": phase.status, "data-parallel": phase.calls.length > 1, children: [_jsxs("div", { className: css.treeNode, children: [_jsx(StateDot, { state: phaseDotState(phase.status) }), _jsx("span", { children: phase.title.length > 0 ? phase.title : t('phase.empty') }), _jsx("span", { children: phase.calls.length > 1
                                                             ? t('run.parallelCalls', { calls: phase.calls.length })
                                                             : t('run.calls', { calls: phase.calls.length }) })] }), phase.calls.length > 0
                                                 ? (_jsx("ul", { role: "group", className: css.treeGroup, children: phase.calls.map((call) => {
@@ -390,14 +404,15 @@ function WorkflowTree({ row, view, session, sessionDetail, state, loadCallDetail
                                                                 : {}), ...(callDetail === undefined ? {} : { detail: callDetail }), onToggle: () => {
                                                                 const next = selected ? undefined : call.callId;
                                                                 setSelectedCallId(next);
-                                                                if (next !== undefined && state.callDetails.get(`${view.runDir}\u0000${next}`) === undefined) {
-                                                                    void loadCallDetail(view.runDir, next);
-                                                                }
                                                             }, t: t }, call.callId));
                                                     }) }))
                                                 : null] }, `${phase.index}-${phase.title}`))) })] }), _jsx(HostVerificationTree, { session: session, detail: sessionDetail, result: result, t: t })] })] }) }));
 }
 function WorkflowResult({ result, t }) {
+    if (result.task !== undefined) {
+        const stopKey = TASK_STOP_KEYS[result.task.stopReason];
+        return (_jsxs("section", { className: css.workflowResult, "aria-label": t('task.result.title'), "data-task-status": result.task.status, children: [_jsxs("div", { className: css.resultHead, children: [_jsx("span", { className: css.detailTitle, children: t('task.result.title') }), _jsx("span", { children: t(`task.status.${result.task.status}`) })] }), _jsxs("div", { className: css.resultMetrics, children: [_jsx("span", { "data-verification": result.verification ?? 'unknown', children: t(`task.verification.${result.verification ?? 'unknown'}`) }), _jsx("span", { children: t('task.rounds', { rounds: result.task.rounds }) }), _jsx("span", { children: t('task.stopReason', { reason: stopKey === undefined ? result.task.stopReason : t(stopKey) }) })] })] }));
+    }
     return (_jsxs("section", { className: css.workflowResult, "aria-label": t('run.result.title'), children: [_jsxs("div", { className: css.resultHead, children: [_jsx("span", { className: css.detailTitle, children: t('run.result.title') }), result.stage !== undefined
                         ? _jsx("span", { className: css.resultStage, children: t('run.result.stage', { stage: result.stage }) })
                         : null] }), _jsxs("div", { className: css.resultMetrics, children: [result.verification !== undefined
@@ -432,6 +447,8 @@ function WorkflowResult({ result, t }) {
 }
 function workflowResultOf(view) {
     const nested = view.result;
+    if (nested?.task !== undefined)
+        return nested;
     const candidates = view.candidates ?? nested?.candidates ?? [];
     const stage = view.candidateStage ?? nested?.stage;
     const verification = view.verification ?? nested?.verification;
@@ -470,12 +487,15 @@ function RunDetail({ row, view, session, sessionDetail, crossWorkspace, state, l
     const workflowWaiting = view.status === 'completed'
         && session?.lifecycle === 'active'
         && result?.stage === 'awaiting_host_verification';
-    const statusLabel = workflowWaiting
-        ? t('run.workflowCompletedHostPending')
-        : view.status === 'completed' && session?.lifecycle === 'active'
-            ? t('run.workflowCompletedSessionActive')
-            : t(RUN_STATUS_KEYS[view.status]);
-    return (_jsxs("div", { className: css.runDetail, children: [_jsxs("div", { className: css.runHead, children: [_jsx("span", { className: css.workflowIdentity, title: view.runDir, children: runDisplayLabel(row, session) }), _jsx("span", { className: css.runId, title: view.runDir, children: view.runId }), crossWorkspace ? _jsx("span", { className: css.workspaceBadge, children: t('session.otherWorkspace') }) : null, _jsxs("span", { className: css.statusTail, "data-status": view.status, children: [_jsx(StateDot, { state: workflowWaiting ? 'ongoing' : runDotState(view.status) }), _jsx("span", { children: statusLabel })] })] }), _jsxs("div", { className: css.runMeta, children: [view.currentPhase.length > 0 ? _jsx("span", { children: t('run.currentPhase', { phase: view.currentPhase }) }) : null, _jsx("span", { children: t('run.calls', { calls: view.totals.calls }) }), view.totals.tokens > 0 ? _jsx("span", { children: t('run.tokens', { tokens: view.totals.tokens.toLocaleString() }) }) : null] }), view.error !== undefined ? _jsx("div", { className: css.runError, children: t('run.error', { message: view.error }) }) : null, view.phases.length > 0
+    const statusLabel = result?.task !== undefined
+        ? t(`task.status.${result.task.status}`)
+        : workflowWaiting
+            ? t('run.workflowCompletedHostPending')
+            : view.status === 'completed' && session?.lifecycle === 'active'
+                ? t('run.workflowCompletedSessionActive')
+                : t(RUN_STATUS_KEYS[view.status]);
+    return (_jsxs("div", { className: css.runDetail, children: [_jsxs("div", { className: css.runHead, children: [_jsx("span", { className: css.workflowIdentity, title: view.runDir, children: runDisplayLabel(row, session, t) }), _jsx("span", { className: css.runId, title: view.runDir, children: view.runId }), crossWorkspace ? _jsx("span", { className: css.workspaceBadge, children: t('session.otherWorkspace') }) : null, _jsxs("span", { className: css.statusTail, "data-status": view.status, children: [_jsx(StateDot, { state: result?.task !== undefined && result.verification !== 'passed'
+                                    ? 'warning' : workflowWaiting ? 'ongoing' : runDotState(view.status) }), _jsx("span", { children: statusLabel })] })] }), _jsxs("div", { className: css.runMeta, children: [view.currentPhase.length > 0 ? _jsx("span", { children: t('run.currentPhase', { phase: view.currentPhase }) }) : null, _jsx("span", { children: t('run.calls', { calls: view.totals.calls }) }), view.totals.tokens > 0 ? _jsx("span", { children: t('run.tokens', { tokens: view.totals.tokens.toLocaleString() }) }) : null] }), view.error !== undefined ? _jsx("div", { className: css.runError, children: t('run.error', { message: view.error }) }) : null, view.phases.length > 0
                 ? (_jsx(WorkflowTree, { row: row, view: view, session: session, sessionDetail: sessionDetail, state: state, loadCallDetail: loadCallDetail, t: t }))
                 : null, result !== undefined ? _jsx(WorkflowResult, { result: result, t: t }) : null] }));
 }
@@ -520,6 +540,7 @@ function viewerHealth(snapshot) {
 /** First-class KerSor view rendered beside Chat and Trajectory. */
 export function KersorView({ t, store, currentWorkspace, refresh, loadRun, loadCallDetail, loadClassic, start, stop, }) {
     const [busy, setBusy] = useState();
+    const observedRunDirs = useRef(new Set());
     const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
     const rows = store.rows;
     const classicSessions = state.snapshot?.classic.sessions ?? [];
@@ -531,13 +552,18 @@ export function KersorView({ t, store, currentWorkspace, refresh, loadRun, loadC
         void refresh();
     }, [refresh]);
     useEffect(() => {
-        if (store.selectionIntent !== 'follow')
-            return;
         const eligibleRows = currentWorkspace === undefined || currentWorkspace.length === 0
             ? rows
             : rows.filter(row => belongsToWorkspace(row.sessionDir, currentWorkspace));
+        const previous = observedRunDirs.current;
+        observedRunDirs.current = new Set(eligibleRows.map(row => row.runDir));
+        if (store.selectionIntent !== 'follow')
+            return;
+        const newestFirst = [...eligibleRows].sort((left, right) => right.runId.localeCompare(left.runId));
         const target = eligibleRows.find(row => row.discovery === 'active')
-            ?? [...eligibleRows].sort((left, right) => right.runId.localeCompare(left.runId))[0];
+            ?? newestFirst.find(row => !previous.has(row.runDir))
+            ?? eligibleRows.find(row => row.runDir === store.selectedRunDir)
+            ?? newestFirst[0];
         if (target === undefined || !store.followDiscoveredRun(target.runDir))
             return;
         void loadRun(target.runDir);
@@ -616,7 +642,7 @@ export function KersorView({ t, store, currentWorkspace, refresh, loadRun, loadC
                                                                 ? 'ongoing'
                                                                 : row.discovery === 'failed'
                                                                     ? 'error'
-                                                                    : row.discovery === 'waiting' ? 'warning' : 'done' }), _jsx("span", { className: css.rowLabel, children: runDisplayLabel(row, session) }), _jsx("span", { className: css.runId, children: row.runId }), crossWorkspace ? _jsx("span", { className: css.workspaceBadge, children: t('session.otherWorkspace') }) : null] }), store.selectedRunDir === row.runDir && row.view !== undefined
+                                                                    : row.discovery === 'waiting' ? 'warning' : 'done' }), _jsx("span", { className: css.rowLabel, children: runDisplayLabel(row, session, t) }), _jsx("span", { className: css.runId, children: row.runId }), crossWorkspace ? _jsx("span", { className: css.workspaceBadge, children: t('session.otherWorkspace') }) : null] }), store.selectedRunDir === row.runDir && row.view !== undefined
                                                     ? (_jsx(RunDetail, { row: row, view: row.view, session: session, sessionDetail: state.classicDetails.get(row.sessionDir), crossWorkspace: crossWorkspace, state: state, loadCallDetail: loadCallDetail, t: t }))
                                                     : null] }, row.runDir));
                                     }) })] }))

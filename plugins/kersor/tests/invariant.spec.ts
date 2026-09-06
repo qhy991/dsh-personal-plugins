@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import { Context } from '@deepseek-ai/cordis'
 import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import SessionStore, { SessionId, type Session } from '@deepseek-ai/dsh-session'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { canonicalKersorJson } from '../src/types.ts'
 import type {
   KersorAuthorProducedEventData,
@@ -205,7 +205,7 @@ const authorProduced = {
   authority: 'dsh_host',
   session_dir: baselineSession,
   controller_session_id: SessionId('controller'),
-  author_call_id: CallId('author-call'),
+  author_call_id: ToolCallId('author-call'),
   author_session_id: SessionId('author-child'),
   author_context: {
     path: `${baselineSession}/workflow-authoring/author-context.json`,
@@ -220,7 +220,7 @@ const authorSeal = {
   controller_session_id: SessionId('controller'),
   author_call_id: authorProduced.author_call_id,
   author_session_id: authorProduced.author_session_id,
-  seal_call_id: CallId('author-seal-call'),
+  seal_call_id: ToolCallId('author-seal-call'),
   handoff: {
     path: `${baselineSession}/workflow-authoring/author-handoff.json`,
     sha256: '9'.repeat(64),
@@ -232,7 +232,7 @@ const authorSaveAttempt = {
   authority: 'dsh_host',
   session_dir: baselineSession,
   controller_session_id: SessionId('controller'),
-  save_call_id: CallId('author-save-call'),
+  save_call_id: ToolCallId('author-save-call'),
   seal_call_id: authorSeal.seal_call_id,
   handoff: authorSeal.handoff,
 } satisfies KersorAuthorSaveAttemptedEventData
@@ -246,7 +246,7 @@ function appendAuthorActionCall(
   session.append('tool/call', {
     turn: 1,
     step: 1,
-    callId: CallId(callId),
+    callId: ToolCallId(callId),
     name: toolName,
     arguments: JSON.stringify({ action }),
   })
@@ -265,7 +265,7 @@ function appendSetupCall(
   session.append('tool/call', {
     turn: 1,
     step: 1,
-    callId: CallId(callId),
+    callId: ToolCallId(callId),
     name: 'bash',
     arguments: JSON.stringify({
       command: sessionInitialized.setup_command,
@@ -400,7 +400,7 @@ async function setupAuthorityImport(options: {
   targetParent.append('tool/call', {
     turn: 1,
     step: 1,
-    callId: CallId(attachCallId),
+    callId: ToolCallId(attachCallId),
     name: 'kersor_attach',
     arguments: JSON.stringify({
       experiment_id: experimentId,

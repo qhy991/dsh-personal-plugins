@@ -1,8 +1,9 @@
 /** Durable KerSor Experiment Conversation Node definition. */
 
+import type { ChatConversationViewNode } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {
-  ChatConversationViewNode, ConversationNodeContext, ConversationNodeDefinition,
-} from '@deepseek-ai/dsh-client-runtime/client'
+  ConversationNodeContext, ConversationNodeDefinition,
+} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {
   KersorExperimentCheckpointEventData,
   KersorExperimentStartEventData,
@@ -30,7 +31,7 @@ export interface KersorExperimentChatData {
   readonly steps: readonly KersorExperimentStep[]
 }
 
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
+declare module '@deepseek-ai/dsh-client-ui-chat/client' {
   interface ChatNodeDataMap {
     /** One KerSor experiment whose execution conversation is a continuable child. */
     'kersor-experiment': KersorExperimentChatData

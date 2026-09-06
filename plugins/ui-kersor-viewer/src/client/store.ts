@@ -318,11 +318,15 @@ export class KersorViewerStore {
 
   /**
    * Apply one forwarded Host frame.
-   * @param frame - Atomic snapshot replacement or one folded run update.
+   * @param frame - Host inventory, run progress, or live worker detail.
    */
   applyFrame(frame: KersorViewerFrame): void {
     if (frame.kind === 'snapshot') {
       this.setSnapshot(frame.snapshot)
+      return
+    }
+    if (frame.kind === 'call') {
+      this.setCallDetail(frame.runDir, frame.detail.callId, frame.detail)
       return
     }
     const views = new Map(this.state.views)

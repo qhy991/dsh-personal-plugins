@@ -1335,15 +1335,18 @@ async function readBoundedJson(file) {
 		return;
 	}
 }
-async function readEventsPrefix(file) {
+async function readEventsTail(file) {
 	let handle;
 	try {
 		handle = await open(file, "r");
-		const buffer = Buffer.alloc(2097153);
-		const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-		const truncated = bytesRead > MAX_EVENTS_BYTES;
-		let text = buffer.subarray(0, Math.min(bytesRead, MAX_EVENTS_BYTES)).toString("utf8");
-		if (truncated) text = text.slice(0, Math.max(0, text.lastIndexOf("\n")));
+		const { size } = await handle.stat();
+		const start = Math.max(0, size - MAX_EVENTS_BYTES);
+		const buffer = Buffer.alloc(Math.min(size, MAX_EVENTS_BYTES));
+		const { bytesRead } = await handle.read(buffer, 0, buffer.length, start);
+		let text = buffer.subarray(0, bytesRead).toString("utf8");
+		const truncated = start > 0;
+		if (truncated) text = text.slice(text.indexOf("\n") + 1);
+		text = text.slice(0, text.lastIndexOf("\n") + 1);
 		return {
 			text,
 			truncated
@@ -1379,10 +1382,11 @@ async function readCallDetail(runDir, call) {
 	const stem = stemOf(call);
 	const resultFile = path.join(runDir, ".runtime", "agent-results", `${stem}.json`);
 	const eventsFile = path.join(runDir, ".runtime", "agent-results", `${stem}.codex-events.jsonl`);
-	const [result, events] = await Promise.all([readBoundedJson(resultFile), readEventsPrefix(eventsFile)]);
+	const [result, events] = await Promise.all([readBoundedJson(resultFile), readEventsTail(eventsFile)]);
 	if (result === void 0 && events.text === void 0) return void 0;
 	const messages = [];
-	const activities = [];
+	const activities = /* @__PURE__ */ new Map();
+	let streamedThreadId;
 	let truncated = events.truncated;
 	for (const line of events.text?.split("\n") ?? []) {
 		if (line.length === 0) continue;
@@ -1393,15 +1397,16 @@ async function readCallDetail(runDir, call) {
 			truncated = true;
 			continue;
 		}
-		if (event?.type !== "item.completed") continue;
+		if (event?.type === "thread.started") streamedThreadId = optionalString$1(event.thread_id);
+		if (event?.type !== "item.completed" && event?.type !== "item.started") continue;
 		const item = record(event.item);
 		const id = optionalString$1(item?.id);
-		if (item?.type === "agent_message") {
+		if (item?.type === "agent_message" && event.type === "item.completed") {
 			const text = optionalString$1(item.text);
 			if (id === void 0 || text === void 0) continue;
 			if (messages.length >= MAX_MESSAGES) {
 				truncated = true;
-				continue;
+				messages.shift();
 			}
 			if (text.length > MAX_MESSAGE_CHARS) truncated = true;
 			messages.push({
@@ -1410,36 +1415,48 @@ async function readCallDetail(runDir, call) {
 			});
 			continue;
 		}
-		if (activities.length >= MAX_ACTIVITIES) {
-			truncated = true;
-			continue;
-		}
+		const status = optionalString$1(item?.status) ?? (event.type === "item.started" ? "in_progress" : "completed");
+		let activity;
 		if (item?.type === "mcp_tool_call") {
 			const server = optionalString$1(item.server);
 			const tool = optionalString$1(item.tool);
 			if (id === void 0 || tool === void 0) continue;
-			activities.push({
+			activity = {
 				id,
 				kind: "tool",
 				label: `${server === void 0 ? "" : `${server}/`}${tool}`.slice(0, MAX_ACTIVITY_LABEL_CHARS),
-				status: optionalString$1(item.status) ?? "completed"
-			});
+				status
+			};
 		} else if (item?.type === "web_search") {
 			const query = optionalString$1(item.query);
 			if (id === void 0 || query === void 0) continue;
 			if (query.length > MAX_ACTIVITY_LABEL_CHARS) truncated = true;
-			activities.push({
+			activity = {
 				id,
 				kind: "web-search",
 				label: query.slice(0, MAX_ACTIVITY_LABEL_CHARS),
-				status: "completed"
-			});
+				status
+			};
+		} else if (item?.type === "command_execution" && id !== void 0) activity = {
+			id,
+			kind: "tool",
+			label: "command_execution",
+			status
+		};
+		if (activity !== void 0) {
+			activities.delete(activity.id);
+			activities.set(activity.id, activity);
+			if (activities.size > MAX_ACTIVITIES) {
+				const oldest = activities.keys().next().value;
+				if (oldest !== void 0) activities.delete(oldest);
+				truncated = true;
+			}
 		}
 	}
 	const isolation = optionalString$1(record(result?.isolation)?.effective);
 	const modelRole = result === void 0 || result.model_role === null ? result?.model_role : optionalString$1(result.model_role);
 	const provider = result === void 0 || result.provider === null ? result?.provider : optionalString$1(result.provider);
-	const threadId = optionalString$1(result?.thread_id);
+	const threadId = optionalString$1(result?.thread_id) ?? streamedThreadId;
 	const usage = usageOf(result);
 	return {
 		callId: call.callId,
@@ -1450,7 +1467,7 @@ async function readCallDetail(runDir, call) {
 		...provider === void 0 ? {} : { provider },
 		...isolation === void 0 ? {} : { isolation },
 		messages,
-		activities,
+		activities: [...activities.values()],
 		...usage === void 0 ? {} : { usage },
 		truncated
 	};
@@ -1578,7 +1595,8 @@ function foldEvent(view, event) {
 	switch (event.type) {
 		case "workflow.started":
 			view.status = "running";
-			view.startedTs = event.ts;
+			if (typeof event.ts === "string") view.startedTs = event.ts;
+			else delete view.startedTs;
 			if (typeof event.script === "string") view.workflow = workflowName(event.script);
 			if (typeof event.script_hash === "string") view.scriptHash = event.script_hash;
 			return;
@@ -1592,7 +1610,8 @@ function foldEvent(view, event) {
 		}
 		case "workflow.completed": {
 			view.status = "completed";
-			view.endedTs = event.ts;
+			if (typeof event.ts === "string") view.endedTs = event.ts;
+			else delete view.endedTs;
 			const tokens = totalTokens(event.usage);
 			if (tokens !== void 0) view.totals.tokens = tokens;
 			for (const phase of view.phases) if (phase.status === "running") phase.status = "completed";
@@ -1600,8 +1619,11 @@ function foldEvent(view, event) {
 		}
 		case "workflow.failed": {
 			view.status = "failed";
-			view.endedTs = event.ts;
-			view.error = errorMessage(event.error);
+			if (typeof event.ts === "string") view.endedTs = event.ts;
+			else delete view.endedTs;
+			const error = errorMessage(event.error);
+			if (error === void 0) delete view.error;
+			else view.error = error;
 			const tokens = totalTokens(event.usage);
 			if (tokens !== void 0) view.totals.tokens = tokens;
 			for (const phase of view.phases) if (phase.status === "running") phase.status = "failed";
@@ -1629,7 +1651,8 @@ function foldEvent(view, event) {
 			const row = callBucket(view, event, event.type === "agent.started" ? "agent" : "evaluation");
 			if (!row) return;
 			row.status = "running";
-			row.startedTs = event.ts;
+			if (typeof event.ts === "string") row.startedTs = event.ts;
+			else delete row.startedTs;
 			return;
 		}
 		case "agent.completed":
@@ -1637,7 +1660,8 @@ function foldEvent(view, event) {
 			const row = callBucket(view, event, event.type === "agent.completed" ? "agent" : "evaluation");
 			if (!row) return;
 			row.status = "completed";
-			row.endedTs = event.ts;
+			if (typeof event.ts === "string") row.endedTs = event.ts;
+			else delete row.endedTs;
 			const tokens = totalTokens(event.usage);
 			if (tokens !== void 0) {
 				row.tokens = tokens;
@@ -1651,8 +1675,11 @@ function foldEvent(view, event) {
 			const row = callBucket(view, event, event.type === "agent.failed" ? "agent" : "evaluation");
 			if (!row) return;
 			row.status = "failed";
-			row.endedTs = event.ts;
-			row.error = errorMessage(event.error);
+			if (typeof event.ts === "string") row.endedTs = event.ts;
+			else delete row.endedTs;
+			const error = errorMessage(event.error);
+			if (error === void 0) delete row.error;
+			else row.error = error;
 			const tokens = totalTokens(event.usage);
 			if (tokens !== void 0) {
 				row.tokens = tokens;
@@ -1726,13 +1753,30 @@ async function readObject(file, maxBytes) {
 /**
 * Read one canonical output without forwarding candidate source or arbitrary report text.
 * @param runDir - Exact discovered run directory.
-* @returns Bounded candidate-selection facts, or `undefined` when absent or invalid.
+* @returns Task outcome or candidate-selection facts, or `undefined` when absent or invalid.
 */
 async function readWorkflowResult(runDir) {
 	const [value, host] = await Promise.all([readObject(path.join(runDir, "output.json"), MAX_OUTPUT_BYTES), readObject(path.join(runDir, "host-verification.json"), MAX_HOST_VERIFICATION_BYTES)]);
 	try {
 		if (value === void 0 && host === void 0) return void 0;
 		const output = value ?? {};
+		const meta = output.meta;
+		if (meta?.name === "general-self-evolve" && meta.contract === "kersor-task-v1") {
+			const status = output.status;
+			if (status !== "succeeded" && status !== "stagnated" && status !== "exhausted" && status !== "waiting") return void 0;
+			if (typeof output.stop_reason !== "string" || output.stop_reason.length > 200 || typeof output.rounds !== "number" || !Number.isSafeInteger(output.rounds) || output.rounds < 0) return void 0;
+			const evaluation = output.final_evaluation;
+			const verification = evaluation?.passed === true && evaluation.exit_code === 0 && evaluation.timed_out !== true && evaluation.signal == null ? "passed" : evaluation?.passed === false ? "failed" : void 0;
+			return {
+				task: {
+					status,
+					stopReason: output.stop_reason,
+					rounds: output.rounds
+				},
+				...verification === void 0 ? {} : { verification },
+				candidates: []
+			};
+		}
 		const candidates = (Array.isArray(output.candidate_log) ? output.candidate_log : []).slice(0, MAX_CANDIDATES).flatMap((candidate) => {
 			if (candidate === null || typeof candidate !== "object" || Array.isArray(candidate)) return [];
 			const row = candidate;
@@ -2603,6 +2647,19 @@ let KersorViewerService = (() => {
 				this.tracked.set(ref.runDir, tracked);
 				if (ref.discovery === "active") this.attachTailer(tracked);
 				else this.backfillTerminated(tracked);
+			}
+			for (const tracked of this.tracked.values()) {
+				if (tracked.view.status !== "running") continue;
+				const generation = tracked.generation;
+				for (const call of tracked.view.phases.flatMap((phase) => phase.calls)) {
+					if (call.kind !== "agent" || call.status !== "running") continue;
+					const detail = await readCallDetail(tracked.ref.runDir, call);
+					if (detail !== void 0 && generation === tracked.generation && this.tracked.get(tracked.ref.runDir) === tracked) this.rootCtx.emit("kersor/event", {
+						kind: "call",
+						runDir: tracked.ref.runDir,
+						detail
+					});
+				}
 			}
 			this.publishSnapshot();
 		}

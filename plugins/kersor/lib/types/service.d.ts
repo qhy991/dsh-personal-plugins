@@ -6,6 +6,7 @@
  */
 import { Context, Service } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
+import type { SubprocessOutcome } from '@deepseek-ai/dsh-subprocess';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import type { KersorActiveLaunch, KersorTaskId, KersorTaskRef } from './types.ts';
 /** One configured, browser-launchable autonomous Mission. */
@@ -35,6 +36,18 @@ export interface Config {
     maxOutputBytes?: number;
     /** TERM-to-KILL grace for launcher process trees. */
     stopGraceMs?: number;
+}
+/** Completion of one launcher process after its complete process tree exits. */
+export interface KersorLaunchCompletion extends SubprocessOutcome {
+    /** Immutable launch receipt published when the process started. */
+    readonly ref: KersorActiveLaunch;
+}
+/** Same-process launch reference for applications that must keep DSH alive until completion. */
+export interface KersorLaunchHandle {
+    /** Immutable launch receipt available immediately after spawn. */
+    readonly ref: KersorActiveLaunch;
+    /** Outcome after the direct process settles and the complete process tree exits. */
+    readonly done: Promise<KersorLaunchCompletion>;
 }
 declare module '@deepseek-ai/cordis' {
     interface Context {
@@ -78,11 +91,20 @@ export declare class KersorService extends TypertRemoteService {
      */
     start(taskId: KersorTaskId): Promise<KersorActiveLaunch>;
     /**
+     * Start one configured Mission for a same-process application that must
+     * retain DSH until the complete process tree exits.
+     * @param taskId - configured task identity from {@link listTasks}.
+     * @returns the immediate launch receipt and its whole-tree completion.
+     * @throws when config, credentials, Mission routing, process spawn, or tree settlement fails.
+     */
+    launch(taskId: KersorTaskId): Promise<KersorLaunchHandle>;
+    /**
      * Terminate one process tree and wait for quiescence.
      * @param runDir - exact run directory returned by {@link start}.
      * @returns false when this service does not own that run.
      */
     stop(runDir: string): Promise<boolean>;
+    private settle;
     private resolveEnvironment;
     private finish;
     private emitActive;

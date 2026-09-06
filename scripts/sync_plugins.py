@@ -406,8 +406,9 @@ def authority_build_receipt(
     required_inputs.update(
         str(path)
         for path in tree_files
-        if path.name == "package.json"
-        or path.is_relative_to(PurePosixPath("apps/cli"))
+        if not path.is_relative_to(PurePosixPath("apps/cli/tests"))
+        and (path.name == "package.json"
+             or path.is_relative_to(PurePosixPath("apps/cli")))
     )
     for index, input_file in enumerate(inputs):
         if not isinstance(input_file, dict):

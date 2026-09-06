@@ -494,6 +494,8 @@ def _authority_build_receipt(
         "tsdown.config.ts",
     }
     for package_manifest in authority_snapshot.rglob("package.json"):
+        if package_manifest.relative_to(authority_snapshot).is_relative_to("apps/cli/tests"):
+            continue
         if package_manifest.is_symlink() or not package_manifest.is_file():
             raise ReleaseError(
                 "authority snapshot contains an invalid package.json input"
@@ -505,6 +507,9 @@ def _authority_build_receipt(
     if cli_root.is_symlink() or not cli_root.is_dir():
         raise ReleaseError("authority snapshot omits the canonical apps/cli closure")
     for cli_input in _walk_without_links(cli_root):
+        # The canonical DSH builder excludes CLI test fixtures from its inputs.
+        if cli_input.relative_to(cli_root).is_relative_to("tests"):
+            continue
         metadata = cli_input.lstat()
         if stat.S_ISDIR(metadata.st_mode):
             continue

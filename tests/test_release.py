@@ -96,6 +96,7 @@ STANDARD = """# The `standard` agent preset.
       config:
         provider: spawn
         toolName: subagent
+        modelSelectionSettings: true
         backgroundMode: continuable
 """
 
@@ -987,6 +988,18 @@ class ReleaseWorkflowTests(unittest.TestCase):
             node=Path(self.node),
             pnpm=Path(self.pnpm),
         )
+
+    def test_prepare_keeps_cli_tests_outside_runtime_build_inputs(self) -> None:
+        write(self.authority / "apps" / "cli" / "tests" / "fixture.spec.ts",
+              "export const fixture = 'not a runtime build input'\n")
+        self.authority_commit = commit_all(self.authority, "add CLI test fixture")
+        manifest_path = self.personal / "plugins" / "dsh-mirror.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["authority"]["revision"] = self.authority_commit
+        write(manifest_path, json.dumps(manifest, indent=2) + "\n")
+        self.personal_commit = commit_all(self.personal, "bind authority with CLI tests")
+        lock = self.prepare()
+        self.assertEqual(lock["sources"]["authority_commit"], self.authority_commit)
 
     def test_prepare_is_atomic_read_only_and_uses_local_tarballs(self) -> None:
         lock = self.prepare()

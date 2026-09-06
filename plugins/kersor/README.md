@@ -1,10 +1,26 @@
+---
+description: "Run conversation-bound KerSor optimization controllers and deployment-registered Missions through DSH-owned tools, child Sessions, and subprocesses."
+kind: "package-reference"
+---
+
 # kersor — DSH-native KerSor control and registered Mission launcher
 
 English | [中文](README.zh.md)
 
+## Summary
+
 The `./control` function plugin binds a KerSor experiment to the current dsh conversation and runs it in one durable, continuable dsh child. The package root remains the optional Host launcher that makes registered [KerSor](https://github.com/qhy991/KerSor) autonomous Missions launchable without turning the browser into a shell.
 
 KerSor files remain the source of truth for optimization state, evidence, artifacts, and resume decisions. The parent dsh Session owns only the immutable Experiment-to-child binding and monotonic display checkpoints; the child dsh Session owns the complete controller dialog and its existing `tool-workflow/*` execution tree. Pair the package with [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) and [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.md) for the global read-only view and the keyed Experiment Chat node.
+
+## Table of Contents
+
+- [Conversation controller](#conversation-controller)
+- [Configuration](#configuration)
+- [Runtime semantics](#runtime-semantics)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Conversation controller
 
@@ -68,6 +84,8 @@ The Mission must be a JSON `kersor-mission-v1` document. Its `workspace`, `sessi
 
 `start(taskId)` returns after dsh owns the process tree and includes the generated `runId` and expected `runDir`. It does not claim that the workflow started successfully or completed. `listActive()` is only an inventory of launcher processes still owned by this dsh process. Workflow status comes from KerSor run files through the viewer.
 
+The same-process `launch(taskId)` entry returns the immediate receipt plus a completion promise that settles only after the direct runner and its complete managed process tree exit. [`@deepseek-ai/dsh-kersor-app`](../../bundle/kersor-app/README.md) consumes this entry so a foreground script cannot outlive its DSH owner; Remote callers continue to receive only the receipt from `start`.
+
 Plugin disposal terminates and joins every owned process tree. A dsh restart does not reconstruct ownership of an already detached KerSor process; its run files remain discoverable by the viewer.
 
 ## Model Experience
@@ -96,3 +114,8 @@ The parent and each child have independent cache prefixes. Resume appends to the
 - The launcher does not infer workflow success from process exit; the viewer's folded KerSor state is authoritative.
 - Closing the page or switching conversations does not stop a controller child. A Host restart preserves both Sessions but requires an explicit `kersor_resume`; the current Workflow engine cannot resume in the middle of one foreground script call.
 - The optional registered-Mission launcher is a separate compatibility surface and may use its Mission-declared external runtime. The conversation controller is the canonical DSH-only optimization path.
+- The script profile owns only foreground `list` and `start`; it does not detach work or duplicate KerSor artifact status and resume policy.
+
+### Dev Note
+
+None.

@@ -90,3 +90,35 @@ describe('Workflow result evidence ownership', () => {
     expect(result).toEqual({ stage: 'awaiting_host_verification', candidates: [] })
   })
 })
+
+
+describe('general Task verification', () => {
+  it.each([
+    ['succeeded', 'verifier-passed', true, 0, 'passed'],
+    ['stagnated', 'declared-artifacts-unchanged', false, 1, 'failed'],
+    ['exhausted', 'round-budget-exhausted', true, 0, 'passed'],
+    ['waiting', 'provider-quota', false, 1, 'failed'],
+  ])('projects %s independently from the current artifact verdict', async (status, stopReason, passed, exitCode, verification) => {
+    const dir = await runDir()
+    await writeFile(path.join(dir, 'output.json'), JSON.stringify({
+      meta: { name: 'general-self-evolve', contract: 'kersor-task-v1' },
+      status, stop_reason: stopReason, rounds: 2,
+      final_evaluation: { passed, exit_code: exitCode },
+    }))
+    expect(await readWorkflowResult(dir)).toEqual({
+      task: { status, stopReason, rounds: 2 }, verification, candidates: [],
+    })
+  })
+
+  it.each([undefined, { passed: true, exit_code: 1 }, { passed: true, exit_code: 0, timed_out: true }])(
+    'does not infer acceptance from a success label with invalid evaluation %j', async (evaluation) => {
+      const dir = await runDir()
+      await writeFile(path.join(dir, 'output.json'), JSON.stringify({
+        meta: { name: 'general-self-evolve', contract: 'kersor-task-v1' },
+        status: 'succeeded', stop_reason: 'verifier-passed', rounds: 1,
+        final_evaluation: evaluation,
+      }))
+      expect(await readWorkflowResult(dir)).not.toHaveProperty('verification')
+    },
+  )
+})

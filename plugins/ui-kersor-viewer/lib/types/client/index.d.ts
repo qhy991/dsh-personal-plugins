@@ -3,7 +3,7 @@
  * process ownership, rendered as a first-class conversation view.
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
+import type { Context as ClientContext } from '@deepseek-ai/cordis';
 import { NS } from './locales.ts';
 import type { KersorViewerKey } from './locales.ts';
 declare module '@deepseek-ai/dsh-client-ui-slots' {

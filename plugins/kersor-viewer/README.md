@@ -1,12 +1,29 @@
+---
+description: "Observe KerSor optimization Sessions, general Task runs, Workflow progress, source health, and bounded call details from DSH."
+kind: "package-reference"
+---
+
 # kersor-viewer — KerSor activity viewer
 
 English | [中文](README.zh.md)
+
+## Summary
 
 Viewer for [KerSor](https://github.com/qhy991/KerSor) activity inside the dsh Web UI. It exposes two intentionally separate projections: recent optimization Sessions (including the existing classic `state.md` format) and executable Workflow runs. This host package asks the installed KerSor preset bridge for bounded Session summaries, discovers Session-owned autonomous and `run-N` runs plus direct general Task runs, and tails each active run's `.runtime/events.jsonl`. One generated `snapshot` Remote and one replacement event carry both inventories with their source health atomically; `runBacklog` and `runResult` carry a selected run's folded progress and candidate result, `runCallDetail` lazily projects one known call's retained messages and activity names, and `classicSessionDetail` reads one already-discovered classic Session on demand. The browser half lives in [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.md).
 
 KerSor remains the single state owner. The bridge imports KerSor's canonical `SessionStore` and `AttemptResultStore`; the TypeScript package does not reimplement legacy frontmatter parsing. The viewer scans each registered Workspace plus every valid absolute cwd in canonical Session persistence, so API-created and continuable-child sessions remain visible even when their cwd has no `workspaceRegistry` record. If persistence listing fails, discovery retains the last successful persisted cwd set, keeps current registered Workspaces, and marks the final source snapshot degraded without publishing an intermediate replacement. If the preset is absent, the snapshot records `not_installed` while autonomous run discovery continues.
 
 This package is observation-only. To start a finite deployment-configured set of Missions from the same panel, compose the sibling launcher [`@deepseek-ai/dsh-kersor`](../kersor/README.md). KerSor run files remain authoritative whether or not that launcher is loaded.
+
+## Table of Contents
+
+- [Configuration](#configuration)
+- [Layout](#layout)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+The general Task result reads its stop status, reason, completed rounds, and final verification from Host `output.json`; runtime completion alone does not establish acceptance. The existing `scanIntervalMs` cycle pushes bounded recent worker messages and tool activity while an activation runs, without command text, arguments, or tool output. An expanded call reloads its final detail on completion; the Host still settles acceptance and usage.
 
 ## Configuration
 
@@ -61,3 +78,7 @@ None: the package does not assemble or modify model requests.
 
 - **Worker model identity depends on retained evidence** — older Codex artifacts can carry a runner and thread id without the underlying provider/model; the projection returns an explicit absent value instead of inferring from the parent dsh conversation.
 - **Call detail is intentionally incomplete** — only bounded Agent messages and tool/search names render; prompts, tool arguments, tool results, command text, and arbitrary event kinds remain Host-only.
+
+### Dev Note
+
+None.

@@ -163,6 +163,14 @@ window.__ModuleLoader__.load({
 			failed: "run.failed",
 			unknown: "run.unknown"
 		};
+		const TASK_STOP_KEYS = {
+			"already-passed": "task.stop.alreadyPassed",
+			"verifier-passed": "task.stop.passed",
+			"declared-artifacts-unchanged": "task.stop.unchanged",
+			"round-budget-exhausted": "task.stop.roundLimit",
+			"token-budget-exhausted": "task.stop.tokenBudget",
+			"provider-quota": "task.stop.quota"
+		};
 		const CALL_STATUS_KEYS = {
 			queued: "call.queued",
 			running: "call.running",
@@ -512,8 +520,8 @@ window.__ModuleLoader__.load({
 									children: file.name
 								}),
 								" · ",
-								file.bytes,
-								" B · ",
+								t("detail.bytes", { bytes: file.bytes }),
+								" · ",
 								file.sha256.slice(0, 18),
 								"…"
 							]
@@ -555,7 +563,7 @@ window.__ModuleLoader__.load({
 									"aria-expanded": "true",
 									children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: detail.dispatch.status === "failed" ? "error" : detail.dispatch.status === "completed" ? "done" : detail.dispatch.status === "running" ? "ongoing" : "warning" }), (0, react_jsx_runtime.jsx)("span", {
 										className: _dsh_css_64557083eb0f58b9_default.mono,
-										children: design.name ?? detail.selection.workflow ?? "Workflow"
+										children: design.name ?? detail.selection.workflow ?? t("detail.workflowFallback")
 									})]
 								}), (0, react_jsx_runtime.jsx)("div", {
 									className: _dsh_css_64557083eb0f58b9_default.workflowBranches,
@@ -792,9 +800,9 @@ window.__ModuleLoader__.load({
 		function sessionName(sessionDir) {
 			return normalizedPath(sessionDir).split("/").at(-1) ?? sessionDir;
 		}
-		function runDisplayLabel(row, session) {
+		function runDisplayLabel(row, session, t) {
 			const round = row.round ?? session?.current_round ?? void 0;
-			const roundLabel = round === void 0 ? row.runId : `R${String(round).padStart(2, "0")}`;
+			const roundLabel = round === void 0 ? row.runId : t("detail.round.number", { round: String(round).padStart(2, "0") });
 			const workflow = row.view?.workflow ?? session?.workflow ?? row.runId;
 			if (row.kind === "general-task") return workflow === row.runId ? row.runId : `${row.runId} · ${workflow}`;
 			return `${session?.session_id ?? sessionName(row.sessionDir)} · ${roundLabel} · ${workflow}`;
@@ -829,7 +837,7 @@ window.__ModuleLoader__.load({
 							(0, react_jsx_runtime.jsx)("span", { children: activity.kind === "web-search" ? t("call.webSearch") : t("call.tool") }),
 							(0, react_jsx_runtime.jsx)("span", {
 								className: _dsh_css_64557083eb0f58b9_default.mono,
-								children: activity.label
+								children: activity.label === "command_execution" ? t("call.command") : activity.label
 							}),
 							(0, react_jsx_runtime.jsx)("span", { children: activity.status })
 						] }, activity.id))
@@ -875,7 +883,7 @@ window.__ModuleLoader__.load({
 										children: t("call.rolledBack")
 									}) : null,
 									duration !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: duration }) : null,
-									call.tokens !== void 0 ? (0, react_jsx_runtime.jsxs)("span", { children: [call.tokens.toLocaleString(), " tk"] }) : null
+									call.tokens !== void 0 ? (0, react_jsx_runtime.jsx)("span", { children: t("run.tokens", { tokens: call.tokens.toLocaleString() }) }) : null
 								]
 							}),
 							(0, react_jsx_runtime.jsx)("span", {
@@ -967,6 +975,15 @@ window.__ModuleLoader__.load({
 			const [selectedCallId, setSelectedCallId] = (0, react.useState)();
 			const result = workflowResultOf(view);
 			const detailKey = selectedCallId === void 0 ? void 0 : `${view.runDir}\u0000${selectedCallId}`;
+			const selectedCallStatus = view.phases.flatMap((phase) => phase.calls).find((call) => call.callId === selectedCallId)?.status;
+			(0, react.useEffect)(() => {
+				if (selectedCallId !== void 0) loadCallDetail(view.runDir, selectedCallId);
+			}, [
+				loadCallDetail,
+				selectedCallId,
+				selectedCallStatus,
+				view.runDir
+			]);
 			return (0, react_jsx_runtime.jsx)("ul", {
 				role: "tree",
 				"aria-label": t("run.tree"),
@@ -980,7 +997,7 @@ window.__ModuleLoader__.load({
 						children: [
 							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: session?.lifecycle === "active" ? "ongoing" : runDotState(view.status) }),
 							(0, react_jsx_runtime.jsx)("span", { children: session?.session_id ?? sessionName(view.sessionDir) }),
-							(0, react_jsx_runtime.jsx)("span", { children: row.round === void 0 ? row.runId : `R${String(row.round).padStart(2, "0")}` })
+							(0, react_jsx_runtime.jsx)("span", { children: row.round === void 0 ? row.runId : t("detail.round.number", { round: String(row.round).padStart(2, "0") }) })
 						]
 					}), (0, react_jsx_runtime.jsxs)("ul", {
 						role: "group",
@@ -1027,9 +1044,7 @@ window.__ModuleLoader__.load({
 												...state.callDetailError?.startsWith(errorPrefix) === true ? { error: state.callDetailError.slice(errorPrefix.length) } : {},
 												...callDetail === void 0 ? {} : { detail: callDetail },
 												onToggle: () => {
-													const next = selected ? void 0 : call.callId;
-													setSelectedCallId(next);
-													if (next !== void 0 && state.callDetails.get(`${view.runDir}\u0000${next}`) === void 0) loadCallDetail(view.runDir, next);
+													setSelectedCallId(selected ? void 0 : call.callId);
 												},
 												t
 											}, call.callId);
@@ -1048,6 +1063,31 @@ window.__ModuleLoader__.load({
 			});
 		}
 		function WorkflowResult({ result, t }) {
+			if (result.task !== void 0) {
+				const stopKey = TASK_STOP_KEYS[result.task.stopReason];
+				return (0, react_jsx_runtime.jsxs)("section", {
+					className: _dsh_css_64557083eb0f58b9_default.workflowResult,
+					"aria-label": t("task.result.title"),
+					"data-task-status": result.task.status,
+					children: [(0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_64557083eb0f58b9_default.resultHead,
+						children: [(0, react_jsx_runtime.jsx)("span", {
+							className: _dsh_css_64557083eb0f58b9_default.detailTitle,
+							children: t("task.result.title")
+						}), (0, react_jsx_runtime.jsx)("span", { children: t(`task.status.${result.task.status}`) })]
+					}), (0, react_jsx_runtime.jsxs)("div", {
+						className: _dsh_css_64557083eb0f58b9_default.resultMetrics,
+						children: [
+							(0, react_jsx_runtime.jsx)("span", {
+								"data-verification": result.verification ?? "unknown",
+								children: t(`task.verification.${result.verification ?? "unknown"}`)
+							}),
+							(0, react_jsx_runtime.jsx)("span", { children: t("task.rounds", { rounds: result.task.rounds }) }),
+							(0, react_jsx_runtime.jsx)("span", { children: t("task.stopReason", { reason: stopKey === void 0 ? result.task.stopReason : t(stopKey) }) })
+						]
+					})]
+				});
+			}
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: _dsh_css_64557083eb0f58b9_default.workflowResult,
 				"aria-label": t("run.result.title"),
@@ -1125,6 +1165,7 @@ window.__ModuleLoader__.load({
 		}
 		function workflowResultOf(view) {
 			const nested = view.result;
+			if (nested?.task !== void 0) return nested;
 			const candidates = view.candidates ?? nested?.candidates ?? [];
 			const stage = view.candidateStage ?? nested?.stage;
 			const verification = view.verification ?? nested?.verification;
@@ -1158,7 +1199,7 @@ window.__ModuleLoader__.load({
 		function RunDetail({ row, view, session, sessionDetail, crossWorkspace, state, loadCallDetail, t }) {
 			const result = workflowResultOf(view);
 			const workflowWaiting = view.status === "completed" && session?.lifecycle === "active" && result?.stage === "awaiting_host_verification";
-			const statusLabel = workflowWaiting ? t("run.workflowCompletedHostPending") : view.status === "completed" && session?.lifecycle === "active" ? t("run.workflowCompletedSessionActive") : t(RUN_STATUS_KEYS[view.status]);
+			const statusLabel = result?.task !== void 0 ? t(`task.status.${result.task.status}`) : workflowWaiting ? t("run.workflowCompletedHostPending") : view.status === "completed" && session?.lifecycle === "active" ? t("run.workflowCompletedSessionActive") : t(RUN_STATUS_KEYS[view.status]);
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: _dsh_css_64557083eb0f58b9_default.runDetail,
 				children: [
@@ -1168,7 +1209,7 @@ window.__ModuleLoader__.load({
 							(0, react_jsx_runtime.jsx)("span", {
 								className: _dsh_css_64557083eb0f58b9_default.workflowIdentity,
 								title: view.runDir,
-								children: runDisplayLabel(row, session)
+								children: runDisplayLabel(row, session, t)
 							}),
 							(0, react_jsx_runtime.jsx)("span", {
 								className: _dsh_css_64557083eb0f58b9_default.runId,
@@ -1182,7 +1223,7 @@ window.__ModuleLoader__.load({
 							(0, react_jsx_runtime.jsxs)("span", {
 								className: _dsh_css_64557083eb0f58b9_default.statusTail,
 								"data-status": view.status,
-								children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: workflowWaiting ? "ongoing" : runDotState(view.status) }), (0, react_jsx_runtime.jsx)("span", { children: statusLabel })]
+								children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: result?.task !== void 0 && result.verification !== "passed" ? "warning" : workflowWaiting ? "ongoing" : runDotState(view.status) }), (0, react_jsx_runtime.jsx)("span", { children: statusLabel })]
 							})
 						]
 					}),
@@ -1312,6 +1353,7 @@ window.__ModuleLoader__.load({
 		/** First-class KerSor view rendered beside Chat and Trajectory. */
 		function KersorView({ t, store, currentWorkspace, refresh, loadRun, loadCallDetail, loadClassic, start, stop }) {
 			const [busy, setBusy] = (0, react.useState)();
+			const observedRunDirs = (0, react.useRef)(/* @__PURE__ */ new Set());
 			const state = (0, react.useSyncExternalStore)(store.subscribe, store.getSnapshot);
 			const rows = store.rows;
 			const classicSessions = state.snapshot?.classic.sessions ?? [];
@@ -1321,9 +1363,12 @@ window.__ModuleLoader__.load({
 				refresh();
 			}, [refresh]);
 			(0, react.useEffect)(() => {
-				if (store.selectionIntent !== "follow") return;
 				const eligibleRows = currentWorkspace === void 0 || currentWorkspace.length === 0 ? rows : rows.filter((row) => belongsToWorkspace(row.sessionDir, currentWorkspace));
-				const target = eligibleRows.find((row) => row.discovery === "active") ?? [...eligibleRows].sort((left, right) => right.runId.localeCompare(left.runId))[0];
+				const previous = observedRunDirs.current;
+				observedRunDirs.current = new Set(eligibleRows.map((row) => row.runDir));
+				if (store.selectionIntent !== "follow") return;
+				const newestFirst = [...eligibleRows].sort((left, right) => right.runId.localeCompare(left.runId));
+				const target = eligibleRows.find((row) => row.discovery === "active") ?? newestFirst.find((row) => !previous.has(row.runDir)) ?? eligibleRows.find((row) => row.runDir === store.selectedRunDir) ?? newestFirst[0];
 				if (target === void 0 || !store.followDiscoveredRun(target.runDir)) return;
 				loadRun(target.runDir);
 			}, [
@@ -1479,7 +1524,7 @@ window.__ModuleLoader__.load({
 												(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.StateDot, { state: row.discovery === "active" ? "ongoing" : row.discovery === "failed" ? "error" : row.discovery === "waiting" ? "warning" : "done" }),
 												(0, react_jsx_runtime.jsx)("span", {
 													className: _dsh_css_64557083eb0f58b9_default.rowLabel,
-													children: runDisplayLabel(row, session)
+													children: runDisplayLabel(row, session, t)
 												}),
 												(0, react_jsx_runtime.jsx)("span", {
 													className: _dsh_css_64557083eb0f58b9_default.runId,
@@ -1968,11 +2013,15 @@ window.__ModuleLoader__.load({
 			}
 			/**
 			* Apply one forwarded Host frame.
-			* @param frame - Atomic snapshot replacement or one folded run update.
+			* @param frame - Host inventory, run progress, or live worker detail.
 			*/
 			applyFrame(frame) {
 				if (frame.kind === "snapshot") {
 					this.setSnapshot(frame.snapshot);
+					return;
+				}
+				if (frame.kind === "call") {
+					this.setCallDetail(frame.runDir, frame.detail.callId, frame.detail);
 					return;
 				}
 				const views = new Map(this.state.views);
@@ -2156,6 +2205,7 @@ window.__ModuleLoader__.load({
 			"detail.sessionLineage": "本 Session：{baseline} → {best} · {speedup}x",
 			"detail.overallLineage": "全链路：{baseline} → {best} · {speedup}x",
 			"detail.authoringBudget": "Workflow 创作：已用 {used}/{total}",
+			"detail.bytes": "{bytes} B",
 			"detail.rounds": "逐轮实验树",
 			"detail.roundTree": "KerSor 逐轮实验树",
 			"detail.round.number": "R{round}",
@@ -2220,6 +2270,7 @@ window.__ModuleLoader__.load({
 			"detail.dispatch.completed": "Workflow Host 已完成",
 			"detail.dispatch.failed": "Host 拒绝本轮候选",
 			"detail.workflowDesign": "所选 Workflow",
+			"detail.workflowFallback": "Workflow",
 			"detail.workflowTree": "所选 Workflow 拓扑",
 			"detail.requiredArgs": "必需参数",
 			"detail.rationale": "查看 rationale.md",
@@ -2251,6 +2302,23 @@ window.__ModuleLoader__.load({
 			"run.host.title": "Host 验证",
 			"run.host.ownership": "候选所有权",
 			"run.result.title": "候选选择",
+			"task.result.title": "任务验收",
+			"task.status.succeeded": "任务已结束",
+			"task.status.stagnated": "改进停滞",
+			"task.status.exhausted": "达到运行上限",
+			"task.status.waiting": "等待继续",
+			"task.verification.passed": "当前产物通过验证",
+			"task.verification.failed": "当前产物未通过验证",
+			"task.verification.unknown": "尚无有效验收结果",
+			"task.rounds": "已完成 {rounds} 轮",
+			"task.stopReason": "停止原因：{reason}",
+			"task.stop.alreadyPassed": "初始产物已通过验证",
+			"task.stop.passed": "达到验收条件",
+			"task.stop.unchanged": "声明产物没有变化",
+			"task.stop.roundLimit": "已用完指定轮次",
+			"task.stop.tokenBudget": "已用完指定 token 预算",
+			"task.stop.quota": "等待服务额度恢复",
+			"call.command": "执行命令",
 			"run.result.stage": "阶段：{stage}",
 			"run.result.verification.passed": "Host PASS",
 			"run.result.verification.failed": "Host FAIL",
@@ -2356,6 +2424,7 @@ window.__ModuleLoader__.load({
 			"detail.sessionLineage": "This Session: {baseline} → {best} · {speedup}x",
 			"detail.overallLineage": "Overall lineage: {baseline} → {best} · {speedup}x",
 			"detail.authoringBudget": "Workflow authoring: {used}/{total} used",
+			"detail.bytes": "{bytes} B",
 			"detail.rounds": "Round history",
 			"detail.roundTree": "KerSor experiment round tree",
 			"detail.round.number": "R{round}",
@@ -2420,6 +2489,7 @@ window.__ModuleLoader__.load({
 			"detail.dispatch.completed": "Workflow Host completed",
 			"detail.dispatch.failed": "Host rejected this candidate",
 			"detail.workflowDesign": "Selected Workflow",
+			"detail.workflowFallback": "Workflow",
 			"detail.workflowTree": "Selected Workflow topology",
 			"detail.requiredArgs": "Required args",
 			"detail.rationale": "View rationale.md",
@@ -2451,6 +2521,23 @@ window.__ModuleLoader__.load({
 			"run.host.title": "Host verification",
 			"run.host.ownership": "Candidate ownership",
 			"run.result.title": "Candidate selection",
+			"task.result.title": "Task verification",
+			"task.status.succeeded": "Task finished",
+			"task.status.stagnated": "Progress stalled",
+			"task.status.exhausted": "Run limit reached",
+			"task.status.waiting": "Waiting to continue",
+			"task.verification.passed": "Current artifact passed verification",
+			"task.verification.failed": "Current artifact did not pass verification",
+			"task.verification.unknown": "No valid verification result yet",
+			"task.rounds": "{rounds} rounds completed",
+			"task.stopReason": "Stopped because: {reason}",
+			"task.stop.alreadyPassed": "Initial artifact already passed",
+			"task.stop.passed": "Acceptance conditions met",
+			"task.stop.unchanged": "Declared artifacts did not change",
+			"task.stop.roundLimit": "Requested rounds spent",
+			"task.stop.tokenBudget": "Requested token budget spent",
+			"task.stop.quota": "Waiting for provider quota",
+			"call.command": "Command execution",
 			"run.result.stage": "Stage: {stage}",
 			"run.result.verification.passed": "Host PASS",
 			"run.result.verification.failed": "Host FAIL",
@@ -2501,7 +2588,7 @@ window.__ModuleLoader__.load({
 			"remote",
 			"remote.pluginInventory",
 			"sessions",
-			"conversationEvents"
+			"uiConversation"
 		];
 		/** Mount the KerSor viewer surfaces over the API assembly's Remote namespaces. */
 		function apply(ctx) {
@@ -2509,7 +2596,7 @@ window.__ModuleLoader__.load({
 				zh,
 				en
 			}), "kersor-viewer: dictionaries");
-			ctx.conversationEvents.register(kersorExperimentDefinition);
+			ctx.uiConversation.events.register(kersorExperimentDefinition);
 			ctx.slots.inject("conversation.chat.node", () => ctx.slots.register({
 				name: "conversation.chat.node",
 				key: "kersor-experiment",

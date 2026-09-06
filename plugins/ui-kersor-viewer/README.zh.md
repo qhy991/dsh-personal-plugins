@@ -1,10 +1,29 @@
+---
+description: "渲染 KerSor Experiment 卡片，以及包含 Session、Workflow、证据与来源健康投影的对话级活动视图。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-kersor-viewer
 
 [English](README.md) | 中文
 
-KerSor 活动界面的 browser 半：与 Chat、Trajectory 并列的 conversation view 先展示 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md) 提供的最近经典／Session-v2 优化摘要，再列出 Session 自有和直接 general Task Workflow run，并渲染选中 run 的实时阶段／调用进度。Chat 还会为每次 `kersor_start` 或 `kersor_attach` 生成一个持久 Experiment 节点，展示控制器状态、轮次、Workflow、加速比、下一动作和九个协议里程碑；节点操作可打开精确的 continuable dsh controller child，因此结束后仍能检查完整对话与嵌套 Workflow 节点。stalled checkpoint 会显示为 blocked 且不保留下一动作，fold 会忽略其后无效的 reopen。紧凑的双列 Session 卡片展示建议性 health、规范 phase、最后活动时间、轮次预算、Host 验证的 best／目标加速比、language/backend、integration pattern、Workflow 创作已用／总预算、Session 自有门禁、selector 结果、选中 Workflow、fit confidence、存储格式、状态提醒数，以及最新规范决策的预览。展开卡片先显示终止原因、增量与全链路 cycles 血缘和 Round 树，再显示下层阶段时间线。每个 Round 会命名其 Workflow 与候选，区分 Host PASS／FAIL 与是否晋升，把估算和 measurement 视觉隔离，并为经过密封的 Session 自创 Workflow 展示 authoring escape 链。所选 Workflow 的声明阶段仍单独显示为通过 hash 验证的 portable dispatch envelope 拓扑树。内联 baseline 与 profile blocker 保留有界规范原因。门禁通过为绿色、待定为琥珀色、失败为红色；stalled／cancelled Session 会隐藏建议性 fit 徽标，因为历史 fit 不能覆盖终态 decision。
+Task 结果区分别展示停止原因与当前产物验收结果。展开的 Worker 详情在执行中接收近期消息和活动，结束时重新加载。[Host viewer](../kersor-viewer/README.zh.md) 负责解析、刷新周期与证据上限。
 
-可选 Host 启动器 [`@deepseek-ai/dsh-kersor`](../kersor/README.md) 处于 active 后，同一面板还会列出部署配置中的任务和 dsh 当前持有的 launcher 进程，并提供启动／停止操作。该 capability 由规范的 Host 插件清单判定；UI 不会仅因 Client namespace 存在就探测 launcher endpoint。Host 条目缺失或未 active 时，面板仍会挂载，只是不显示控制区。
+## 概述
+
+KerSor 活动界面的 browser 半：与 Chat、Trajectory 并列的 conversation view 先展示 host 包 [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.zh.md) 提供的最近经典／Session-v2 优化摘要，再列出 Session 自有和直接 general Task Workflow run，并渲染选中 run 的实时阶段／调用进度。Chat 还会为每次 `kersor_start` 或 `kersor_attach` 生成一个持久 Experiment 节点，展示控制器状态、轮次、Workflow、加速比、下一动作和九个协议里程碑；节点操作可打开精确的 continuable dsh controller child，因此结束后仍能检查完整对话与嵌套 Workflow 节点。stalled checkpoint 会显示为 blocked 且不保留下一动作，fold 会忽略其后无效的 reopen。紧凑的双列 Session 卡片展示建议性 health、规范 phase、最后活动时间、轮次预算、Host 验证的 best／目标加速比、language/backend、integration pattern、Workflow 创作已用／总预算、Session 自有门禁、selector 结果、选中 Workflow、fit confidence、存储格式、状态提醒数，以及最新规范决策的预览。展开卡片先显示终止原因、增量与全链路 cycles 血缘和 Round 树，再显示下层阶段时间线。每个 Round 会命名其 Workflow 与候选，区分 Host PASS／FAIL 与是否晋升，把估算和 measurement 视觉隔离，并为经过密封的 Session 自创 Workflow 展示 authoring escape 链。所选 Workflow 的声明阶段仍单独显示为通过 hash 验证的 portable dispatch envelope 拓扑树。内联 baseline 与 profile blocker 保留有界规范原因。门禁通过为绿色、待定为琥珀色、失败为红色；stalled／cancelled Session 会隐藏建议性 fit 徽标，因为历史 fit 不能覆盖终态 decision。
+
+可选 Host 启动器 [`@deepseek-ai/dsh-kersor`](../kersor/README.zh.md) 处于 active 后，同一面板还会列出部署配置中的任务和 dsh 当前持有的 launcher 进程，并提供启动／停止操作。该 capability 由规范的 Host 插件清单判定；UI 不会仅因 Client namespace 存在就探测 launcher endpoint。Host 条目缺失或未 active 时，面板仍会挂载，只是不显示控制区。
+
+## 目录
+
+- [查看器行为](#viewer-behavior)
+- [模型体验](#model-experience)
+- [已知限制与延期工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+<a id="viewer-behavior"></a>
+## 查看器行为
 
 **一个 store，一个 Host 快照。** 视图数据存在一个 `useSyncExternalStore` observable 里。首次加载、视图挂载和重连会读取 `kersorViewer/snapshot`；之后替换式 `kersor/event` 帧更新同一份原子 projection。后台根扫描只在得到变化后的结果时发布，并保留最近一次成功内容，不会重新进入可见 loading。选择 run 时读取 `runBacklog` 获取折叠详情；展开经典 Session 时读取 `classicSessionDetail`，之后只在该 Session 的活动 revision 改变时刷新，并在请求期间保留旧详情。API Remotes assembly 是生成 contribution 生命周期的唯一 owner；本 UI 只消费已组装的 namespace，不会再次挂载。launcher 发现会先检查 `pluginInventory/list`，再决定是否调用 `kersor/listTasks` 或 `listActive`，因此只读 profile 不会探测缺失的 launcher route。Autonomous run、带 runtime 事件的经典 `run-N` 目录和直接 general Task run 进入同一条 phase/call fold。初始加载与重连会跟随当前对话 Workspace 最新的 active run，包括视图挂载后才发现的 run，并只在目标变化时读取详情；如果该 Workspace 没有 run，跟随模式会保持空选择，不会跳到无关证据。点击或清空 run／Session 会进入手动选择；「**跟随最新活动**」可恢复自动选择。其他 Workspace 仍可选择，并带有「非当前对话工作区」徽标。Session 自有 run 标签组合 Session、补零轮次与 Workflow；直接 Task 标签组合 run id 与 Workflow，内部身份仍是完整 run 目录。
 
@@ -14,7 +33,8 @@ KerSor 活动界面的 browser 半：与 Chat、Trajectory 并列的 conversatio
 
 **状态记账保持分离。** 经典 Session 与 autonomous 清单原子到达，形成一致的活动视图；折叠 run 详情与 launcher 持有的进程树仍是独立记账。进程从清单消失不会把 workflow 标成完成；状态由 KerSor Session store、summary 与事件决定。
 
-## Model Experience
+<a id="model-experience"></a>
+## 模型体验
 
 无，因为这个 browser 侧观察器只读取 KerSor Remote，不登记 prompt、工具 schema 或模型请求输入。
 
@@ -22,9 +42,15 @@ KerSor 活动界面的 browser 半：与 Chat、Trajectory 并列的 conversatio
 
 无：本包不组装或修改模型请求。
 
-## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
+## 已知限制与延期工作
 
 - **一个标签页选中的 run 不会同步到另一个** —— 选择是页面内组件状态，刻意如此：浏览行为不改写任何 host 状态。
 - **详情跟随选择** —— 清单与来源健康实时更新；选中 run 的 backlog 在选择时读取，经典 Session inspector 只在重连或活动 revision 改变后刷新。
 - **模型身份可能缺失** —— 较旧 runtime 保留的 worker artifact 可能记录了 Codex runner 与 thread，却没有底层 provider/model；视图显示「未记录」，不会从父 dsh 对话推断。
 - **控制区不编辑启动配置** —— 任务路径、runtime config、凭据与环境仍是 Host 部署配置；浏览器只发送已登记 task id 或一条受管 run 的精确目录。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。

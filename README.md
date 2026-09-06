@@ -2,6 +2,8 @@
 
 统一管理个人 DSH 扩展。当前 KerSor 套件包含 agent preset、可加载 skill、工作区状态卡、对话绑定的 DSH 原生 Experiment 控制器、只读 run viewer、与 Chat／Trajectory 并列的 KerSor view，以及可选的有限 Mission 启动器；不收集 `~/.dsh/settings.yaml`、sessions、storages 或任何凭据。
 
+当前发布的任务验收与实时轨迹说明见 [Host viewer](plugins/kersor-viewer/README.zh.md) 和 [KerSor view](plugins/ui-kersor-viewer/README.zh.md)。冻结发布使用匹配的 DSH 构建记录；CLI 测试样例不属于运行构建输入，CLI 运行源码、package manifests 与重建产物继续逐项校验。
+
 ## 五分钟上手
 
 1. 安装或更新 preset：

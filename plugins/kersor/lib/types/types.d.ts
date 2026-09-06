@@ -4,7 +4,7 @@
  * @module @deepseek-ai/dsh-kersor/types
  */
 import type { Branded } from '@deepseek-ai/dsh-brand';
-import type { CallId } from '@deepseek-ai/dsh-llm';
+import type { ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { SessionId } from '@deepseek-ai/dsh-session/types';
 /** Opaque identity of one Mission registered in the plugin config. */
 export type KersorTaskId = Branded<'KersorTaskId'>;
@@ -212,7 +212,7 @@ export interface KersorAuthorProducedEventData {
     readonly authority: 'dsh_host';
     readonly session_dir: string;
     readonly controller_session_id: SessionId;
-    readonly author_call_id: CallId;
+    readonly author_call_id: ToolCallId;
     readonly author_session_id: SessionId;
     readonly author_context: {
         readonly path: string;
@@ -226,9 +226,9 @@ export interface KersorAuthorHandoffSealedEventData {
     readonly authority: 'dsh_host';
     readonly session_dir: string;
     readonly controller_session_id: SessionId;
-    readonly author_call_id: CallId;
+    readonly author_call_id: ToolCallId;
     readonly author_session_id: SessionId;
-    readonly seal_call_id: CallId;
+    readonly seal_call_id: ToolCallId;
     readonly handoff: {
         readonly path: string;
         readonly sha256: string;
@@ -241,8 +241,8 @@ export interface KersorAuthorSaveAttemptedEventData {
     readonly authority: 'dsh_host';
     readonly session_dir: string;
     readonly controller_session_id: SessionId;
-    readonly save_call_id: CallId;
-    readonly seal_call_id: CallId;
+    readonly save_call_id: ToolCallId;
+    readonly seal_call_id: ToolCallId;
     readonly handoff: {
         readonly path: string;
         readonly sha256: string;

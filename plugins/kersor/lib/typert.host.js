@@ -42,7 +42,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor#kersor/listActive:result',
         schema: _deepseek_ai_dsh_kersor_kersor_listActive_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":169,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":182,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor#kersor/listTasks',
@@ -57,7 +57,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor#kersor/listTasks:result',
         schema: _deepseek_ai_dsh_kersor_kersor_listTasks_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":160,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":173,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor#kersor/start',
@@ -82,7 +82,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor/types#KersorActiveLaunch',
         schema: _deepseek_ai_dsh_kersor_kersor_start_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":181,"column":9},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":194,"column":9},
     },
     {
       id: '@deepseek-ai/dsh-kersor#kersor/stop',
@@ -107,7 +107,7 @@ export const TYPERT = {
         typeSymbol: '@deepseek-ai/dsh-kersor#kersor/stop:result',
         schema: _deepseek_ai_dsh_kersor_kersor_stop_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":234,"column":9},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":262,"column":9},
     },
   ],
   model: {
@@ -150,6 +150,13 @@ export const TYPERT = {
           },
           {
             "kind": "method",
+            "name": "launch",
+            "signature": "async launch(taskId: KersorTaskId): Promise<KersorLaunchHandle>",
+            "summary": "Start one configured Mission for a same-process application that must retain DSH until the complete process tree exits.",
+            "jsDoc": "/**\n * Start one configured Mission for a same-process application that must\n * retain DSH until the complete process tree exits.\n * @param taskId - configured task identity from {@link listTasks}.\n * @returns the immediate launch receipt and its whole-tree completion.\n * @throws when config, credentials, Mission routing, process spawn, or tree settlement fails.\n */"
+          },
+          {
+            "kind": "method",
             "name": "stop",
             "signature": "@Remote('stop') async stop(runDir: string): Promise<boolean>",
             "summary": "Terminate one process tree and wait for quiescence.",
@@ -166,6 +173,14 @@ export const TYPERT = {
             "declaration": "export interface KersorActiveLaunch {\n    readonly taskId: KersorTaskId;\n    readonly runId: KersorRunId;\n    readonly runDir: string;\n    readonly startedTs: string;\n    readonly pid: number;\n}"
           },
           {
+            "name": "KersorLaunchCompletion",
+            "declaration": "export interface KersorLaunchCompletion extends SubprocessOutcome {\n    readonly ref: KersorActiveLaunch;\n}"
+          },
+          {
+            "name": "KersorLaunchHandle",
+            "declaration": "export interface KersorLaunchHandle {\n    readonly ref: KersorActiveLaunch;\n    readonly done: Promise<KersorLaunchCompletion>;\n}"
+          },
+          {
             "name": "KersorRunId",
             "declaration": "export type KersorRunId = Branded<'KersorRunId'>;"
           },
@@ -176,6 +191,10 @@ export const TYPERT = {
           {
             "name": "KersorTaskRef",
             "declaration": "export interface KersorTaskRef {\n    readonly id: KersorTaskId;\n    readonly label: string;\n}"
+          },
+          {
+            "name": "SubprocessOutcome",
+            "declaration": "export interface SubprocessOutcome {\n    exitCode: number | null;\n    signal: NodeJS.Signals | null;\n}"
           }
         ]
       }

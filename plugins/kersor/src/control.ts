@@ -16,7 +16,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { createContext, Script } from 'node:vm'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId, type ContentBlock } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { JsonValue, Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import type { SubagentResult } from '@deepseek-ai/dsh-subagent'
@@ -1357,7 +1357,7 @@ async function executeKersorProtocol(
   ctx: Context,
   authority: KersorProtocolAuthority,
   action: KersorProtocolAction,
-  callId: CallId,
+  callId: ToolCallId,
   hostGate: WorkflowHostGateState,
   signal: AbortSignal,
 ): Promise<KersorProtocolOutput> {
@@ -4833,7 +4833,7 @@ function createSealedWorkflow(ctx: Context, hostGate: WorkflowHostGateState) {
         agent,
       )
       const call = workflowCallContract(envelope)
-      const nativeCallId = CallId(`${exec.callId}:sealed-workflow`)
+      const nativeCallId = ToolCallId(`${exec.callId}:sealed-workflow`)
       hostGate.authorizedNativeCallIds.add(nativeCallId)
       hostGate.activeExperiments.add(binding.binding.start.experimentId)
       let result
@@ -6003,7 +6003,7 @@ function consumeAuthorCommit(
 async function sealAuthorHandoff(
   ctx: Context,
   authority: AuthorAuthority,
-  callId: CallId,
+  callId: ToolCallId,
   signal: AbortSignal,
 ): Promise<KersorProtocolOutput> {
   const produced = authorProducedEvent(authority)
@@ -6052,7 +6052,7 @@ async function sealAuthorHandoff(
 async function saveAuthorHandoff(
   ctx: Context,
   authority: AuthorAuthority,
-  callId: CallId,
+  callId: ToolCallId,
   signal: AbortSignal,
 ): Promise<KersorProtocolOutput> {
   const seal = authorSealEvent(authority)

@@ -13,7 +13,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { homedir } from 'node:os';
 import { isDeepStrictEqual } from 'node:util';
 import { createContext, Script } from 'node:vm';
-import { CallId } from '@deepseek-ai/dsh-llm';
+import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import { SessionId } from '@deepseek-ai/dsh-session';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { hostNormalizableSetupArguments } from "./setup-tool-arguments.js";
@@ -3944,7 +3944,7 @@ function createSealedWorkflow(ctx, hostGate) {
             }
             await validateCandidateOwnershipSeal(ctx, custodyAgent, runDir, envelope, custody, exec.callId, binding.binding.start.launch, agent);
             const call = workflowCallContract(envelope);
-            const nativeCallId = CallId(`${exec.callId}:sealed-workflow`);
+            const nativeCallId = ToolCallId(`${exec.callId}:sealed-workflow`);
             hostGate.authorizedNativeCallIds.add(nativeCallId);
             hostGate.activeExperiments.add(binding.binding.start.experimentId);
             let result;

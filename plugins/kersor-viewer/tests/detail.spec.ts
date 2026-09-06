@@ -75,3 +75,51 @@ describe('bounded Workflow call detail', () => {
     expect(JSON.stringify(detail)).not.toContain('SECRET-RESULT')
   })
 })
+
+
+describe('live worker detail', () => {
+  it('keeps recent messages and replaces started tool activity with its completion', async () => {
+    const runDir = await mkdtemp(path.join(tmpdir(), 'kersor-live-detail-'))
+    dirs.push(runDir)
+    const results = path.join(runDir, '.runtime', 'agent-results')
+    await mkdir(results, { recursive: true })
+    const file = path.join(results, '00001-live.codex-events.jsonl')
+    const call: KersorCallView = { seq: 1, callId: 'live/1', label: 'live', kind: 'agent', status: 'running' }
+    const events = [
+      JSON.stringify({ type: 'thread.started', thread_id: 'live-thread' }),
+      ...Array.from({ length: 15 }, (_, n) => JSON.stringify({ type: 'item.completed', item: {
+        id: `m${n}`, type: 'agent_message', text: `progress ${n}`,
+      } })),
+      JSON.stringify({ type: 'item.started', item: {
+        id: 'c', type: 'command_execution', command: 'PRIVATE-COMMAND',
+      } }),
+      '',
+    ].join('\n')
+    await writeFile(file, events)
+    const during = await readCallDetail(runDir, call)
+    expect(during?.threadId).toBe('live-thread')
+    expect(during?.messages).toHaveLength(12)
+    expect(during?.messages.at(-1)?.text).toBe('progress 14')
+    expect(during?.activities).toEqual([{ id: 'c', kind: 'tool', label: 'command_execution', status: 'in_progress' }])
+    expect(JSON.stringify(during)).not.toContain('PRIVATE-COMMAND')
+    await writeFile(file, events + JSON.stringify({ type: 'item.completed', item: {
+      id: 'c', type: 'command_execution', status: 'completed', aggregated_output: 'PRIVATE-OUTPUT',
+    } }) + '\n' + '{"type":"item.com')
+    const after = await readCallDetail(runDir, call)
+    expect(after?.activities).toEqual([{ id: 'c', kind: 'tool', label: 'command_execution', status: 'completed' }])
+    expect(JSON.stringify(after)).not.toContain('PRIVATE-OUTPUT')
+  })
+
+  it('reads the newest complete event after the bounded byte window fills', async () => {
+    const runDir = await mkdtemp(path.join(tmpdir(), 'kersor-live-tail-'))
+    dirs.push(runDir)
+    const results = path.join(runDir, '.runtime', 'agent-results')
+    await mkdir(results, { recursive: true })
+    await writeFile(path.join(results, '00001-live.codex-events.jsonl'),
+      JSON.stringify({ type: 'diagnostic', text: 'x'.repeat(2 * 1024 * 1024) }) + '\n' +
+      JSON.stringify({ type: 'item.completed', item: { id: 'latest', type: 'agent_message', text: 'latest progress' } }) + '\n')
+    const detail = await readCallDetail(runDir, { seq: 1, callId: 'live/1', label: 'live', kind: 'agent', status: 'running' })
+    expect(detail?.messages).toEqual([{ id: 'latest', text: 'latest progress' }])
+    expect(detail?.truncated).toBe(true)
+  })
+})

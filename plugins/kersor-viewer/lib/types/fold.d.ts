@@ -36,8 +36,13 @@ export interface KersorCandidateResultView {
     readonly id: string;
     readonly expectedCycles?: number;
 }
-/** Candidate-selection and verification state owned by one Workflow output. */
+/** Task outcome or candidate selection projected from Host output. */
 export interface KersorWorkflowResultView {
+    readonly task?: {
+        readonly status: 'succeeded' | 'stagnated' | 'exhausted' | 'waiting';
+        readonly stopReason: string;
+        readonly rounds: number;
+    };
     readonly stage?: string;
     readonly verification?: 'passed' | 'failed';
     readonly failureKind?: 'correctness' | 'benchmark' | 'infrastructure';

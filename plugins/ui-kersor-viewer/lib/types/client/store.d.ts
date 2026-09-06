@@ -151,7 +151,7 @@ export declare class KersorViewerStore {
     applyActiveFrame(frame: KersorActiveFrame): void;
     /**
      * Apply one forwarded Host frame.
-     * @param frame - Atomic snapshot replacement or one folded run update.
+     * @param frame - Host inventory, run progress, or live worker detail.
      */
     applyFrame(frame: KersorViewerFrame): void;
     /**

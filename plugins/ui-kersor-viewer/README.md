@@ -1,10 +1,28 @@
+---
+description: "Render KerSor Experiment cards and a conversation-level activity view with Session, Workflow, evidence, and source-health projections."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-kersor-viewer
 
 English | [中文](README.zh.md)
 
+The Task result panel separates the stop reason from current-artifact verification. Expanded worker details receive recent messages and activity during execution and reload on completion. The [Host viewer](../kersor-viewer/README.md) owns parsing, refresh cadence, and evidence limits.
+
+## Summary
+
 KerSor activity surfaces, browser half: one conversation view beside Chat and Trajectory shows recent classic/Session-v2 optimization summaries from the host package [`@deepseek-ai/dsh-kersor-viewer`](../kersor-viewer/README.md), then lists Session-owned and direct general Task Workflow runs and renders the selected run's live phase/call progress. Chat also receives one durable Experiment node per `kersor_start` or `kersor_attach`, showing controller state, round, Workflow, speedup, next action, and the nine protocol milestones; its action opens the exact continuable dsh controller child so the full dialog and nested Workflow nodes remain inspectable after completion. A stalled checkpoint renders as blocked with no next action, and the fold ignores an invalid later reopen. The compact two-column Session cards show advisory health, canonical phase, last activity, round budget, Host-verified best/target speedup, language/backend, integration pattern, workflow-authoring used/total budget, Session-owned gates, selector outcome, selected Workflow, fit confidence, storage kind, status-warning count, and a preview of the latest canonical decision. Expanding a card puts the terminal reason, incremental and overall cycle lineage, and a Round tree before the lower-level stage timeline. Each Round names its Workflow and candidate, separates Host PASS/FAIL from promotion, keeps estimates visually distinct from measurement, and exposes the authoring escape chain for a sealed Session-authored Workflow. The selected Workflow's declared phases remain a separate topology tree from a hash-verified portable dispatch envelope. Inline baseline and profile blockers preserve their bounded canonical reasons. Gate badges are green for pass, amber for pending, and red for fail; stalled and cancelled Sessions suppress the advisory fit badge because a historical fit verdict cannot override their terminal decision.
 
 When the optional Host launcher [`@deepseek-ai/dsh-kersor`](../kersor/README.md) is active, the same panel also lists its deployment-configured tasks and the launcher processes dsh currently owns, with Start and Stop controls. The canonical Host plugin inventory decides that capability: the UI never probes launcher endpoints merely because their Client namespace exists. If the Host entry is absent or inactive, the panel still mounts and the controls are absent.
+
+## Table of Contents
+
+- [Viewer behavior](#viewer-behavior)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+## Viewer behavior
 
 **One store, one Host snapshot.** The view's facts live in a `useSyncExternalStore` observable. Initial load, view mount, and reconnect read `kersorViewer/snapshot`; replacement `kersor/event` frames then update the same atomic projection. Background root scans publish only after a changed result and preserve the last successful content without re-entering visible loading. Selecting a run reads `runBacklog` for its folded detail; expanding a classic Session reads `classicSessionDetail`, then refreshes only when that Session's activity revision changes while retaining the previous detail during the request. The API Remotes assembly is the sole owner of generated-contribution lifetime; this UI consumes the assembled namespaces without mounting them again. Launcher discovery checks `pluginInventory/list` before calling `kersor/listTasks` or `listActive`, so a read-only profile never probes absent launcher routes. Autonomous runs, classic `run-N` directories, and direct general Task runs with runtime events enter the same phase/call fold. Initial load and reconnect follow the newest active run in the current conversation Workspace, including a run discovered after the view mounted, and fetch detail only when that target changes. If that Workspace has no run, follow mode stays empty instead of selecting unrelated evidence. Clicking or clearing a run or Session enters manual selection; **Follow latest activity** resumes automatic selection. Other Workspaces remain selectable and carry a different-workspace badge. Session-owned run labels combine Session, zero-padded round, and Workflow; a direct Task label combines its run id and Workflow while the full run directory remains the internal identity.
 
@@ -28,3 +46,7 @@ None: the package does not assemble or modify model requests.
 - **Details follow selection** — inventory and source health update live, while a selected run backlog is fetched on selection and a classic Session inspector refreshes only after reconnect or a changed activity revision.
 - **Model identity can be absent** — retained worker artifacts from older runtimes may record a Codex runner and thread without the underlying provider/model; the view displays “not recorded” rather than inferring from the parent dsh conversation.
 - **Controls do not edit launch configuration** — task paths, runtime config, credentials, and environment remain Host deployment config; the browser sends only a registered task id or an exact owned run directory.
+
+### Dev Note
+
+None.

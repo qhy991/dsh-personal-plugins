@@ -7,8 +7,8 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_classicSessionDetail_result$sc
   'session_dir': z.string().readonly(),
   'current_round': z.number().readonly(),
   'steps': z.array(z.object({
-  'id': z.union([z.literal("setup"), z.literal("baseline"), z.literal("profile"), z.literal("selection"), z.literal("authoring"), z.literal("validation"), z.literal("dispatch"), z.literal("measurement"), z.literal("decision")]).readonly(),
-  'status': z.union([z.literal("failed"), z.literal("pending"), z.literal("active"), z.literal("completed")]).readonly(),
+  'id': z.union([z.literal("baseline"), z.literal("setup"), z.literal("profile"), z.literal("selection"), z.literal("authoring"), z.literal("validation"), z.literal("dispatch"), z.literal("measurement"), z.literal("decision")]).readonly(),
+  'status': z.union([z.literal("pending"), z.literal("completed"), z.literal("active"), z.literal("failed")]).readonly(),
 })).readonly(),
   'selection': z.object({
   'status': z.union([z.literal("pending"), z.literal("stalled"), z.literal("selected")]).readonly(),
@@ -17,7 +17,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_classicSessionDetail_result$sc
   'rejectedCount': z.number().readonly(),
 }).readonly(),
   'authoring': z.object({
-  'status': z.union([z.literal("rejected"), z.literal("not_started"), z.literal("in_progress"), z.literal("sealed"), z.literal("saved")]).readonly(),
+  'status': z.union([z.literal("in_progress"), z.literal("rejected"), z.literal("not_started"), z.literal("sealed"), z.literal("saved")]).readonly(),
   'files': z.array(z.object({
   'name': z.string().readonly(),
   'sha256': z.string().readonly(),
@@ -44,14 +44,14 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_classicSessionDetail_result$sc
   'omittedReason': z.union([z.literal("too_large"), z.literal("invalid"), z.literal("hash_mismatch")]).readonly().optional(),
 }).readonly(),
   'validation': z.object({
-  'status': z.union([z.literal("failed"), z.literal("pending"), z.literal("passed")]).readonly(),
+  'status': z.union([z.literal("pending"), z.literal("failed"), z.literal("passed")]).readonly(),
   'checks': z.array(z.object({
   'name': z.string().readonly(),
   'passed': z.boolean().readonly(),
 })).readonly(),
 }).readonly(),
   'dispatch': z.object({
-  'status': z.union([z.literal("running"), z.literal("failed"), z.literal("pending"), z.literal("completed"), z.literal("preparing")]).readonly(),
+  'status': z.union([z.literal("pending"), z.literal("completed"), z.literal("running"), z.literal("failed"), z.literal("preparing")]).readonly(),
   'runDir': z.string().readonly().optional(),
   'runtimeStatus': z.string().readonly().optional(),
 }).readonly(),
@@ -101,7 +101,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema = z.u
   'runId': z.string().readonly(),
   'runDir': z.string().readonly(),
   'sessionDir': z.string().readonly(),
-  'status': z.union([z.literal("running"), z.literal("waiting"), z.literal("failed"), z.literal("completed"), z.literal("unknown")]),
+  'status': z.union([z.literal("completed"), z.literal("running"), z.literal("failed"), z.literal("waiting"), z.literal("unknown")]),
   'workflow': z.union([z.undefined(), z.string()]).optional(),
   'scriptHash': z.union([z.undefined(), z.string()]).optional(),
   'startedTs': z.union([z.undefined(), z.string()]).optional(),
@@ -110,13 +110,13 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema = z.u
   'phases': z.array(z.object({
   'title': z.string().readonly(),
   'index': z.number().readonly(),
-  'status': z.union([z.literal("running"), z.literal("failed"), z.literal("completed")]),
+  'status': z.union([z.literal("completed"), z.literal("running"), z.literal("failed")]),
   'calls': z.array(z.object({
   'seq': z.number().readonly(),
   'callId': z.string().readonly(),
   'label': z.string().readonly(),
   'kind': z.union([z.literal("agent"), z.literal("evaluation")]).readonly(),
-  'status': z.union([z.literal("running"), z.literal("failed"), z.literal("completed"), z.literal("queued")]),
+  'status': z.union([z.literal("completed"), z.literal("queued"), z.literal("running"), z.literal("failed")]),
   'startedTs': z.union([z.undefined(), z.string()]).optional(),
   'endedTs': z.union([z.undefined(), z.string()]).optional(),
   'tokens': z.union([z.undefined(), z.number()]).optional(),
@@ -132,6 +132,11 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runBacklog_result$schema = z.u
 }),
   'error': z.union([z.undefined(), z.string()]).optional(),
   'result': z.union([z.undefined(), z.object({
+  'task': z.object({
+  'status': z.union([z.literal("waiting"), z.literal("succeeded"), z.literal("stagnated"), z.literal("exhausted")]).readonly(),
+  'stopReason': z.string().readonly(),
+  'rounds': z.number().readonly(),
+}).readonly().optional(),
   'stage': z.string().readonly().optional(),
   'verification': z.union([z.literal("failed"), z.literal("passed")]).readonly().optional(),
   'failureKind': z.union([z.literal("correctness"), z.literal("benchmark"), z.literal("infrastructure")]).readonly().optional(),
@@ -196,6 +201,11 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runCallDetail_result$schema = 
 })])
 const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runResult_parameter_0$schema = z.string()
 const _deepseek_ai_dsh_kersor_viewer_kersorViewer_runResult_result$schema = z.union([z.undefined(), z.object({
+  'task': z.object({
+  'status': z.union([z.literal("waiting"), z.literal("succeeded"), z.literal("stagnated"), z.literal("exhausted")]).readonly(),
+  'stopReason': z.string().readonly(),
+  'rounds': z.number().readonly(),
+}).readonly().optional(),
   'stage': z.string().readonly().optional(),
   'verification': z.union([z.literal("failed"), z.literal("passed")]).readonly().optional(),
   'failureKind': z.union([z.literal("correctness"), z.literal("benchmark"), z.literal("infrastructure")]).readonly().optional(),
@@ -223,6 +233,11 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'kind': z.union([z.literal("autonomous"), z.literal("classic-round"), z.literal("general-task")]).readonly(),
   'round': z.number().readonly().optional(),
   'result': z.object({
+  'task': z.object({
+  'status': z.union([z.literal("waiting"), z.literal("succeeded"), z.literal("stagnated"), z.literal("exhausted")]).readonly(),
+  'stopReason': z.string().readonly(),
+  'rounds': z.number().readonly(),
+}).readonly().optional(),
   'stage': z.string().readonly().optional(),
   'verification': z.union([z.literal("failed"), z.literal("passed")]).readonly().optional(),
   'failureKind': z.union([z.literal("correctness"), z.literal("benchmark"), z.literal("infrastructure")]).readonly().optional(),
@@ -240,7 +255,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'expectedCycles': z.number().readonly().optional(),
 })).readonly(),
 }).readonly().optional(),
-  'discovery': z.union([z.literal("waiting"), z.literal("failed"), z.literal("active"), z.literal("completed")]).readonly(),
+  'discovery': z.union([z.literal("completed"), z.literal("active"), z.literal("failed"), z.literal("waiting")]).readonly(),
 })).readonly(),
   'classic': z.object({
   'sessions': z.array(z.object({
@@ -248,7 +263,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'session_dir': z.string().readonly(),
   'storage_kind': z.union([z.literal("v2"), z.literal("legacy")]).readonly(),
   'phase': z.union([z.literal(null), z.string()]).readonly().optional(),
-  'lifecycle': z.union([z.literal("cancelled"), z.literal("active"), z.literal("completed"), z.literal("stalled")]).readonly(),
+  'lifecycle': z.union([z.literal("completed"), z.literal("active"), z.literal("cancelled"), z.literal("stalled")]).readonly(),
   'status': z.union([z.literal("terminal-complete"), z.literal("terminal-stalled"), z.literal("terminal-cancelled"), z.literal("resumable"), z.literal("in-progress"), z.literal("pre-round-1")]).readonly(),
   'health': z.union([z.literal("active"), z.literal("stale"), z.literal("needs_resume"), z.literal("terminal"), z.literal("unknown")]).readonly(),
   'started_at': z.union([z.literal(null), z.string()]).readonly().optional(),
@@ -332,7 +347,7 @@ const _deepseek_ai_dsh_kersor_viewer_kersorViewer_snapshot_result$schema = z.obj
   'runs': z.array(z.object({
   'runDir': z.string().readonly(),
   'mode': z.union([z.literal("tail"), z.literal("backfill")]).readonly(),
-  'state': z.union([z.literal("waiting"), z.literal("failed"), z.literal("complete"), z.literal("healthy"), z.literal("degraded")]).readonly(),
+  'state': z.union([z.literal("complete"), z.literal("failed"), z.literal("waiting"), z.literal("healthy"), z.literal("degraded")]).readonly(),
   'byteOffset': z.number().readonly(),
   'linesRead': z.number().readonly(),
   'linesRejected': z.number().readonly(),
@@ -484,14 +499,14 @@ export const TYPERT = {
     "services": [],
     "events": [
       {
-        "description": "One viewer update: a replaced Host snapshot or one run's folded view.",
-        "summary": "One viewer update: a replaced Host snapshot or one run's folded view.",
+        "description": "One viewer update: Host inventory, a folded run, or bounded worker detail.",
+        "summary": "One viewer update: Host inventory, a folded run, or bounded worker detail.",
         "tags": [
           {
             "name": "param",
             "argument": "frame",
-            "comment": "- Host snapshot or folded run view model.",
-            "text": "@param frame - Host snapshot or folded run view model.\n     *"
+            "comment": "- Host inventory, run progress, or live worker detail.",
+            "text": "@param frame - Host inventory, run progress, or live worker detail.\n     *"
           },
           {
             "name": "mode",
@@ -499,7 +514,7 @@ export const TYPERT = {
             "text": "@mode emit"
           }
         ],
-        "jsDoc": "/**\n * One viewer update: a replaced Host snapshot or one run's folded view.\n * @param frame - Host snapshot or folded run view model.\n * @mode emit\n */",
+        "jsDoc": "/**\n * One viewer update: Host inventory, a folded run, or bounded worker detail.\n * @param frame - Host inventory, run progress, or live worker detail.\n * @mode emit\n */",
         "name": "kersor/event",
         "mode": "emit",
         "signature": "'kersor/event'(frame: KersorViewerFrame): void"

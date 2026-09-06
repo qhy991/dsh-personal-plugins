@@ -146,7 +146,10 @@ export function foldEvent(view, event) {
     switch (event.type) {
         case 'workflow.started': {
             view.status = 'running';
-            view.startedTs = event.ts;
+            if (typeof event.ts === 'string')
+                view.startedTs = event.ts;
+            else
+                delete view.startedTs;
             if (typeof event.script === 'string')
                 view.workflow = workflowName(event.script);
             if (typeof event.script_hash === 'string')
@@ -166,7 +169,10 @@ export function foldEvent(view, event) {
         }
         case 'workflow.completed': {
             view.status = 'completed';
-            view.endedTs = event.ts;
+            if (typeof event.ts === 'string')
+                view.endedTs = event.ts;
+            else
+                delete view.endedTs;
             const tokens = totalTokens(event.usage);
             if (tokens !== undefined)
                 view.totals.tokens = tokens;
@@ -180,8 +186,15 @@ export function foldEvent(view, event) {
         }
         case 'workflow.failed': {
             view.status = 'failed';
-            view.endedTs = event.ts;
-            view.error = errorMessage(event.error);
+            if (typeof event.ts === 'string')
+                view.endedTs = event.ts;
+            else
+                delete view.endedTs;
+            const error = errorMessage(event.error);
+            if (error === undefined)
+                delete view.error;
+            else
+                view.error = error;
             const tokens = totalTokens(event.usage);
             if (tokens !== undefined)
                 view.totals.tokens = tokens;
@@ -216,7 +229,10 @@ export function foldEvent(view, event) {
             if (!row)
                 return;
             row.status = 'running';
-            row.startedTs = event.ts;
+            if (typeof event.ts === 'string')
+                row.startedTs = event.ts;
+            else
+                delete row.startedTs;
             return;
         }
         case 'agent.completed':
@@ -225,7 +241,10 @@ export function foldEvent(view, event) {
             if (!row)
                 return;
             row.status = 'completed';
-            row.endedTs = event.ts;
+            if (typeof event.ts === 'string')
+                row.endedTs = event.ts;
+            else
+                delete row.endedTs;
             const tokens = totalTokens(event.usage);
             if (tokens !== undefined) {
                 row.tokens = tokens;
@@ -240,8 +259,15 @@ export function foldEvent(view, event) {
             if (!row)
                 return;
             row.status = 'failed';
-            row.endedTs = event.ts;
-            row.error = errorMessage(event.error);
+            if (typeof event.ts === 'string')
+                row.endedTs = event.ts;
+            else
+                delete row.endedTs;
+            const error = errorMessage(event.error);
+            if (error === undefined)
+                delete row.error;
+            else
+                row.error = error;
             const tokens = totalTokens(event.usage);
             if (tokens !== undefined) {
                 row.tokens = tokens;

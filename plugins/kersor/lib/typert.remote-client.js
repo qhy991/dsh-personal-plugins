@@ -39,7 +39,7 @@ export const TYPERT_REMOTE = {
         typeSymbol: '@deepseek-ai/dsh-kersor#kersor/listActive:result',
         schema: _deepseek_ai_dsh_kersor_kersor_listActive_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":169,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":182,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor#kersor/listTasks',
@@ -54,7 +54,7 @@ export const TYPERT_REMOTE = {
         typeSymbol: '@deepseek-ai/dsh-kersor#kersor/listTasks:result',
         schema: _deepseek_ai_dsh_kersor_kersor_listTasks_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":160,"column":3},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":173,"column":3},
     },
     {
       id: '@deepseek-ai/dsh-kersor#kersor/start',
@@ -79,7 +79,7 @@ export const TYPERT_REMOTE = {
         typeSymbol: '@deepseek-ai/dsh-kersor/types#KersorActiveLaunch',
         schema: _deepseek_ai_dsh_kersor_kersor_start_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":181,"column":9},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":194,"column":9},
     },
     {
       id: '@deepseek-ai/dsh-kersor#kersor/stop',
@@ -104,7 +104,7 @@ export const TYPERT_REMOTE = {
         typeSymbol: '@deepseek-ai/dsh-kersor#kersor/stop:result',
         schema: _deepseek_ai_dsh_kersor_kersor_stop_result$schema,
       },
-      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":234,"column":9},
+      sourceLocation: {"file":"packages/extensions/kersor/src/service.ts","line":262,"column":9},
     },
   ],
 }

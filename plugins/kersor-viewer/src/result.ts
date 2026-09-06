@@ -39,7 +39,7 @@ async function readObject(file: string, maxBytes: number): Promise<Record<string
 /**
  * Read one canonical output without forwarding candidate source or arbitrary report text.
  * @param runDir - Exact discovered run directory.
- * @returns Bounded candidate-selection facts, or `undefined` when absent or invalid.
+ * @returns Task outcome or candidate-selection facts, or `undefined` when absent or invalid.
  */
 export async function readWorkflowResult(runDir: string): Promise<KersorWorkflowResultView | undefined> {
   const [value, host] = await Promise.all([
@@ -49,6 +49,23 @@ export async function readWorkflowResult(runDir: string): Promise<KersorWorkflow
   try {
     if (value === undefined && host === undefined) return undefined
     const output = value ?? {}
+    const meta = output.meta as Record<string, unknown> | null | undefined
+    if (meta?.name === 'general-self-evolve' && meta.contract === 'kersor-task-v1') {
+      const status = output.status
+      if (status !== 'succeeded' && status !== 'stagnated' && status !== 'exhausted' && status !== 'waiting') return undefined
+      if (typeof output.stop_reason !== 'string' || output.stop_reason.length > 200
+        || typeof output.rounds !== 'number' || !Number.isSafeInteger(output.rounds) || output.rounds < 0) return undefined
+      const evaluation = output.final_evaluation as Record<string, unknown> | null | undefined
+      const verification = evaluation?.passed === true && evaluation.exit_code === 0
+        && evaluation.timed_out !== true && evaluation.signal == null
+        ? 'passed' as const
+        : evaluation?.passed === false ? 'failed' as const : undefined
+      return {
+        task: { status, stopReason: output.stop_reason, rounds: output.rounds },
+        ...(verification === undefined ? {} : { verification }),
+        candidates: [],
+      }
+    }
     const rawCandidates = Array.isArray(output.candidate_log) ? output.candidate_log : []
     const candidates = rawCandidates.slice(0, MAX_CANDIDATES).flatMap((candidate) => {
       if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate)) return []

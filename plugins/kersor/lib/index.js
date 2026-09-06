@@ -969,8 +969,7 @@ let KersorService = (() => {
 				this.stopping = true;
 				const launches = [...this.active.values()];
 				for (const launch of launches) launch.handle.terminate();
-				await Promise.allSettled(launches.map((launch) => launch.settled));
-				await Promise.allSettled(launches.map((launch) => launch.handle.waitForExit()));
+				await Promise.allSettled(launches.map((launch) => launch.done));
 				this.active.clear();
 			};
 		}
@@ -996,6 +995,16 @@ let KersorService = (() => {
 		* @throws when config, credentials, Mission routing, or process spawn is invalid.
 		*/
 		async start(taskId) {
+			return (await this.launch(taskId)).ref;
+		}
+		/**
+		* Start one configured Mission for a same-process application that must
+		* retain DSH until the complete process tree exits.
+		* @param taskId - configured task identity from {@link listTasks}.
+		* @returns the immediate launch receipt and its whole-tree completion.
+		* @throws when config, credentials, Mission routing, process spawn, or tree settlement fails.
+		*/
+		async launch(taskId) {
 			if (this.stopping) throw new Error("kersor: launcher is stopping");
 			const task = this.tasks.get(taskId);
 			if (task === void 0) throw new Error(`kersor: unknown configured task ${JSON.stringify(taskId)}`);
@@ -1039,16 +1048,20 @@ let KersorService = (() => {
 			const owned = {
 				ref,
 				handle,
-				settled: Promise.resolve()
+				done: Promise.resolve({
+					ref,
+					exitCode: null,
+					signal: null
+				})
 			};
-			owned.settled = handle.done.then((outcome) => {
-				this.finish(owned, outcome.exitCode === 0 ? void 0 : `exit ${String(outcome.exitCode)}`);
-			}, (error) => {
-				this.finish(owned, error instanceof Error ? error.message : String(error));
-			});
+			owned.done = this.settle(owned);
+			owned.done.catch(() => {});
 			this.active.set(runDir, owned);
 			this.emitActive();
-			return ref;
+			return {
+				ref,
+				done: owned.done
+			};
 		}
 		/**
 		* Terminate one process tree and wait for quiescence.
@@ -1059,9 +1072,31 @@ let KersorService = (() => {
 			const launch = this.active.get(runDir);
 			if (launch === void 0) return false;
 			launch.handle.terminate();
-			await launch.settled;
-			await launch.handle.waitForExit();
+			await launch.done;
 			return true;
+		}
+		async settle(launch) {
+			let failure;
+			try {
+				const outcome = await launch.handle.done;
+				failure = outcome.exitCode === 0 ? void 0 : outcome.exitCode === null ? `signal ${String(outcome.signal)}` : `exit ${String(outcome.exitCode)}`;
+				return {
+					ref: launch.ref,
+					...outcome
+				};
+			} catch (error) {
+				failure = error instanceof Error ? error.message : String(error);
+				throw error;
+			} finally {
+				try {
+					await launch.handle.waitForExit();
+				} catch (error) {
+					failure = error instanceof Error ? error.message : String(error);
+					throw error;
+				} finally {
+					this.finish(launch, failure);
+				}
+			}
 		}
 		async resolveEnvironment() {
 			const env = { ...this.env };

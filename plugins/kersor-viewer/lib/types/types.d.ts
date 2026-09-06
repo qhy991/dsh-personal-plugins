@@ -4,6 +4,7 @@
  * @module @deepseek-ai/dsh-kersor-viewer/types
  */
 import type { KersorRunView } from './fold.ts';
+import type { KersorCallDetailView } from './detail.ts';
 import type { KersorClassicSnapshot } from './classic.ts';
 import type { KersorDiagnosticIssue } from './diagnostics.ts';
 import type { KersorRunRef, KersorScanObservation } from './scanner.ts';
@@ -33,19 +34,23 @@ export interface KersorViewerSnapshot {
         readonly runs: readonly KersorRunObservation[];
     };
 }
-/** Inventory or folded-run frame pushed to browser consumers. */
+/** Inventory, folded run, or bounded live worker detail pushed to browsers. */
 export type KersorViewerFrame = {
     kind: 'snapshot';
     snapshot: KersorViewerSnapshot;
 } | {
     kind: 'run';
     run: KersorRunView;
+} | {
+    kind: 'call';
+    runDir: string;
+    detail: KersorCallDetailView;
 };
 declare module '@deepseek-ai/cordis' {
     interface Events {
         /**
-         * One viewer update: a replaced Host snapshot or one run's folded view.
-         * @param frame - Host snapshot or folded run view model.
+         * One viewer update: Host inventory, a folded run, or bounded worker detail.
+         * @param frame - Host inventory, run progress, or live worker detail.
          * @mode emit
          */
         'kersor/event'(frame: KersorViewerFrame): void;

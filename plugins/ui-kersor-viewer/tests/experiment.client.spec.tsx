@@ -3,11 +3,14 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ConversationNodeAssembler } from '@deepseek-ai/dsh-client-runtime/client'
+import { ConversationNodeAssembler } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {
-  ChatConversationViewNode, ConversationEventInput, ConversationNodeDefinition,
+  ConversationNodeDefinition,
   ConversationViewDefinition,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { ChatConversationViewNode } from '@deepseek-ai/dsh-client-ui-chat/client'
+import type { SessionLiveEventEntry } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import {
   KersorExperimentNode, type KersorExperimentNodeProps,
@@ -51,11 +54,11 @@ const chatView: ConversationViewDefinition<ChatConversationViewNode, ChatSnapsho
   },
 }
 
-function at(seq: number, type: string, data: unknown): ConversationEventInput {
-  return { event: { seq, time: seq * 100, type, data } as ConversationEventInput['event'], view: undefined }
+function at(seq: number, type: string, data: unknown): SessionLiveEventEntry {
+  return { type: 'event', event: { seq, time: seq * 100, type, data } as SessionEvent }
 }
 
-function events(): ConversationEventInput[] {
+function events(): SessionLiveEventEntry[] {
   return [
     at(1, 'turn/start', { turn: 1 }),
     at(2, 'step/start', { turn: 1, step: 1 }),
@@ -79,7 +82,7 @@ function events(): ConversationEventInput[] {
   ]
 }
 
-function assembler(input: readonly ConversationEventInput[], hasMore = false): ConversationNodeAssembler {
+function assembler(input: readonly SessionLiveEventEntry[], hasMore = false): ConversationNodeAssembler {
   const value = new ConversationNodeAssembler(new Definitions(), new Views())
   value.replaceWindow(input, hasMore)
   value.flush()

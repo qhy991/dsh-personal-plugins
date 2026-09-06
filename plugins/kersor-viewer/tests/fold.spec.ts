@@ -203,3 +203,15 @@ describe('phase and call folding', () => {
     })
   })
 })
+
+
+it('keeps missing optional event metadata lossless on the viewer wire', () => {
+  const view = createRunView('old-run', '/work/run', '/work/session')
+  for (const type of ['workflow.started', 'agent.started', 'agent.failed', 'workflow.failed']) {
+    foldEvent(view, { type, seq: 1, call_id: 'worker/1', label: 'worker' })
+  }
+  expect(JSON.parse(JSON.stringify(view))).toStrictEqual(view)
+  expect(view).not.toHaveProperty('startedTs')
+  expect(view).not.toHaveProperty('endedTs')
+  expect(view.status).toBe('failed')
+})

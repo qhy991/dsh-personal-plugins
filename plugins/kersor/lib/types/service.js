@@ -131,8 +131,7 @@ let KersorService = (() => {
                 const launches = [...this.active.values()];
                 for (const launch of launches)
                     launch.handle.terminate();
-                await Promise.allSettled(launches.map(launch => launch.settled));
-                await Promise.allSettled(launches.map(launch => launch.handle.waitForExit()));
+                await Promise.allSettled(launches.map(launch => launch.done));
                 this.active.clear();
             };
         }
@@ -158,6 +157,16 @@ let KersorService = (() => {
          * @throws when config, credentials, Mission routing, or process spawn is invalid.
          */
         async start(taskId) {
+            return (await this.launch(taskId)).ref;
+        }
+        /**
+         * Start one configured Mission for a same-process application that must
+         * retain DSH until the complete process tree exits.
+         * @param taskId - configured task identity from {@link listTasks}.
+         * @returns the immediate launch receipt and its whole-tree completion.
+         * @throws when config, credentials, Mission routing, process spawn, or tree settlement fails.
+         */
+        async launch(taskId) {
             if (this.stopping)
                 throw new Error('kersor: launcher is stopping');
             const task = this.tasks.get(taskId);
@@ -196,11 +205,18 @@ let KersorService = (() => {
                 startedTs: new Date().toISOString(),
                 pid: handle.pid,
             };
-            const owned = { ref, handle, settled: Promise.resolve() };
-            owned.settled = handle.done.then((outcome) => { this.finish(owned, outcome.exitCode === 0 ? undefined : `exit ${String(outcome.exitCode)}`); }, (error) => { this.finish(owned, error instanceof Error ? error.message : String(error)); });
+            const owned = {
+                ref,
+                handle,
+                done: Promise.resolve({ ref, exitCode: null, signal: null }),
+            };
+            owned.done = this.settle(owned);
+            // Remote start callers receive only the receipt; retain one rejection
+            // observer so a later spawn failure never becomes an unhandled promise.
+            void owned.done.catch(() => { });
             this.active.set(runDir, owned);
             this.emitActive();
-            return ref;
+            return { ref, done: owned.done };
         }
         /**
          * Terminate one process tree and wait for quiescence.
@@ -212,9 +228,34 @@ let KersorService = (() => {
             if (launch === undefined)
                 return false;
             launch.handle.terminate();
-            await launch.settled;
-            await launch.handle.waitForExit();
+            await launch.done;
             return true;
+        }
+        async settle(launch) {
+            let failure;
+            try {
+                const outcome = await launch.handle.done;
+                failure = outcome.exitCode === 0 ? undefined : outcome.exitCode === null
+                    ? `signal ${String(outcome.signal)}`
+                    : `exit ${String(outcome.exitCode)}`;
+                return { ref: launch.ref, ...outcome };
+            }
+            catch (error) {
+                failure = error instanceof Error ? error.message : String(error);
+                throw error;
+            }
+            finally {
+                try {
+                    await launch.handle.waitForExit();
+                }
+                catch (error) {
+                    failure = error instanceof Error ? error.message : String(error);
+                    throw error;
+                }
+                finally {
+                    this.finish(launch, failure);
+                }
+            }
         }
         async resolveEnvironment() {
             const env = { ...this.env };

@@ -1,6 +1,6 @@
 /** Conversation card for one DSH-owned KerSor experiment. */
 
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { KersorViewerKey } from './locales.ts'
 import css from './KersorExperimentNode.module.css'

@@ -23,7 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId, type ContentBlock } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId, type JsonValue, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
 import type { SubagentListEntry, SubagentResult, SubagentRun } from '@deepseek-ai/dsh-subagent'
@@ -40,7 +40,9 @@ const signal = new AbortController().signal
 const testKersorPython = realpathSync(execFileSync(
   'python3', ['-c', 'import sys; print(sys.executable)'], { encoding: 'utf8' },
 ).trim())
-const testKersorRoot = realpathSync.native(join(process.cwd(), '..', 'KerSor'))
+const testKersorRoot = realpathSync.native(
+  process.env.KERSOR_TEST_ROOT ?? join(process.cwd(), '..', 'KerSor'),
+)
 const testSetupAdapter = realpathSync.native(join(testKersorRoot, 'scripts', 'setup-session.sh'))
 const originalKersorPython = process.env.KERSOR_PYTHON
 const originalKersorRoot = process.env.KERSOR_ROOT
@@ -848,7 +850,7 @@ async function setup(
 
 let callSequence = 0
 async function call(harness: Harness, name: string, args: unknown, agent = harness.agent) {
-  const callId = CallId(`kersor-control-${++callSequence}`)
+  const callId = ToolCallId(`kersor-control-${++callSequence}`)
   agent.session.append('tool/call', {
     turn: 1, step: 1, callId, name, arguments: JSON.stringify(args),
   })
@@ -1206,7 +1208,7 @@ function writeWorkflowEnvelope(
     controller.session.append('tool/call', {
       turn: 1,
       step: 1,
-      callId: CallId(producerReceipt.producer_call_id),
+      callId: ToolCallId(producerReceipt.producer_call_id),
       name: 'subagent',
       arguments: JSON.stringify({
         description: 'Synthesize dispatch args',
@@ -1456,7 +1458,7 @@ function writeWorkflowEnvelope(
       controller.session.append('tool/call', {
         turn: 1,
         step: 1,
-        callId: CallId(sealCallId),
+        callId: ToolCallId(sealCallId),
         name: 'bash',
         arguments: JSON.stringify({ command: candidateOwnershipSealCommand(canonicalRunDir) }),
       })
@@ -1590,7 +1592,7 @@ function appendDurableOrigin(
   const sessionDir = join(canonicalWorkspace, '.kersor', `durable-origin-${sequence}`)
   writeValidSetupArtifacts(canonicalWorkspace, sessionDir, launch, controller.id)
   const canonicalSession = realpathSync.native(sessionDir)
-  const setupCallId = CallId(`origin-setup-${sequence}`)
+  const setupCallId = ToolCallId(`origin-setup-${sequence}`)
   controller.append('tool/call', {
     turn: 1,
     step: 1,
@@ -1806,7 +1808,7 @@ function ensureSessionInitializationFixture(
   const canonicalWorkspace = realpathSync.native(workspace)
   const canonicalSession = realpathSync.native(sessionDir)
   writeValidSessionState(canonicalSession, 1, controller.id)
-  const setupCallId = CallId(`fixture-setup-${controller.id}`)
+  const setupCallId = ToolCallId(`fixture-setup-${controller.id}`)
   const command = setupSessionCommand(
     canonicalWorkspace,
     controller.id,
@@ -1938,7 +1940,7 @@ function appendAuthorProducedFixture(controller: Agent, sessionDir: string): voi
   const context = join(canonicalSession, 'workflow-authoring', 'author-context.json')
   if (!existsSync(context)) writeAuthorContextFixture(sessionDir)
   controller.session.append('tool/call', {
-    turn: 1, step: 1, callId: CallId('fixture-author-call'),
+    turn: 1, step: 1, callId: ToolCallId('fixture-author-call'),
     name: 'kersor_protocol', arguments: JSON.stringify({ action: 'author' }),
   })
   controller.session.append('kersor/author-produced', {
@@ -1947,7 +1949,7 @@ function appendAuthorProducedFixture(controller: Agent, sessionDir: string): voi
     authority: 'dsh_host',
     session_dir: canonicalSession,
     controller_session_id: controller.id,
-    author_call_id: CallId('fixture-author-call'),
+    author_call_id: ToolCallId('fixture-author-call'),
     author_session_id: SessionId('fixture-author-child'),
     author_context: { path: context, sha256: fileSha256(context) },
   })
@@ -1957,7 +1959,7 @@ function appendAuthorSealFixture(controller: Agent, sessionDir: string): void {
   appendAuthorProducedFixture(controller, sessionDir)
   const handoff = realpathSync.native(writeAuthorHandoff(sessionDir))
   controller.session.append('tool/call', {
-    turn: 1, step: 1, callId: CallId('fixture-seal-call'),
+    turn: 1, step: 1, callId: ToolCallId('fixture-seal-call'),
     name: 'kersor_author_commit', arguments: JSON.stringify({ action: 'seal' }),
   })
   controller.session.append('kersor/author-handoff-sealed', {
@@ -1966,9 +1968,9 @@ function appendAuthorSealFixture(controller: Agent, sessionDir: string): void {
     authority: 'dsh_host',
     session_dir: realpathSync.native(sessionDir),
     controller_session_id: controller.id,
-    author_call_id: CallId('fixture-author-call'),
+    author_call_id: ToolCallId('fixture-author-call'),
     author_session_id: SessionId('fixture-author-child'),
-    seal_call_id: CallId('fixture-seal-call'),
+    seal_call_id: ToolCallId('fixture-seal-call'),
     handoff: { path: handoff, sha256: fileSha256(handoff) },
   })
 }
@@ -1980,7 +1982,7 @@ function appendAuthorSaveFixture(controller: Agent, sessionDir: string): void {
   )
   if (seal === undefined) throw new Error('test author seal is missing')
   controller.session.append('tool/call', {
-    turn: 1, step: 1, callId: CallId('fixture-save-call'),
+    turn: 1, step: 1, callId: ToolCallId('fixture-save-call'),
     name: 'kersor_author_commit', arguments: JSON.stringify({ action: 'save' }),
   })
   controller.session.append('kersor/author-save-attempted', {
@@ -1989,7 +1991,7 @@ function appendAuthorSaveFixture(controller: Agent, sessionDir: string): void {
     authority: 'dsh_host',
     session_dir: realpathSync.native(sessionDir),
     controller_session_id: controller.id,
-    save_call_id: CallId('fixture-save-call'),
+    save_call_id: ToolCallId('fixture-save-call'),
     seal_call_id: seal.data.seal_call_id,
     handoff: seal.data.handoff,
   })
@@ -2145,7 +2147,7 @@ function appendValidBaselineCustody(
     controller.session.append('tool/call', {
       turn: 1,
       step: 1,
-      callId: CallId(phase.data.call_id),
+      callId: ToolCallId(phase.data.call_id),
       name: 'bash',
       arguments: JSON.stringify({ command: phase.command }),
     })
@@ -3615,7 +3617,7 @@ describe('KerSor conversation controls', () => {
             return next()
           })
         }
-        const reusedCallId = CallId(`reused-setup-${failureStage}`)
+        const reusedCallId = ToolCallId(`reused-setup-${failureStage}`)
         const execute = async (args: Record<string, unknown>) => {
           controller.session.append('tool/call', {
             turn: 1,
@@ -3783,8 +3785,8 @@ describe('KerSor conversation controls', () => {
         }
         return next()
       })
-      const firstCallId = CallId('setup-before-cold-reload')
-      const execute = async (callId: CallId, args: Record<string, unknown>) => {
+      const firstCallId = ToolCallId('setup-before-cold-reload')
+      const execute = async (callId: ToolCallId, args: Record<string, unknown>) => {
         controller.session.append('tool/call', {
           turn: 1,
           step: 1,
@@ -3818,7 +3820,7 @@ describe('KerSor conversation controls', () => {
         expect(unrelated.isError).toBe(true)
         expect(shell!.calls).toHaveLength(0)
 
-        const retry = await execute(CallId('setup-after-cold-reload'), {
+        const retry = await execute(ToolCallId('setup-after-cold-reload'), {
           command: setupCommand,
           description: 'Retry exact setup after cold reload',
           sandbox_permissions: 'workspace-write',
@@ -5342,7 +5344,7 @@ describe('KerSor conversation controls', () => {
       controller.session.append('tool/call', {
         turn: 1,
         step: 1,
-        callId: CallId(sealCallId),
+        callId: ToolCallId(sealCallId),
         name: 'bash',
         arguments: JSON.stringify({ command: candidateOwnershipSealCommand(canonicalRunDir) }),
       })
@@ -7447,7 +7449,7 @@ describe('KerSor conversation controls', () => {
       execute: () => Promise.resolve({}),
     }))
     const result = await harness.ctx.tools.execute({
-      callId: CallId('status-child'), name: 'kersor_status', arguments: {}, agent: child, signal,
+      callId: ToolCallId('status-child'), name: 'kersor_status', arguments: {}, agent: child, signal,
     })
     expect(result.isError).toBe(false)
     const latest = checkpoints(harness.session).at(-1)?.data
@@ -7465,7 +7467,7 @@ describe('KerSor conversation controls', () => {
     const childSession = harness.ctx.sessions.get(childId)!
     const child = { id: childId, session: childSession } as unknown as Agent
     const recursive = await harness.ctx.tools.execute({
-      callId: CallId('recursive'), name: 'kersor_resume', arguments: {}, agent: child, signal,
+      callId: ToolCallId('recursive'), name: 'kersor_resume', arguments: {}, agent: child, signal,
     })
     expect(recursive.isError).toBe(true)
     expect(recursive.content.some(block => block.type === 'text'
@@ -7483,7 +7485,7 @@ describe('KerSor conversation controls', () => {
     const child = { id: childId, session: childSession } as unknown as Agent
 
     const delegated = await harness.ctx.tools.execute({
-      callId: CallId('controller-delegates'), name: 'subagent', arguments: {}, agent: child, signal,
+      callId: ToolCallId('controller-delegates'), name: 'subagent', arguments: {}, agent: child, signal,
     })
     expect(delegated.isError).toBe(false)
     expect(calls).toEqual(['subagent'])
@@ -7503,7 +7505,7 @@ describe('KerSor conversation controls', () => {
       execute: () => Promise.resolve({}),
     }))
     const status = await harness.ctx.tools.execute({
-      callId: CallId('controller-stalled'), name: 'kersor_status', arguments: {}, agent: child, signal,
+      callId: ToolCallId('controller-stalled'), name: 'kersor_status', arguments: {}, agent: child, signal,
     })
     expect(status.isError).toBe(false)
     expect(status.concludesTurn).toBe(true)
@@ -7513,16 +7515,16 @@ describe('KerSor conversation controls', () => {
     expect(checkpoints(harness.session).at(-1)?.data.nextAction).toBeUndefined()
 
     const repeatedStatus = await harness.ctx.tools.execute({
-      callId: CallId('controller-stalled-again'), name: 'kersor_status', arguments: {}, agent: child, signal,
+      callId: ToolCallId('controller-stalled-again'), name: 'kersor_status', arguments: {}, agent: child, signal,
     })
     expect(repeatedStatus.isError).toBe(false)
     expect(repeatedStatus.concludesTurn).toBe(true)
 
     const subagent = await harness.ctx.tools.execute({
-      callId: CallId('controller-subagent-after-stalled'), name: 'subagent', arguments: {}, agent: child, signal,
+      callId: ToolCallId('controller-subagent-after-stalled'), name: 'subagent', arguments: {}, agent: child, signal,
     })
     const bash = await harness.ctx.tools.execute({
-      callId: CallId('controller-bash-after-stalled'), name: 'bash', arguments: {}, agent: child, signal,
+      callId: ToolCallId('controller-bash-after-stalled'), name: 'bash', arguments: {}, agent: child, signal,
     })
     expect(subagent.isError).toBe(true)
     expect(bash.isError).toBe(true)

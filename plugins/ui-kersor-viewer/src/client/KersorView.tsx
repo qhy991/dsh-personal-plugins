@@ -1,6 +1,6 @@
 /** KerSor conversation view: Session inventory with live Workflow progress. */
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { IconChevronRightOutline14, StateDot, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -39,6 +39,15 @@ const RUN_STATUS_KEYS = {
   failed: 'run.failed',
   unknown: 'run.unknown',
 } as const satisfies Record<KersorRunStatus, KersorViewerKey>
+
+const TASK_STOP_KEYS: Readonly<Record<string, KersorViewerKey>> = {
+  'already-passed': 'task.stop.alreadyPassed',
+  'verifier-passed': 'task.stop.passed',
+  'declared-artifacts-unchanged': 'task.stop.unchanged',
+  'round-budget-exhausted': 'task.stop.roundLimit',
+  'token-budget-exhausted': 'task.stop.tokenBudget',
+  'provider-quota': 'task.stop.quota',
+}
 
 const CALL_STATUS_KEYS = {
   queued: 'call.queued',
@@ -360,7 +369,7 @@ function ClassicSessionDetail({ session, detail, t }: {
           <div className={css.artifacts}>
             {detail.authoring.files.map(file => (
               <span key={file.name} title={file.sha256}>
-                <span className={css.mono}>{file.name}</span> · {file.bytes} B · {file.sha256.slice(0, 18)}…
+                <span className={css.mono}>{file.name}</span> · {t('detail.bytes', { bytes: file.bytes })} · {file.sha256.slice(0, 18)}…
               </span>
             ))}
           </div>
@@ -393,7 +402,7 @@ function ClassicSessionDetail({ session, detail, t }: {
                         : detail.dispatch.status === 'running'
                           ? 'ongoing'
                           : 'warning'} />
-                    <span className={css.mono}>{design.name ?? detail.selection.workflow ?? 'Workflow'}</span>
+                    <span className={css.mono}>{design.name ?? detail.selection.workflow ?? t('detail.workflowFallback')}</span>
                   </div>
                   <div className={css.workflowBranches} role="group">
                     {phases.map((phase, index) => (
@@ -604,9 +613,10 @@ function sessionName(sessionDir: string): string {
 function runDisplayLabel(
   row: KersorRunRow,
   session: KersorClassicSession | undefined,
+  t: KersorViewProps['t'],
 ): string {
   const round = row.round ?? session?.current_round ?? undefined
-  const roundLabel = round === undefined ? row.runId : `R${String(round).padStart(2, '0')}`
+  const roundLabel = round === undefined ? row.runId : t('detail.round.number', { round: String(round).padStart(2, '0') })
   const workflow = row.view?.workflow ?? session?.workflow ?? row.runId
   if (row.kind === 'general-task') return workflow === row.runId ? row.runId : `${row.runId} · ${workflow}`
   return `${session?.session_id ?? sessionName(row.sessionDir)} · ${roundLabel} · ${workflow}`
@@ -638,7 +648,7 @@ function CallDetail({ detail, t }: {
             {detail.activities.map(activity => (
               <li key={activity.id}>
                 <span>{activity.kind === 'web-search' ? t('call.webSearch') : t('call.tool')}</span>
-                <span className={css.mono}>{activity.label}</span>
+                <span className={css.mono}>{activity.label === 'command_execution' ? t('call.command') : activity.label}</span>
                 <span>{activity.status}</span>
               </li>
             ))}
@@ -674,7 +684,7 @@ function CallTreeNode({
           {call.kind === 'evaluation' ? t('call.evaluation') : null}
           {call.rolledBack ? <span className={css.badge}>{t('call.rolledBack')}</span> : null}
           {duration !== undefined ? <span>{duration}</span> : null}
-          {call.tokens !== undefined ? <span>{call.tokens.toLocaleString()} tk</span> : null}
+          {call.tokens !== undefined ? <span>{t('run.tokens', { tokens: call.tokens.toLocaleString() })}</span> : null}
         </span>
         <span className={css.callStatus}>{t(CALL_STATUS_KEYS[call.status])}</span>
         <IconChevronRightOutline14 />
@@ -756,13 +766,18 @@ function WorkflowTree({
   const [selectedCallId, setSelectedCallId] = useState<string>()
   const result = workflowResultOf(view)
   const detailKey = selectedCallId === undefined ? undefined : `${view.runDir}\u0000${selectedCallId}`
+  const selectedCallStatus = view.phases.flatMap(phase => phase.calls)
+    .find(call => call.callId === selectedCallId)?.status
+  useEffect(() => {
+    if (selectedCallId !== undefined) void loadCallDetail(view.runDir, selectedCallId)
+  }, [loadCallDetail, selectedCallId, selectedCallStatus, view.runDir])
   return (
     <ul role="tree" aria-label={t('run.tree')} className={css.executionTree}>
       <li role="treeitem" aria-expanded={true} className={css.roundTreeItem}>
         <div className={css.treeNode}>
           <StateDot state={session?.lifecycle === 'active' ? 'ongoing' : runDotState(view.status)} />
           <span>{session?.session_id ?? sessionName(view.sessionDir)}</span>
-          <span>{row.round === undefined ? row.runId : `R${String(row.round).padStart(2, '0')}`}</span>
+          <span>{row.round === undefined ? row.runId : t('detail.round.number', { round: String(row.round).padStart(2, '0') })}</span>
         </div>
         <ul role="group" className={css.treeGroup}>
           <li role="treeitem" aria-expanded={true} className={css.workflowTreeItem}>
@@ -811,9 +826,6 @@ function WorkflowTree({
                               onToggle={() => {
                                 const next = selected ? undefined : call.callId
                                 setSelectedCallId(next)
-                                if (next !== undefined && state.callDetails.get(`${view.runDir}\u0000${next}`) === undefined) {
-                                  void loadCallDetail(view.runDir, next)
-                                }
                               }}
                               t={t}
                             />
@@ -837,6 +849,22 @@ function WorkflowResult({ result, t }: {
   readonly result: KersorWorkflowResultView
   readonly t: KersorViewProps['t']
 }): React.JSX.Element {
+  if (result.task !== undefined) {
+    const stopKey = TASK_STOP_KEYS[result.task.stopReason]
+    return (
+      <section className={css.workflowResult} aria-label={t('task.result.title')} data-task-status={result.task.status}>
+        <div className={css.resultHead}>
+          <span className={css.detailTitle}>{t('task.result.title')}</span>
+          <span>{t(`task.status.${result.task.status}`)}</span>
+        </div>
+        <div className={css.resultMetrics}>
+          <span data-verification={result.verification ?? 'unknown'}>{t(`task.verification.${result.verification ?? 'unknown'}`)}</span>
+          <span>{t('task.rounds', { rounds: result.task.rounds })}</span>
+          <span>{t('task.stopReason', { reason: stopKey === undefined ? result.task.stopReason : t(stopKey) })}</span>
+        </div>
+      </section>
+    )
+  }
   return (
     <section className={css.workflowResult} aria-label={t('run.result.title')}>
       <div className={css.resultHead}>
@@ -904,6 +932,7 @@ function WorkflowResult({ result, t }: {
 
 function workflowResultOf(view: KersorRunView): KersorWorkflowResultView | undefined {
   const nested = view.result
+  if (nested?.task !== undefined) return nested
   const candidates = view.candidates ?? nested?.candidates ?? []
   const stage = view.candidateStage ?? nested?.stage
   const verification = view.verification ?? nested?.verification
@@ -955,19 +984,22 @@ function RunDetail({
   const workflowWaiting = view.status === 'completed'
     && session?.lifecycle === 'active'
     && result?.stage === 'awaiting_host_verification'
-  const statusLabel = workflowWaiting
-    ? t('run.workflowCompletedHostPending')
-    : view.status === 'completed' && session?.lifecycle === 'active'
-      ? t('run.workflowCompletedSessionActive')
-      : t(RUN_STATUS_KEYS[view.status])
+  const statusLabel = result?.task !== undefined
+    ? t(`task.status.${result.task.status}`)
+    : workflowWaiting
+      ? t('run.workflowCompletedHostPending')
+      : view.status === 'completed' && session?.lifecycle === 'active'
+        ? t('run.workflowCompletedSessionActive')
+        : t(RUN_STATUS_KEYS[view.status])
   return (
     <div className={css.runDetail}>
       <div className={css.runHead}>
-        <span className={css.workflowIdentity} title={view.runDir}>{runDisplayLabel(row, session)}</span>
+        <span className={css.workflowIdentity} title={view.runDir}>{runDisplayLabel(row, session, t)}</span>
         <span className={css.runId} title={view.runDir}>{view.runId}</span>
         {crossWorkspace ? <span className={css.workspaceBadge}>{t('session.otherWorkspace')}</span> : null}
         <span className={css.statusTail} data-status={view.status}>
-          <StateDot state={workflowWaiting ? 'ongoing' : runDotState(view.status)} />
+          <StateDot state={result?.task !== undefined && result.verification !== 'passed'
+            ? 'warning' : workflowWaiting ? 'ongoing' : runDotState(view.status)} />
           <span>{statusLabel}</span>
         </span>
       </div>
@@ -1100,6 +1132,7 @@ export function KersorView({
   t, store, currentWorkspace, refresh, loadRun, loadCallDetail, loadClassic, start, stop,
 }: KersorViewProps): React.JSX.Element {
   const [busy, setBusy] = useState<string>()
+  const observedRunDirs = useRef(new Set<string>())
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const rows = store.rows
   const classicSessions = state.snapshot?.classic.sessions ?? []
@@ -1113,12 +1146,17 @@ export function KersorView({
   }, [refresh])
 
   useEffect(() => {
-    if (store.selectionIntent !== 'follow') return
     const eligibleRows = currentWorkspace === undefined || currentWorkspace.length === 0
       ? rows
       : rows.filter(row => belongsToWorkspace(row.sessionDir, currentWorkspace))
+    const previous = observedRunDirs.current
+    observedRunDirs.current = new Set(eligibleRows.map(row => row.runDir))
+    if (store.selectionIntent !== 'follow') return
+    const newestFirst = [...eligibleRows].sort((left, right) => right.runId.localeCompare(left.runId))
     const target = eligibleRows.find(row => row.discovery === 'active')
-      ?? [...eligibleRows].sort((left, right) => right.runId.localeCompare(left.runId))[0]
+      ?? newestFirst.find(row => !previous.has(row.runDir))
+      ?? eligibleRows.find(row => row.runDir === store.selectedRunDir)
+      ?? newestFirst[0]
     if (target === undefined || !store.followDiscoveredRun(target.runDir)) return
     void loadRun(target.runDir)
   }, [currentWorkspace, loadRun, rows, store])
@@ -1262,7 +1300,7 @@ export function KersorView({
                               ? 'error'
                               : row.discovery === 'waiting' ? 'warning' : 'done'
                         } />
-                        <span className={css.rowLabel}>{runDisplayLabel(row, session)}</span>
+                        <span className={css.rowLabel}>{runDisplayLabel(row, session, t)}</span>
                         <span className={css.runId}>{row.runId}</span>
                         {crossWorkspace ? <span className={css.workspaceBadge}>{t('session.otherWorkspace')}</span> : null}
                       </button>

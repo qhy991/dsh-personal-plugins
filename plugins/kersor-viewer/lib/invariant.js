@@ -9,11 +9,9 @@ const name = "kersor-viewer-invariant";
 /** Service required before the companion can reserve package ownership. */
 const inject = ["invariants"];
 /**
-* No runtime invariant: the viewer's one owned relation — each tracked run's
-* folded view matching the events consumed from its `events.jsonl` — is
-* verified behaviorally by the fold spec replaying full event sequences; the
-* service holds no cross-plugin state other than that fold and emits only the
-* `kersor/event` frames derived from it.
+* No runtime invariant: run folds and bounded artifact projections are verified
+* by replay and assembled-browser tests. The viewer owns no cross-plugin
+* mutable relation; worker detail frames cannot change run lifecycle or usage.
 */
 const install = () => {};
 /**

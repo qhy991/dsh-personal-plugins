@@ -4,7 +4,10 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { CredentialProvider, credentialRef } from '@deepseek-ai/dsh-credentials'
-import type { CredentialInfo, CredentialRef, ResolvedCredential } from '@deepseek-ai/dsh-credentials'
+import type {
+  CredentialInfo, CredentialKey, CredentialRecord, CredentialRecordEntry,
+  CredentialRecordInfo, CredentialRef, ResolvedCredential,
+} from '@deepseek-ai/dsh-credentials'
 import { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 import type { SubprocessHandle, SubprocessOutcome, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { KersorService } from '../src/service.ts'
@@ -31,6 +34,26 @@ class TestCredentials extends CredentialProvider {
   unset(): Promise<void> {
     return Promise.reject(new Error('read only'))
   }
+
+  readRecord(_key: CredentialKey): Promise<CredentialRecord | undefined> {
+    return Promise.resolve(undefined)
+  }
+
+  describeRecord(_key: CredentialKey): Promise<CredentialRecordInfo> {
+    return Promise.resolve({ configured: false, writable: false })
+  }
+
+  listRecords(): Promise<readonly CredentialRecordEntry[]> {
+    return Promise.resolve([])
+  }
+
+  modifyRecord(): Promise<CredentialRecord | undefined> {
+    return Promise.reject(new Error('read only'))
+  }
+
+  deleteRecord(): Promise<void> {
+    return Promise.reject(new Error('read only'))
+  }
 }
 
 class TestHandle implements SubprocessHandle {
@@ -40,15 +63,25 @@ class TestHandle implements SubprocessHandle {
   readonly stderr = undefined
   readonly collected = {}
   private readonly outcome = Promise.withResolvers<SubprocessOutcome>()
+  private readonly tree = Promise.withResolvers<undefined>()
   readonly done = this.outcome.promise
-  readonly terminate = vi.fn(() => { this.outcome.resolve({ exitCode: null, signal: 'SIGTERM' }) })
+  readonly terminate = vi.fn(() => {
+    this.outcome.resolve({ exitCode: null, signal: 'SIGTERM' })
+    this.tree.resolve(undefined)
+  })
 
-  finish(exitCode = 0): void {
+  finish(exitCode = 0, treeExited = true): void {
     this.outcome.resolve({ exitCode, signal: null })
+    if (treeExited) this.tree.resolve(undefined)
+  }
+
+  finishTree(): void {
+    this.tree.resolve(undefined)
   }
 
   async waitForExit(): Promise<boolean> {
     await this.done
+    await this.tree.promise
     return true
   }
 }
@@ -182,6 +215,19 @@ describe('registered Mission launch', () => {
     await expect(harness.service.stop(launch.runDir)).resolves.toBe(true)
     expect(harness.subprocess.handles[0]!.terminate).toHaveBeenCalledOnce()
     await expect(harness.service.stop(launch.runDir)).resolves.toBe(false)
+    await harness.dispose()
+  })
+
+  it('keeps the application launch active until the complete process tree exits', async () => {
+    const harness = await boot()
+    const launch = await harness.service.launch('memo' as KersorTaskId)
+    harness.subprocess.handles[0]!.finish(0, false)
+    await harness.subprocess.handles[0]!.done
+    expect(harness.service.listActive()).toEqual([launch.ref])
+
+    harness.subprocess.handles[0]!.finishTree()
+    await expect(launch.done).resolves.toEqual({ ref: launch.ref, exitCode: 0, signal: null })
+    expect(harness.service.listActive()).toEqual([])
     await harness.dispose()
   })
 

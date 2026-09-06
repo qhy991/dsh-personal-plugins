@@ -4,8 +4,10 @@
  * @module @deepseek-ai/dsh-client-ui-kersor-viewer/client
  */
 
-import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-kersor/remote'
@@ -44,13 +46,13 @@ export type { KersorViewerKey } from './locales.ts'
 
 /** Required services: viewer UI seams, assembled Remotes, and Host inventory. */
 export const inject = [
-  'slots', 'locale', 'remote', 'remote.pluginInventory', 'sessions', 'conversationEvents',
+  'slots', 'locale', 'remote', 'remote.pluginInventory', 'sessions', 'uiConversation',
 ]
 
 /** Mount the KerSor viewer surfaces over the API assembly's Remote namespaces. */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'kersor-viewer: dictionaries')
-  ctx.conversationEvents.register(kersorExperimentDefinition)
+  ctx.uiConversation.events.register(kersorExperimentDefinition)
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',
     key: 'kersor-experiment',

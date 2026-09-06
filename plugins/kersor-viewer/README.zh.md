@@ -1,12 +1,30 @@
+---
+description: "从 DSH 查看 KerSor 优化 Session、通用 Task run、Workflow 进度、来源健康状态和有界调用详情。"
+kind: "package-reference"
+---
+
 # kersor-viewer — KerSor 活动查看器
 
 [English](README.md) | 中文
 
-在 dsh Web UI 中查看 [KerSor](https://github.com/qhy991/KerSor) 活动。它刻意分开两种投影：最近的优化 Session（包括现有经典 `state.md` 格式），以及可执行 Workflow run。本 host 包通过已安装 KerSor preset 的 bridge 获取有上限的 Session 摘要，发现 Session 自有 autonomous、`run-N` 以及直接 general Task run，并 tail 每个活跃 run 的 `.runtime/events.jsonl`。一个生成的 `snapshot` Remote 与一个替换事件原子地携带两份清单及其来源健康状态；`runBacklog` 与 `runResult` 携带选中 run 的折叠进度和候选结果，`runCallDetail` 懒加载一个已知调用保留的消息与活动名称，`classicSessionDetail` 则按需读取一个已经发现的经典 Session。browser 半位于 [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.md)。
+## 概述
+
+在 dsh Web UI 中查看 [KerSor](https://github.com/qhy991/KerSor) 活动。它刻意分开两种投影：最近的优化 Session（包括现有经典 `state.md` 格式），以及可执行 Workflow run。本 host 包通过已安装 KerSor preset 的 bridge 获取有上限的 Session 摘要，发现 Session 自有 autonomous、`run-N` 以及直接 general Task run，并 tail 每个活跃 run 的 `.runtime/events.jsonl`。一个生成的 `snapshot` Remote 与一个替换事件原子地携带两份清单及其来源健康状态；`runBacklog` 与 `runResult` 携带选中 run 的折叠进度和候选结果，`runCallDetail` 懒加载一个已知调用保留的消息与活动名称，`classicSessionDetail` 则按需读取一个已经发现的经典 Session。browser 半位于 [`@deepseek-ai/dsh-client-ui-kersor-viewer`](../ui-kersor-viewer/README.zh.md)。
 
 KerSor 始终是唯一状态所有者。bridge 导入 KerSor 规范的 `SessionStore` 与 `AttemptResultStore`；TypeScript 包不重新实现 legacy frontmatter 解析。viewer 会扫描每个已登记 Workspace，并合并规范 Session persistence 中所有合法的绝对 cwd，因此由 API 创建或作为 continuable child 创建的 Session 即使没有 `workspaceRegistry` 记录也保持可见。若 persistence 枚举失败，discovery 会保留最近一次成功读取的持久 cwd 集合及当前已登记 Workspace，并只把最终来源快照标为 degraded，不发布中间 replacement。若 preset 未安装，快照会记录 `not_installed`，autonomous run 发现仍继续工作。
 
-本包只观察、不启动。如需从同一面板启动部署配置中有限的一组 Mission，可组合兄弟启动器 [`@deepseek-ai/dsh-kersor`](../kersor/README.md)。无论是否加载启动器，KerSor run 文件始终是权威状态。
+本包只观察、不启动。如需从同一面板启动部署配置中有限的一组 Mission，可组合兄弟启动器 [`@deepseek-ai/dsh-kersor`](../kersor/README.zh.md)。无论是否加载启动器，KerSor run 文件始终是权威状态。
+
+## 目录
+
+- [配置](#configuration)
+- [结构](#layout)
+- [模型体验](#model-experience)
+- [已知限制与延期工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+<a id="configuration"></a>
+通用 Task 的验收区从 Host 的 `output.json` 读取停止状态、原因、完成轮数与最终验证；运行结束本身不代表产物通过验证。现有 `scanIntervalMs` 周期推送运行中 Worker 的有界近期轨迹，包含已完成消息和工具执行状态，不转发命令、参数或输出。展开的调用在结束时重新读取最终详情，验收和用量仍由 Host 结算。
 
 ## 配置
 
@@ -36,6 +54,7 @@ KerSor 始终是唯一状态所有者。bridge 导入 KerSor 规范的 `SessionS
 
 来源健康不会从空数组推断。快照记录每个扫描根、接受的 Session 数、发现的 run 数、backfill/tailer 模式、行计数，以及最近一次有上限的 stage/code issue。周期扫描只在实验或来源健康语义变化后发布；扫描时钟与重复的同类诊断不会发送 replacement，也不会让客户端已展开详情失效。缺失的可选默认根是中性状态；配置根缺失、persistence 枚举失败、权限失败、summary 损坏、事件日志不可读或事件行被拒绝都会成为 degraded 或 failed。persistence 枚举失败不会从本次扫描中移除已登记根或最近一次成功读取的持久根。原始异常、bridge 输出、环境值、工具参数与工具结果绝不会跨过 Remote 边界。调用详情只接受已发现 run 中已经出现在折叠事件流里的调用，最多读取 2 MiB Codex 事件，保留最多 12 条有界 Agent 消息和 40 个工具／搜索名称，超出时报告截断而不转发其余内容。通过的有界 `host-verification.json` 会把结果阶段改成 `host_verified` 并增加实测 cycles／speedup，而不改写原始 Workflow `output.json`；Host 证据缺失或失败时，投影仍只显示估计值。
 
+<a id="layout"></a>
 ## 结构
 
 | 文件 | 职责 |
@@ -49,7 +68,8 @@ KerSor 始终是唯一状态所有者。bridge 导入 KerSor 规范的 `SessionS
 | `src/fold.ts` | KerSor 事件流到视图模型的纯函数折叠 |
 | `src/result.ts` | 排除源码和任意 report 文本的候选选择投影 |
 
-## Model Experience
+<a id="model-experience"></a>
+## 模型体验
 
 无，因为这个 Host 侧观察器只读取 KerSor artifact 供 browser 展示，不登记 prompt、工具 schema 或模型请求输入。
 
@@ -57,7 +77,13 @@ KerSor 始终是唯一状态所有者。bridge 导入 KerSor 规范的 `SessionS
 
 无：本包不组装或修改模型请求。
 
-## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
+## 已知限制与延期工作
 
 - **Worker 模型身份取决于保留证据** —— 较旧 Codex artifact 可能只携带 runner 与 thread id，而没有底层 provider/model；投影会返回明确的缺失值，不从父 dsh 对话推断。
 - **调用详情刻意不完整** —— 只渲染有界 Agent 消息与工具／搜索名称；prompt、工具参数、工具结果、命令文本和任意其他事件类型仍只留在 Host。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。

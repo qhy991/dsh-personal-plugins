@@ -7,7 +7,8 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { ConversationEventRegistry, SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { UiConversation } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { KersorViewerSnapshot } from '@deepseek-ai/dsh-kersor-viewer/types'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
@@ -48,7 +49,6 @@ afterEach(cleanup)
 async function bench() {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
-  await ctx.plugin(ConversationEventRegistry).await()
   ctx.slots.register({
     name: 'root',
     children: {
@@ -63,6 +63,7 @@ async function bench() {
     refreshSubagents: () => Promise.resolve(),
     openSubagent: () => {},
   })
+  new UiConversation(ctx, ctx.sessions)
   new RemoteService(ctx)
   ctx.provide('remote.pluginInventory', {
     list: () => Promise.resolve({ ok: true, value: { entries: [] } }),
@@ -500,5 +501,41 @@ describe('KerSor conversation view registration', () => {
     fireEvent.click(screen.getByRole('button', { name: '收起 Session 详情' }))
     expect(store.selectedClassicSessionDir).toBeUndefined()
     expect(store.selectionIntent).toBe('manual')
+  })
+})
+
+
+describe('general Task outcomes', () => {
+  it.each([
+    ['succeeded', 'verifier-passed', 'passed', '当前产物通过验证'],
+    ['stagnated', 'declared-artifacts-unchanged', 'failed', '当前产物未通过验证'],
+    ['succeeded', 'verifier-passed', undefined, '尚无有效验收结果'],
+  ] as const)('renders %s with an independent artifact verdict', (status, stopReason, verification, verdict) => {
+    const store = new KersorViewerStore()
+    const runDir = '/work/current/.kersor/task'
+    store.setSnapshot({ ...EMPTY_SNAPSHOT, runs: [{
+      runId: 'task', runDir, sessionDir: runDir, root: '/work/current/.kersor', kind: 'general-task', discovery: 'completed',
+    }] })
+    store.applyFrame({ kind: 'run', run: {
+      runId: 'task', runDir, sessionDir: runDir, status: 'completed', currentPhase: 'Verify', phases: [],
+      totals: { calls: 3, completed: 3, failed: 0, tokens: 10 },
+      result: { task: { status, stopReason, rounds: 1 }, ...(verification === undefined ? {} : { verification }), candidates: [] },
+    } })
+    store.select(runDir)
+    const noop = vi.fn(() => Promise.resolve())
+    render(<KersorView {...{ store, t: makeTranslate(zh, commonZh), currentWorkspace: '/work/current',
+      refresh: noop, loadRun: noop, loadCallDetail: noop, loadClassic: noop, start: noop, stop: noop,
+    } as unknown as Parameters<typeof KersorView>[0]} />)
+    expect(screen.getByRole('region', { name: '任务验收' }).textContent).toContain(verdict)
+    expect(screen.queryByText('尚未实测')).toBeNull()
+  })
+
+  it('applies live worker frames without replacing the Host run status', () => {
+    const store = new KersorViewerStore()
+    store.applyFrame({ kind: 'call', runDir: '/work/run', detail: {
+      callId: 'live/1', runner: 'codex-exec', model: null, messages: [{ id: 'm', text: 'latest progress' }], activities: [], truncated: false,
+    } })
+    expect(store.getSnapshot().callDetails.get('/work/run\u0000live/1')?.messages[0]?.text).toBe('latest progress')
+    expect(store.getSnapshot().views.size).toBe(0)
   })
 })

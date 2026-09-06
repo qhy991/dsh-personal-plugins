@@ -6,7 +6,12 @@
  */
 
 export { KersorService, default } from './service.ts'
-export type { Config, KersorTaskConfig } from './service.ts'
+export type {
+  Config,
+  KersorLaunchCompletion,
+  KersorLaunchHandle,
+  KersorTaskConfig,
+} from './service.ts'
 export type {
   KersorActiveFrame,
   KersorActiveLaunch,

@@ -12,7 +12,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
-import type { SubprocessHandle } from '@deepseek-ai/dsh-subprocess'
+import type { SubprocessHandle, SubprocessOutcome } from '@deepseek-ai/dsh-subprocess'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type {
   KersorActiveFrame,
@@ -62,10 +62,24 @@ interface ResolvedTask {
   runtimeConfig?: string
 }
 
-interface OwnedLaunch {
+/** Completion of one launcher process after its complete process tree exits. */
+export interface KersorLaunchCompletion extends SubprocessOutcome {
+  /** Immutable launch receipt published when the process started. */
+  readonly ref: KersorActiveLaunch
+}
+
+/** Same-process launch reference for applications that must keep DSH alive until completion. */
+export interface KersorLaunchHandle {
+  /** Immutable launch receipt available immediately after spawn. */
+  readonly ref: KersorActiveLaunch
+  /** Outcome after the direct process settles and the complete process tree exits. */
+  readonly done: Promise<KersorLaunchCompletion>
+}
+
+interface OwnedLaunch extends KersorLaunchHandle {
   ref: KersorActiveLaunch
   handle: SubprocessHandle
-  settled: Promise<void>
+  done: Promise<KersorLaunchCompletion>
 }
 
 interface MissionRouting {
@@ -146,8 +160,7 @@ export class KersorService extends TypertRemoteService {
       this.stopping = true
       const launches = [...this.active.values()]
       for (const launch of launches) launch.handle.terminate()
-      await Promise.allSettled(launches.map(launch => launch.settled))
-      await Promise.allSettled(launches.map(launch => launch.handle.waitForExit()))
+      await Promise.allSettled(launches.map(launch => launch.done))
       this.active.clear()
     }
   }
@@ -179,6 +192,17 @@ export class KersorService extends TypertRemoteService {
    */
   @Remote('start')
   async start(taskId: KersorTaskId): Promise<KersorActiveLaunch> {
+    return (await this.launch(taskId)).ref
+  }
+
+  /**
+   * Start one configured Mission for a same-process application that must
+   * retain DSH until the complete process tree exits.
+   * @param taskId - configured task identity from {@link listTasks}.
+   * @returns the immediate launch receipt and its whole-tree completion.
+   * @throws when config, credentials, Mission routing, process spawn, or tree settlement fails.
+   */
+  async launch(taskId: KersorTaskId): Promise<KersorLaunchHandle> {
     if (this.stopping) throw new Error('kersor: launcher is stopping')
     const task = this.tasks.get(taskId)
     if (task === undefined) throw new Error(`kersor: unknown configured task ${JSON.stringify(taskId)}`)
@@ -215,14 +239,18 @@ export class KersorService extends TypertRemoteService {
       startedTs: new Date().toISOString(),
       pid: handle.pid,
     }
-    const owned: OwnedLaunch = { ref, handle, settled: Promise.resolve() }
-    owned.settled = handle.done.then(
-      (outcome) => { this.finish(owned, outcome.exitCode === 0 ? undefined : `exit ${String(outcome.exitCode)}`) },
-      (error: unknown) => { this.finish(owned, error instanceof Error ? error.message : String(error)) },
-    )
+    const owned: OwnedLaunch = {
+      ref,
+      handle,
+      done: Promise.resolve({ ref, exitCode: null, signal: null }),
+    }
+    owned.done = this.settle(owned)
+    // Remote start callers receive only the receipt; retain one rejection
+    // observer so a later spawn failure never becomes an unhandled promise.
+    void owned.done.catch(() => {})
     this.active.set(runDir, owned)
     this.emitActive()
-    return ref
+    return { ref, done: owned.done }
   }
 
   /**
@@ -235,9 +263,31 @@ export class KersorService extends TypertRemoteService {
     const launch = this.active.get(runDir)
     if (launch === undefined) return false
     launch.handle.terminate()
-    await launch.settled
-    await launch.handle.waitForExit()
+    await launch.done
     return true
+  }
+
+  private async settle(launch: OwnedLaunch): Promise<KersorLaunchCompletion> {
+    let failure: string | undefined
+    try {
+      const outcome = await launch.handle.done
+      failure = outcome.exitCode === 0 ? undefined : outcome.exitCode === null
+        ? `signal ${String(outcome.signal)}`
+        : `exit ${String(outcome.exitCode)}`
+      return { ref: launch.ref, ...outcome }
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error)
+      throw error
+    } finally {
+      try {
+        await launch.handle.waitForExit()
+      } catch (error) {
+        failure = error instanceof Error ? error.message : String(error)
+        throw error
+      } finally {
+        this.finish(launch, failure)
+      }
+    }
   }
 
   private async resolveEnvironment(): Promise<Record<string, string>> {

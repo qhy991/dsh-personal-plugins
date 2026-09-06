@@ -314,6 +314,18 @@ export class KersorViewerService extends TypertRemoteService {
       if (ref.discovery === 'active') this.attachTailer(tracked)
       else void this.backfillTerminated(tracked)
     }
+    for (const tracked of this.tracked.values()) {
+      if (tracked.view.status !== 'running') continue
+      const generation = tracked.generation
+      for (const call of tracked.view.phases.flatMap(phase => phase.calls)) {
+        if (call.kind !== 'agent' || call.status !== 'running') continue
+        const detail = await readCallDetail(tracked.ref.runDir, call)
+        if (detail !== undefined && generation === tracked.generation
+          && this.tracked.get(tracked.ref.runDir) === tracked) {
+          this.rootCtx.emit('kersor/event', { kind: 'call', runDir: tracked.ref.runDir, detail } satisfies KersorViewerFrame)
+        }
+      }
+    }
     this.publishSnapshot()
   }
 
