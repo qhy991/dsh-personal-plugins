@@ -29,7 +29,7 @@
 
 ## 安装或更新
 
-需要 Python 3.10+、已安装的 DSH，以及一个 KerSor checkout。若要使用
+需要 Python 3.10+（包含 PyYAML）、已安装的 DSH，以及一个 KerSor checkout。若要使用
 generic evolve，安装时还必须能解析 Bash、Node、jq；只有选择外部兼容 runtime
 时才需要 Codex 或 Claude Code。安装器会冻结这些命令的
 绝对路径，缺失或随后移动时 bridge 会要求重新安装，而不会回退到会话 PATH：

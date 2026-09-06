@@ -1959,13 +1959,11 @@ class InstallTests(unittest.TestCase):
         )
         self.assertIn("without a model-visible\nline projection", skill)
         self.assertIn("exactly one\nforeground DSH child", skill)
-        self.assertIn("DSH adapter registration is the sole owner", skill)
-        self.assertIn("personal Host is the budget-metering TCB", skill)
-        self.assertIn("does not independently prove the registration-owned context", skill)
-        self.assertIn(
-            "dsh-host-attested-actual-or-registration-context-reservation-v1",
-            skill,
-        )
+        self.assertIn("registration-owned `llm/prepared-stream` seam", skill)
+        self.assertIn("permits Core to omit `activation_budget`", skill)
+        self.assertIn("When Core explicitly supplies a positive activation\nbudget", skill)
+        self.assertIn("compaction share the existing cumulative reservation ledger", skill)
+        self.assertIn("Route or context-integrity failures still fail closed in both modes", skill)
         self.assertIn("must not read or copy the\nlong prompt", skill)
         self.assertNotIn('"action":"profile_context"', skill)
         self.assertNotIn('"action":"profile_seal"', skill)

@@ -16,6 +16,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install installer validation dependency
+        run: python3 -m pip install PyYAML
+
       - name: Resolve the pinned DSH test toolchain
         id: dsh-source
         run: >-
