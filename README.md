@@ -167,10 +167,12 @@ python3 scripts/install.py \
 |---|---|---|
 | GPU kernel 或带 benchmark 的本地优化 | 顶层 `kersor_start` → continuable DSH controller → `runtime=dsh` optimize | 父 Experiment 绑定、Session v2、Attempt Result、实测 benchmark |
 | 通用本地任务的固定验证循环 | KerSor preset → Host `kersor_evolve` → `runtime=dsh` → DSH `spawn` child；显式外部 Codex 请求保留 bridge | 固定 DSH route／usage receipt、Core artifact transaction、`output.json` 与 verifier evidence |
-| 自主 Workflow / Mission（只读或单文件事务） | KerSor preset → Host `kersor_evolve` → `runtime=dsh` → DSH `spawn` child | 固定 `deepseek-official/kimi-k2.7-code` route receipt、durable usage／terminal evidence、Core transaction／Host gate、`result.json` |
+| 自主 Workflow / Mission（只读或单文件事务） | KerSor preset → Host `kersor_evolve` → `runtime=dsh` → DSH `spawn` child | 冻结配置所选的 DSH route receipt、durable usage／terminal evidence、Core transaction／Host gate、`result.json` |
 | 超出 DSH 单文件 Mission 事务边界的自主 Workflow / Mission | KerSor preset → Host `kersor_evolve` → 外部 Codex／Claude-compatible worker | `result.json`、artifact receipts、独立 verifier |
 | 固定 HF 模型到 ApxInf 部署 | `kersor` adapter → KerSor `deploy-hf-model-to-apxinf` skill → 有限 dsh Mission 注册 | Host model／deployment gates、`result.json`、独立 verifier |
 | 状态、恢复、诊断 | child 调用 `kersor_status`；父对话用 `kersor_resume` 恢复同一 child | 当前磁盘 Session + 原 DSH child，不依赖聊天记忆 |
+
+Kimi K3 可通过显式 `runtime_config` 使用 Infini-AI；旧 K2.7 默认配置继续可用。见 [K3 配置与验证](docs/use-cases/kimi-k3.md)。
 
 `kersor-task-v1` 的 `native_subagents: 1..4` 在 DSH route 上创建有界 adviser
 树：每轮仍只有一个可写 primary Worker，但它会先启动指定数量的前台只读

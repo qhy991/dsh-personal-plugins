@@ -26,6 +26,8 @@ export const DSH_RPC_PROTOCOL = 'kersor-dsh-host-rpc-v3'
 export const DSH_RPC_MAX_FRAME_BYTES = 16 * 1024 * 1024
 export const DSH_PROVIDER = 'deepseek-official'
 export const DSH_MODEL = 'kimi-k2.7-code'
+const DEFAULT_DSH_ROUTE = Object.freeze({provider: DSH_PROVIDER, model: DSH_MODEL})
+const DSH_RUNTIME_CONFIGS = ['runtime-dsh-autonomous.json', 'runtime-dsh-infini-k3.json']
 export const DSH_BUDGET_CHARGE_BASIS = 'dsh-host-attested-actual-or-registration-context-reservation-v1'
 const DSH_RPC_SOCKET_ENV = 'KERSOR_DSH_RPC_SOCKET'
 const DSH_RPC_NONCE_ENV = 'KERSOR_DSH_RPC_NONCE'
@@ -540,9 +542,10 @@ function createDshBudgetRuntime(ctx) {
     const entry = sessions.get(String(options?.sessionId ?? ''))
     if (entry === undefined) return next()
     const ledger = entry.ledger
+    const route = entry.policy.route ?? DEFAULT_DSH_ROUTE
     if (
-      options.provider !== DSH_PROVIDER
-      || options.model !== DSH_MODEL
+      options.provider !== route.provider
+      || options.model !== route.model
       || !DSH_LLM_PURPOSES.has(options.purpose)
     ) {
       ledger.poison()
@@ -730,7 +733,7 @@ function providerFailureFrom(reason) {
   return {message, code, ...(status === undefined ? {} : {status})}
 }
 
-function finalCanonicalAssistantOutput(events, beforeSeq) {
+function finalCanonicalAssistantOutput(events, beforeSeq, route = DEFAULT_DSH_ROUTE) {
   let output = null
   for (const event of events) {
     if (event?.seq >= beforeSeq) break
@@ -744,8 +747,8 @@ function finalCanonicalAssistantOutput(events, beforeSeq) {
       || message.role !== 'assistant'
       || !isRecord(source)
       || source.kind !== 'model'
-      || source.provider !== DSH_PROVIDER
-      || source.model !== DSH_MODEL
+      || source.provider !== route.provider
+      || source.model !== route.model
       || !Array.isArray(message.content)
       || message.content.some(block => !isRecord(block) || typeof block.type !== 'string')
     ) {
@@ -941,7 +944,7 @@ function conversationUsageEvidence(events) {
   return {usage, complete, meteredSteps}
 }
 
-function childEvidence(agent, result) {
+function childEvidence(agent, result, route = DEFAULT_DSH_ROUTE) {
   const events = agent?.session?.events
   if (!Array.isArray(events)) throw new Error('DSH child did not expose a durable Session event log')
   const lifecycle = childLifecycle(events)
@@ -1015,7 +1018,7 @@ function childEvidence(agent, result) {
     const turnEnd = lifecycle.turnEnds[0]
     const startStep = childStep(stepStart.data, 'terminal quota step/start')
     const endStep = childStep(stepEnd.data, 'terminal quota step/end')
-    const priorAssistantOutput = finalCanonicalAssistantOutput(events, stepStart.seq)
+    const priorAssistantOutput = finalCanonicalAssistantOutput(events, stepStart.seq, route)
     const priorSteps = lifecycle.startedSteps.slice(0, -1)
     const terminalStepEvents = events.slice(stepStart.seq, stepEnd.seq + 1)
       .filter(event => DSH_STEP_SCOPED_EVENT_TYPES.has(event?.type))
@@ -1099,7 +1102,7 @@ function activationConversationEvidence(primaryEvidence, policy) {
     const evidence = childEvidence(adviser.agent, {
       stopReason: stopReason ?? 'error',
       output: [],
-    })
+    }, policy.route)
     addUsage(usage, evidence.conversationUsage.usage)
     complete = complete && evidence.conversationUsage.complete
     advisersValid = advisersValid && stopReason === 'completed' && evidence.usageComplete
@@ -1384,6 +1387,7 @@ async function prepareTransactionArtifacts(
 }
 
 async function readOnlyActivation(value, workspace, missionPolicy) {
+  const route = missionPolicy?.route ?? DEFAULT_DSH_ROUTE
   if (!isRecord(value)) throw new Error('DSH RPC activation must be an object')
   if (value.contract_version !== 'akw-js-runtime-v1') {
     throw new Error('DSH RPC activation contract_version is invalid')
@@ -1399,8 +1403,8 @@ async function readOnlyActivation(value, workspace, missionPolicy) {
       throw new Error('DSH RPC activation project_root must equal the calling workspace')
     }
   }
-  if (value.model !== undefined && value.model !== DSH_MODEL) {
-    throw new Error(`DSH RPC activation model must be ${DSH_MODEL}`)
+  if (value.model !== undefined && value.model !== route.model) {
+    throw new Error(`DSH RPC activation model must be ${route.model}`)
   }
   if (!isRecord(value.options)) {
     throw new Error('DSH RPC activation options must be an object')
@@ -1736,12 +1740,14 @@ async function executeDshActivation(
   budgetRuntime,
 ) {
   const activation = await readOnlyActivation(activationValue, workspace, missionPolicy)
+  const route = missionPolicy?.route ?? DEFAULT_DSH_ROUTE
   const operation = activationSignal(hostSignal, activation.timeoutSeconds)
   let policy
   let run
   let cleanupPromise = null
   try {
     policy = {
+      route,
       guardedAgents: new Set(),
       deniedMutation: null,
       transactionArtifacts: activation.transactionArtifacts,
@@ -1773,7 +1779,7 @@ async function executeDshActivation(
       prompt: activation.prompt,
       parent,
       signal: operation.signal,
-      agentOptions: {provider: DSH_PROVIDER, model: DSH_MODEL},
+      agentOptions: {provider: route.provider, model: route.model},
       ...activation.outputSchema === undefined ? {} : {outputSchema: activation.outputSchema},
       toolFilter: {allow: [
         ...DSH_READ_TOOLS,
@@ -1786,8 +1792,8 @@ async function executeDshActivation(
     }
     budgetRuntime.assertBound(policy, run.localAgent)
     if (
-      run.localAgent.options?.provider !== DSH_PROVIDER
-      || run.localAgent.options?.model !== DSH_MODEL
+      run.localAgent.options?.provider !== route.provider
+      || run.localAgent.options?.model !== route.model
     ) {
       throw new Error('DSH spawn child route does not match the pinned provider and model')
     }
@@ -1799,7 +1805,7 @@ async function executeDshActivation(
     if (!threadId) throw new Error('DSH spawn did not publish a child thread id')
     cleanupPromise = budgetRuntime.close(policy, run)
     await cleanupPromise
-    const evidence = childEvidence(run.localAgent, result)
+    const evidence = childEvidence(run.localAgent, result, route)
     const conversationEvidence = activationConversationEvidence(evidence, policy)
     const nativeSubagents = nativeSubagentEvidence(policy)
     const ledgerEvidence = policy.ledger.snapshot()
@@ -1840,8 +1846,8 @@ async function executeDshActivation(
       usage_observed: ledgerEvidence.usageObserved,
       usage_complete: usageComplete,
       thread_id: threadId,
-      provider: DSH_PROVIDER,
-      model: DSH_MODEL,
+      provider: route.provider,
+      model: route.model,
       model_role: activation.modelRole,
       isolation: 'fresh-dsh-subagent',
       artifacts: [],
@@ -2117,8 +2123,9 @@ async function contractRuntime(contract, workspace, requestedRuntime) {
   }
   const protectedFiles = [{path: contract, label: `${version === 'kersor-task-v1' ? 'Task' : 'Mission'} contract`}]
   if (value.runtime_config !== undefined) {
+    selected.runtimeConfig = await realpath(contractOwnedPath(value.runtime_config, 'runtime_config'))
     protectedFiles.push({
-      path: await realpath(contractOwnedPath(value.runtime_config, 'runtime_config')),
+      path: selected.runtimeConfig,
       label: 'runtime config',
     })
   }
@@ -2742,6 +2749,25 @@ function commandArguments(rawInput) {
   return value
 }
 
+async function dshRuntimeBinding(runtime, requestedConfig, workspace) {
+  const requested = requestedConfig ?? path.join(runtime.core, 'config', DSH_RUNTIME_CONFIGS[0])
+  const bytes = await readFile(requested)
+  for (const name of DSH_RUNTIME_CONFIGS) {
+    const candidate = path.join(runtime.core, 'config', name)
+    let trusted
+    try { trusted = await fileOutsideWorkspace(candidate, workspace, 'DSH runtime config') }
+    catch (error) { if (error.code === 'ENOENT') continue; throw error }
+    if (!bytes.equals(await readFile(trusted))) continue
+    const broker = JSON.parse(bytes.toString('utf8')).broker
+    if (!isRecord(broker) || broker.type !== 'dsh-host-rpc'
+      || !['provider','model'].every(k => typeof broker[k] === 'string' && broker[k] && !/\s/u.test(broker[k]))) {
+      throw new Error('Trusted DSH runtime config has an invalid model route')
+    }
+    return {route: Object.freeze({provider: broker.provider, model: broker.model}), sha256: createHash('sha256').update(bytes).digest('hex')}
+  }
+  throw new Error('DSH runtime config must match an install-recorded Core runtime preset')
+}
+
 async function executeEvolve(args, {
   ctx,
   budgetRuntime,
@@ -2756,6 +2782,10 @@ async function executeEvolve(args, {
   const predecessorRun = optionalPredecessorRun(args.predecessor_run, workspace, resume)
   const runtime = await installedRuntime(workspace)
   const selectedContract = await contractRuntime(contract, workspace, args.runtime)
+  const dshBinding = selectedContract.runtime === 'dsh'
+    ? await dshRuntimeBinding(runtime, selectedContract.runtimeConfig, workspace)
+    : null
+  if (dshBinding !== null) selectedContract.missionPolicy.route = dshBinding.route
   if (selectedContract.runtime === 'dsh' && !ctx?.subagents) {
     throw new Error('runtime=dsh requires the DSH subagent Host service')
   }
@@ -2775,6 +2805,7 @@ async function executeEvolve(args, {
   if (typeof selectedContract.runtime === 'string') {
     argv.push('--expected-runtime', selectedContract.runtime)
   }
+  if (dshBinding !== null) argv.push('--expected-runtime-config-sha256', dshBinding.sha256)
   if (runDir !== null) argv.push('--run-dir', runDir)
   if (predecessorRun !== null) argv.push('--predecessor-run', predecessorRun)
   if (resume) argv.push('--resume')

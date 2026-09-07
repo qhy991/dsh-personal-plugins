@@ -377,6 +377,7 @@ class InstallTests(unittest.TestCase):
                     "max_frame_bytes": 16 * 1024 * 1024,
                     "provider": "deepseek-official",
                     "model": "kimi-k2.7-code",
+                    "model_aliases": {role: "kimi-k2.7-code" for role in ("haiku", "sonnet", "opus")},
                     "timeout_seconds": 3600,
                 },
             }),

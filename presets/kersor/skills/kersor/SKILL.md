@@ -206,7 +206,10 @@ A candidate verifier must be a non-retryable, sealed, read-only `command-v1` Hos
 evaluator whose full request, rollback policy, and candidate gate match the
 frozen Mission; Core runs it while the snapshot is live and commits only an
 accepted candidate. Every activation still uses the owner-only AF_UNIX endpoint
-and a fresh DSH `spawn` child pinned to `deepseek-official/kimi-k2.7-code`.
+and a fresh DSH `spawn` child pinned to the selected install-recorded Core runtime config.
+The default remains `deepseek-official/kimi-k2.7-code`; explicit
+`runtime_config` may select `config/runtime-dsh-infini-k3.json` for
+`infini-ai/kimi-k3`. The matching model must already be registered in DSH.
 `kersor-dsh-host-rpc-v3` permits Core to omit `activation_budget`. The Host still
 binds provider calls at DSH's registration-owned `llm/prepared-stream` seam and
 records usage, but incomplete usage remains observational and does not reject a

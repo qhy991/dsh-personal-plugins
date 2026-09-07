@@ -1188,6 +1188,7 @@ const ctx = {
   },
   subagents: {
     async start(provider, value) {
+      child.options = request.child_route ?? value.agentOptions
       telemetry.starts.push({
         provider,
         label: value.label,
@@ -1276,8 +1277,8 @@ const ctx = {
       )
       for (const call of llmCalls) {
         await collectLlmStream({
-          provider: call.provider ?? plugin.DSH_PROVIDER,
-          model: call.model ?? plugin.DSH_MODEL,
+          provider: call.provider ?? child.options.provider,
+          model: call.model ?? child.options.model,
           sessionId: call.session_id === 'other' ? 'unrelated-session' : child.id,
           ...(call.purpose === undefined ? {} : {purpose: call.purpose}),
           messages: [],
@@ -1719,6 +1720,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
                     "max_frame_bytes": 16 * 1024 * 1024,
                     "provider": "deepseek-official",
                     "model": "kimi-k2.7-code",
+                    "model_aliases": {role: "kimi-k2.7-code" for role in ("haiku", "sonnet", "opus")},
                     "timeout_seconds": 3600,
                 },
             }),
@@ -2834,6 +2836,33 @@ class KerSorEvolvePluginTests(unittest.TestCase):
             "output_tokens": 7,
             "total_tokens": 23,
         })
+
+    def test_public_host_routes_k3_from_the_trusted_named_preset(self) -> None:
+        self.prepare_dsh_native_core()
+        value = json.loads((self.core / "config" / "runtime-dsh-autonomous.json").read_text())
+        value["broker"].update(provider="infini-ai", model="kimi-k3", model_aliases={role: "kimi-k3" for role in ("haiku", "sonnet", "opus")})
+        preset = self.core / "config" / "runtime-dsh-infini-k3.json"
+        preset.write_text(json.dumps(value))
+        config = self.workspace / "k3-runtime.json"
+        config.write_bytes(preset.read_bytes())
+        contract = self.write_contract(
+            contract_version="kersor-mission-v1", workspace=str(self.workspace),
+            session=str(self.workspace / ".kersor-autonomous" / "k3-probe"), runtime="dsh",
+            runtime_config=config.name,
+            mission={"mission_id": "k3-probe", "goal": "inspect safely", "authority": ["read workspace"], "required_artifacts": [], "required_facts": {}, "max_revisions": 1},
+            capabilities=[{"name": "inspect", "side_effect": "read"}],
+        )
+        result = self.invoke_dsh_native(contract)
+        self.assertEqual(result["value"]["status"], "completed", result)
+        self.assertEqual(result["telemetry"]["starts"][0]["agent_options"], {"provider": "infini-ai", "model": "kimi-k3"})
+        self.assertEqual(result["value"]["dsh_result"]["model"], "kimi-k3")
+        self.assertTrue(result["value"]["dsh_result"]["usage_complete"])
+        value["broker"]["model"] = "untrusted-model"
+        config.write_text(json.dumps(value))
+        rejected = self.invoke_dsh_native(contract)
+        self.assertEqual(rejected["value"]["status"], "failed", rejected)
+        self.assertIn("install-recorded", rejected["value"]["error"])
+        self.assertEqual(rejected["telemetry"]["provider_calls"], 0)
 
     def test_public_host_allows_only_hash_bound_agent_document_reads(self) -> None:
         self.prepare_dsh_native_core()
