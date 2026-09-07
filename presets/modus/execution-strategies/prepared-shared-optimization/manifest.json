@@ -1,0 +1,13 @@
+{
+  "schema": "dsh-modus-execution-strategy-v1",
+  "strategy_id": "prepared-shared-optimization",
+  "status": "evidence-bounded-transfer-strategy",
+  "behavior_contract": {
+    "topology": "observer-shared-target",
+    "reusable_preparation": "required"
+  },
+  "path": "profile.md",
+  "sha256": "4c8c3c325792267bbda83de0167ec026700989be9fb5f38ae16c033e95ad8280",
+  "evidence_ref": "evidence:profile-affinity:prepared-shared-optimization",
+  "claim_boundary": "Qualified for prospective transfer only where the Router evidence registry reports an applicable repeated-preparation task signature."
+}

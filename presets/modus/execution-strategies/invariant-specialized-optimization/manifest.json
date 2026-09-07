@@ -1,0 +1,13 @@
+{
+  "schema": "dsh-modus-execution-strategy-v1",
+  "strategy_id": "invariant-specialized-optimization",
+  "status": "unqualified-development-candidate",
+  "behavior_contract": {
+    "topology": "observer-shared-target",
+    "reusable_preparation": "loop-invariant-configuration-only"
+  },
+  "path": "profile.md",
+  "sha256": "6d639921f65b4edc5108b52afc002dbcfb7d5025ab803baea45c783afd1eb3a4",
+  "evidence_ref": "hypothesis:direct-transform:invariant-specialization",
+  "claim_boundary": "Development-only candidate motivated by one observed direct-transform failure. It is not Router-eligible until manipulation, correctness, performance, stability, and held-out transfer gates pass."
+}

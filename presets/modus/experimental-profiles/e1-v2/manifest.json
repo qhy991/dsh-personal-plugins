@@ -1,0 +1,14 @@
+{
+  "schema": "dsh-modus-experimental-profile-candidate-v1",
+  "status": "unqualified-development-candidate",
+  "profile": "p100",
+  "candidate_id": "e1-v2",
+  "upstream": {
+    "repository": "qhy991/Modus",
+    "commit": "a12d0e7b82262e1e8742e3f6362a4c7db0aa0350",
+    "component_source": "config/modus-edit-topology-component-source-v2.json",
+    "component_source_sha256": "656e163f0cc7cf5b281a24e9eac9610b028d6c6bd5d62a226e7e21dcabf7c1fb"
+  },
+  "path": "p100.md",
+  "sha256": "c4d0326d4fb5afb14aa51aeb91653fa7771610a41eb53de019c87bf9ff3419e1"
+}

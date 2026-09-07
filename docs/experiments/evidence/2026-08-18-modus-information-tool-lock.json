@@ -1,0 +1,61 @@
+{
+  "schema": "modus-information-tool-lock-development-evidence-v1",
+  "date": "2026-08-18",
+  "scientific_evidence": false,
+  "outcome_evidence": false,
+  "source_pilot": {
+    "repository": "qhy991/Modus",
+    "commit": "75c7b96",
+    "cells": 9,
+    "correct_cells": 9,
+    "p000_gate_denials": 6,
+    "p100_gate_denials": 19,
+    "largest_single_cell_gate_denials": 16,
+    "largest_single_cell_total_tokens": 198211
+  },
+  "mechanism": {
+    "profiles": ["p000", "p100"],
+    "neutral_untreated": true,
+    "allowed_executed_pre_edit_information_calls": 3,
+    "hidden_after_first_limit": ["read", "read_image", "glob", "grep", "bash"],
+    "kept_visible": ["edit", "write"],
+    "typed_edit_restores_information_tools": true,
+    "hmr_reconstructs_lock": true,
+    "agent_disposal_releases_lock": true
+  },
+  "verification": {
+    "node_plugin_tests_passed": 35,
+    "repository_python_tests_passed": 32,
+    "real_dsh_compatibility_tests_passed": 17,
+    "fixed_real_tool_runtime_schema_transition": "passed",
+    "fixed_hmr_lock_and_release": "passed"
+  },
+  "real_model_sentinel": {
+    "scientific_evidence": false,
+    "excluded_from_prior_matrix": true,
+    "action": "p100",
+    "terminal": "completed",
+    "correct": true,
+    "steady_seconds": 0.010545447265625,
+    "usage": {
+      "uncached_input_tokens": 16650,
+      "cache_read_tokens": 55808,
+      "output_tokens": 3175,
+      "total_tokens": 75633
+    },
+    "pre_edit_information_attempts": 6,
+    "executed_pre_edit_information_attempts": 3,
+    "gate_denials": 3,
+    "first_edit_step": 3,
+    "tool_schema_sequence": [
+      "full",
+      "full",
+      "information-tools-hidden",
+      "full-after-edit"
+    ],
+    "manifest_sha256": "2e4bc63e2d5d05fe58c5d2a56bc342c3bf2e8515451e019c8b4b6503c029aa7a",
+    "record_sha256": "ea30c4c38f2d8cbbf1761f76643bca32f900d26ecbf65847fa67cd9c74a0eb45",
+    "session_export_sha256": "21f868aa7bb194781f43006865e8bef92bd4bf6affb1fda1c6f376d0f2e8cf2b"
+  },
+  "claim_boundary": "Mechanism evidence only. The real-model sentinel proves schema hiding removes sequential deny churn but does not estimate a typical token or outcome improvement."
+}
