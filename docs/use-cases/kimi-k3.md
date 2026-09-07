@@ -24,3 +24,9 @@ other provider/model receipts and config changes during launch are rejected.
 
 K3 registration and reasoning parameters follow the
 [Infini-AI Kimi documentation](https://docs.infini-ai.com/gen-studio/api/text-generation/tutorial-reasoning/kimi.html).
+
+Native DSH activations now default to a four-hour maximum (14400 seconds).
+Mission planner/node timeouts explicitly set in a contract may be shorter;
+set `planner_timeout_seconds` and `node_timeout_seconds` to `14400` when
+those Mission phases need the full allowance. Historical frozen runtime
+configs and receipts are immutable: use the updated preset in a new run.

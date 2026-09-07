@@ -378,7 +378,7 @@ class InstallTests(unittest.TestCase):
                     "provider": "deepseek-official",
                     "model": "kimi-k2.7-code",
                     "model_aliases": {role: "kimi-k2.7-code" for role in ("haiku", "sonnet", "opus")},
-                    "timeout_seconds": 3600,
+                    "timeout_seconds": 14400,
                 },
             }),
             encoding="utf-8",

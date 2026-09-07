@@ -1721,7 +1721,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
                     "provider": "deepseek-official",
                     "model": "kimi-k2.7-code",
                     "model_aliases": {role: "kimi-k2.7-code" for role in ("haiku", "sonnet", "opus")},
-                    "timeout_seconds": 3600,
+                    "timeout_seconds": 14400,
                 },
             }),
             encoding="utf-8",
@@ -2243,14 +2243,14 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         self.assertEqual(result["value"]["status"], "completed", result)
         self.assertEqual(result["value"]["activation_count"], 2)
 
-    def test_dsh_activation_timeout_is_bounded_to_one_hour(self) -> None:
+    def test_dsh_activation_timeout_is_bounded_to_four_hours(self) -> None:
         self.prepare_dsh_native_core()
         contract = self.write_contract(
             contract_version="kersor-mission-v1",
             workspace=str(self.workspace),
             session=str(self.workspace / ".kersor-autonomous" / "hour-timeout"),
             runtime="dsh",
-            activation_timeout_seconds=3600,
+            activation_timeout_seconds=14400,
             mission={
                 "mission_id": "hour-timeout",
                 "goal": "accept the canonical DSH activation ceiling",
@@ -2269,7 +2269,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         self.assertEqual(len(accepted["telemetry"]["starts"]), 1)
 
         contract_value = json.loads(contract.read_text(encoding="utf-8"))
-        contract_value["activation_timeout_seconds"] = 3601
+        contract_value["activation_timeout_seconds"] = 14401
         contract_value["probe_mode"] = "capture-error"
         contract.write_text(json.dumps(contract_value), encoding="utf-8")
 
@@ -2277,7 +2277,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
 
         self.assertTrue(rejected["ok"], rejected.get("error"))
         self.assertEqual(rejected["value"]["status"], "failed", rejected)
-        self.assertIn("timeout_seconds must be in (0, 3600]", rejected["value"]["error"])
+        self.assertIn("timeout_seconds must be in (0, 14400]", rejected["value"]["error"])
         self.assertEqual(rejected["telemetry"]["starts"], [])
 
     def test_public_host_allows_omitted_activation_budget_and_rejects_malformed_ones(self) -> None:

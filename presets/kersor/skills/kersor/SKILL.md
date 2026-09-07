@@ -86,7 +86,7 @@ wrong.
   never inherited. DSH does not add a competing process-wide elapsed-time
   watchdog around the complete multi-activation Core run; each activation and
   Host evaluator retains its own finite timeout. The canonical DSH activation
-  timeout defaults to and is capped at 3600 seconds; Host evaluators keep their
+  timeout defaults to and is capped at 14400 seconds; Host evaluators keep their
   separate 120-second ceiling. Cancellation and output caps stay active at the
   outer process. Provider CLIs use their
   install-recorded local login. Resume only on a later user turn
