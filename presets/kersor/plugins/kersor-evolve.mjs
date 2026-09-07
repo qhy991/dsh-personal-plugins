@@ -944,8 +944,15 @@ function conversationUsageEvidence(events) {
   return {usage, complete, meteredSteps}
 }
 
+export function sessionEventSnapshot(session) {
+  // Current DSH returns immutable snapshots; older supported hosts expose the
+  // same canonical log through an events array. Never fabricate lifecycle data.
+  if (typeof session?.snapshotEvents === 'function') return session.snapshotEvents()
+  return session?.events
+}
+
 function childEvidence(agent, result, route = DEFAULT_DSH_ROUTE) {
-  const events = agent?.session?.events
+  const events = sessionEventSnapshot(agent?.session)
   if (!Array.isArray(events)) throw new Error('DSH child did not expose a durable Session event log')
   const lifecycle = childLifecycle(events)
   const conversation = conversationUsageEvidence(events)
@@ -1068,7 +1075,7 @@ function childEvidence(agent, result, route = DEFAULT_DSH_ROUTE) {
 }
 
 function adviserStopReason(agent) {
-  const events = agent?.session?.events
+  const events = sessionEventSnapshot(agent?.session)
   if (!Array.isArray(events)) return null
   const terminal = [...events].reverse().find(event => event?.type === 'turn/end')
   return terminalStopReason(terminal?.data?.reason)
@@ -1950,7 +1957,7 @@ async function executeDshActivation(
         receipt,
       )
     }
-    const mutationReceipt = deniedMutationReceipt(run.localAgent.session.events, policy.deniedMutation)
+    const mutationReceipt = deniedMutationReceipt(sessionEventSnapshot(run.localAgent.session), policy.deniedMutation)
     if (policy.deniedMutation !== null && mutationReceipt === undefined) {
       throw dshActivationError(
         'DSH_CHILD_EVIDENCE_INVALID',
@@ -2586,7 +2593,7 @@ async function topLevelWorkspace(agent) {
 }
 
 function toolCallTurn(session, callId) {
-  const events = Array.isArray(session?.events) ? session.events : []
+  const events = Array.isArray(sessionEventSnapshot(session)) ? sessionEventSnapshot(session) : []
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
     if (event?.type !== 'tool/call' || event.data?.callId !== callId) continue
@@ -2610,7 +2617,7 @@ function isEvolveLaunchEvent(event) {
 }
 
 function hasPriorEvolveCall(session, exec) {
-  const events = Array.isArray(session?.events) ? session.events : []
+  const events = Array.isArray(sessionEventSnapshot(session)) ? sessionEventSnapshot(session) : []
   const currentCallIds = new Set([exec.callId, exec.rootCallId].filter(value => value !== undefined))
   let currentIndex = -1
   for (let index = events.length - 1; index >= 0; index -= 1) {
@@ -2638,7 +2645,7 @@ function claimSession(session, exec) {
 }
 
 function commandRunIndex(session, commandId) {
-  const events = Array.isArray(session?.events) ? session.events : []
+  const events = Array.isArray(sessionEventSnapshot(session)) ? sessionEventSnapshot(session) : []
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
     if (event?.type === 'command/run' && event.data?.commandId === commandId) return index
@@ -2650,7 +2657,7 @@ function claimCommandSession(session, commandId) {
   if (!isRecord(session)) throw new Error('kersor_evolve requires a stable DSH session')
   const currentIndex = commandRunIndex(session, commandId)
   if (currentIndex < 0) throw new Error('kersor_evolve could not bind its DSH command lifecycle')
-  const events = session.events
+  const events = sessionEventSnapshot(session)
   const prior = events.slice(0, currentIndex).some(isEvolveLaunchEvent)
   if (CLAIMED_SESSIONS.has(session) || prior) {
     throw new Error('kersor_evolve permits only one launch per top-level DSH session; retry in a new session')

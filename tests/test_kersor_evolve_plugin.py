@@ -1607,6 +1607,29 @@ process.stdout.write(JSON.stringify(payload))
 class KerSorEvolvePluginTests(unittest.TestCase):
     """Exercise path custody, Host spawning, terminal handling, and cancellation."""
 
+    def test_immutable_session_snapshot_api_and_legacy_log(self) -> None:
+        script = r"""
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+const {sessionEventSnapshot} = await import(pathToFileURL(process.argv[1]).href);
+const events = [{type: 'command/run', data: {commandId: 'one'}}];
+const session = {
+  snapshotEvents: () => Object.freeze([...events]),
+  get events() { throw new Error('removed events API was accessed'); },
+};
+const first = sessionEventSnapshot(session);
+events.push({type: 'command/done', data: {commandId: 'one'}});
+assert.equal(first.length, 1);
+assert.equal(sessionEventSnapshot(session).length, 2);
+assert.equal(sessionEventSnapshot({events}), events);
+assert.equal(sessionEventSnapshot(undefined), undefined);
+"""
+        result = subprocess.run(
+            [NODE, "--input-type=module", "-e", script, str(SOURCE)],
+            capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)

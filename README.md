@@ -4,6 +4,8 @@
 
 当前发布的任务验收与实时轨迹说明见 [Host viewer](plugins/kersor-viewer/README.zh.md) 和 [KerSor view](plugins/ui-kersor-viewer/README.zh.md)。冻结发布使用匹配的 DSH 构建记录；CLI 测试样例不属于运行构建输入，CLI 运行源码、package manifests 与重建产物继续逐项校验。
 
+更新后 DSH 的独立 K3 Mission 启动与恢复说明见[兼容入口](docs/use-cases/updated-dsh-k3-mission.md)。
+
 ## 五分钟上手
 
 1. 安装或更新 preset：
