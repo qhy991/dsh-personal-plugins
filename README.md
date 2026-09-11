@@ -225,7 +225,7 @@ python3 scripts/install.py \
 | 通用本地任务的固定验证循环 | KerSor preset → Host `kersor_evolve` → `runtime=dsh` → DSH `spawn` child；显式外部 Codex 请求保留 bridge | 固定 DSH route／usage receipt、Core artifact transaction、`output.json` 与 verifier evidence |
 | 自主 Workflow / Mission（只读或单文件事务） | KerSor preset → Host `kersor_evolve` → `runtime=dsh` → DSH `spawn` child | 固定 `deepseek-official/kimi-k2.7-code` route receipt、durable usage／terminal evidence、Core transaction／Host gate、`result.json` |
 | 超出 DSH 单文件 Mission 事务边界的自主 Workflow / Mission | KerSor preset → Host `kersor_evolve` → 外部 Codex／Claude-compatible worker | `result.json`、artifact receipts、独立 verifier |
-| 固定 HF 模型到 ApxInf 部署 | `kersor` adapter → KerSor `deploy-hf-model-to-apxinf` skill → 有限 dsh Mission 注册 | Host model／deployment gates、`result.json`、独立 verifier |
+| 固定 HF 模型到 ApxInf 部署 | `kersor` adapter → ApxInf 开发规则 → 带 reference/replay/divergence 探针的有限 generic Mission | Host model／deployment gates、`result.json`、独立 verifier |
 | 状态、恢复、诊断 | child 调用 `kersor_status`；父对话用 `kersor_resume` 恢复同一 child | 当前磁盘 Session + 原 DSH child，不依赖聊天记忆 |
 
 `kersor-task-v1` 的 `native_subagents: 1..4` 在 DSH route 上创建有界 adviser

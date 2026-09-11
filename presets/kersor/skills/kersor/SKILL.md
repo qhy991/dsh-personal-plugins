@@ -117,10 +117,17 @@ wrong.
   terminal JSON/status and stop.
 - For a kernel file or task directory, preflight the direct route with `"${KERSOR_PYTHON:-python3}" "$bridge" compose optimize --path <path> --json`.
 - For a pinned Hugging Face model that must be ported and deployed through
-  ApxInf, read `$kersor_root/skills/deploy-hf-model-to-apxinf/SKILL.md`
-  completely and follow its request-materialization and finite dsh Mission
-  registration path. Do not route this open repository/service task through
-  kernel `compose optimize` or copy its domain policy into this adapter.
+  ApxInf, use the generic Mission route below and first read the target
+  workspace's `doc/adding-a-new-model.md`. Freeze the full model revision,
+  target, existing manager-owned verifiers, permissions and one proposal
+  artifact. When the Host already provides concrete commands, register separate
+  model inspection, reference checkpoint, native component replay,
+  earliest-divergence and candidate-gate capabilities; mark only measured
+  reference/replay/divergence actions as `discriminating_probe: true`. Do not
+  invent a missing command, route this open repository/service task through
+  kernel `compose optimize`, or rely on a Core skill path that is absent from
+  the installed checkout. Use an external runtime when the required mutation
+  cannot fit DSH-native's one-file Mission transaction.
 - For a bundled case, list or match cases first, then use `"${KERSOR_PYTHON:-python3}" "$bridge" compose build --case <id> --json`.
 - For environment diagnosis, use `"${KERSOR_PYTHON:-python3}" "$bridge" doctor --runtime dsh`.
 - For status, call `kersor_status` first with an empty argument object. It always reads the current DSH workspace; never pass the KerSor checkout or another filesystem path. It reads canonical Session and Attempt Result stores and renders the live round, workflow, best measured speedup, target, fit, and recent decisions.
