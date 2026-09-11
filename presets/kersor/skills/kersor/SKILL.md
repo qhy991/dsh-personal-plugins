@@ -236,7 +236,9 @@ budget still requires `llm/prepared-stream`; primary-worker and adviser requests
 retries, automatic title generation, and compaction then share the existing
 cumulative reservation ledger. Its upper-bound receipt and typed
 `DSH_CHILD_TOKEN_BUDGET_EXHAUSTED` semantics remain unchanged. The
-nonce-authenticated personal Host is the budget-metering TCB. A bounded receipt uses the
+DSH adapter registration is the sole owner of the actual dispatch context
+window for a bounded activation. The nonce-authenticated personal Host is the budget-metering TCB.
+A bounded receipt uses the
 `dsh-host-attested-actual-or-registration-context-reservation-v1` basis and
 never relabels a reservation as actual usage. Core validates the receipt's
 arithmetic and declared bounds; it does not independently prove the registration-owned context.
