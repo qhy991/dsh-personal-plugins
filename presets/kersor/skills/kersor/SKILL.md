@@ -225,6 +225,12 @@ completed worker output. When Core explicitly supplies a positive activation
 budget, primary-worker and adviser requests, retries, automatic title generation,
 and compaction share the existing cumulative reservation ledger; its upper-bound
 receipt and typed `DSH_CHILD_TOKEN_BUDGET_EXHAUSTED` semantics remain unchanged.
+DSH adapter registration is the sole owner of the actual dispatch context
+window, and this nonce-authenticated personal Host is the budget-metering TCB;
+Core does not duplicate or rederive that context. A bounded receipt uses the
+`dsh-host-attested-actual-or-registration-context-reservation-v1` basis and
+never relabels a reservation as actual usage. Core validates the receipt's
+arithmetic and declared bounds; it does not independently prove the registration-owned context.
 Route or context-integrity failures still fail closed in both modes, and
 per-request `maxTokens` is not an episode budget.
 

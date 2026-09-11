@@ -16,6 +16,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Python test dependencies
+        run: python3 -m pip install --disable-pip-version-check pyyaml
+
       - name: Resolve the pinned DSH test toolchain
         id: dsh-source
         run: >-
@@ -27,5 +30,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.dsh-source.outputs.node }}
+
+      - name: Install pinned pnpm test toolchain
+        run: npm install --global pnpm@11.7.0
 
       - run: python3 scripts/check.py

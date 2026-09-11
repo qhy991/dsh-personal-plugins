@@ -96,6 +96,7 @@ STANDARD = """# The `standard` agent preset.
       config:
         provider: spawn
         toolName: subagent
+        modelSelectionSettings: true
         backgroundMode: continuable
 """
 
