@@ -179,7 +179,7 @@ Mission must bind
 uses `runtime-codex-autonomous.json`. Under `runtime=claude`, both profiles use
 the sole canonical `runtime-claude-autonomous.json`: the broker maps read-only
 capabilities to exactly `Read,Glob,Grep` and transaction-backed writes to exactly
-`Read,Glob,Grep,Edit,Write`, requires its per-activation OS filesystem sandbox,
+`Read,Glob,Grep,Edit,Write,Task,Bash`, requires its per-activation OS filesystem sandbox,
 and fails preflight if that boundary is unavailable. Declare every intended
 transaction artifact and
 keep unrelated files and tests immutable. Do not author an arbitrary
