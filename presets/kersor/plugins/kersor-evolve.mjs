@@ -27,7 +27,11 @@ export const DSH_RPC_MAX_FRAME_BYTES = 16 * 1024 * 1024
 export const DSH_PROVIDER = 'deepseek-official'
 export const DSH_MODEL = 'kimi-k2.7-code'
 const DEFAULT_DSH_ROUTE = Object.freeze({provider: DSH_PROVIDER, model: DSH_MODEL})
-const DSH_RUNTIME_CONFIGS = ['runtime-dsh-autonomous.json', 'runtime-dsh-infini-k3.json']
+const DSH_RUNTIME_CONFIGS = [
+  'runtime-dsh-autonomous.json',
+  'runtime-dsh-infini-k3.json',
+  'runtime-dsh-deepseek-flash.json',
+]
 export const DSH_BUDGET_CHARGE_BASIS = 'dsh-host-attested-actual-or-registration-context-reservation-v1'
 const DSH_RPC_SOCKET_ENV = 'KERSOR_DSH_RPC_SOCKET'
 const DSH_RPC_NONCE_ENV = 'KERSOR_DSH_RPC_NONCE'

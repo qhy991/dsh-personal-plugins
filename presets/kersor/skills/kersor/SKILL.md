@@ -226,7 +226,8 @@ frozen Mission; Core runs it while the snapshot is live and commits only an
 accepted candidate. Every activation still uses the owner-only AF_UNIX endpoint
 and a fresh DSH `spawn` child pinned to the route in an install-recorded Core
 runtime preset. Supported presets include `deepseek-official/kimi-k2.7-code`
-and `infini-ai/kimi-k3`; the matching model must already be registered in DSH.
+`infini-ai/kimi-k3`, and `deepseek-official/deepseek-v4-flash`; the matching
+model must already be registered in DSH.
 `kersor-dsh-host-rpc-v3` permits Core to omit `activation_budget`. The Host binds
 provider calls at DSH's registration-owned `llm/prepared-stream` seam or the
 current `llm/stream` boundary and records usage, but incomplete usage remains
