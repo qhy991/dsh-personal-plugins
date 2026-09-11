@@ -2055,13 +2055,17 @@ class InstallTests(unittest.TestCase):
         self.assertIn("`kersor_status` first with an empty argument object", skill)
         self.assertIn("never pass the KerSor checkout", skill)
 
-    def test_skill_routes_hf_apxinf_deployment_to_canonical_kersor_skill(self) -> None:
+    def test_skill_routes_hf_apxinf_deployment_to_native_generic_mission(self) -> None:
         skill = (
             ROOT / "presets" / "kersor" / "skills" / "kersor" / "SKILL.md"
         ).read_text(encoding="utf-8")
         self.assertIn("pinned Hugging Face to ApxInf deployment Missions", skill)
-        self.assertIn("skills/deploy-hf-model-to-apxinf/SKILL.md", skill)
-        self.assertIn("Do not route this open repository/service task", skill)
+        self.assertIn("workspace's `doc/adding-a-new-model.md`", skill)
+        self.assertIn("reference checkpoint, native component replay", skill)
+        self.assertIn("earliest-divergence", skill)
+        self.assertIn("`discriminating_probe: true`", skill)
+        self.assertIn("one-file Mission transaction", skill)
+        self.assertNotIn("skills/deploy-hf-model-to-apxinf/SKILL.md", skill)
 
     def make_status_project(self) -> Path:
         """Create a small v2 project whose stores exercise the bridge contract."""
