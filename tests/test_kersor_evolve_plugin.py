@@ -2278,6 +2278,36 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         self.assertIn("timeout_seconds must be in (0, 3600]", rejected["value"]["error"])
         self.assertEqual(rejected["telemetry"]["starts"], [])
 
+    def test_dsh_rejects_malformed_discriminating_probe_before_child_start(self) -> None:
+        self.prepare_dsh_native_core()
+        contract = self.write_contract(
+            contract_version="kersor-mission-v1",
+            workspace=str(self.workspace),
+            session=str(self.workspace / ".kersor-autonomous" / "invalid-probe"),
+            runtime="dsh",
+            mission={
+                "mission_id": "invalid-probe",
+                "goal": "reject malformed planning metadata",
+                "authority": ["read workspace"],
+                "required_artifacts": [],
+                "required_facts": {},
+                "max_revisions": 1,
+            },
+            capabilities=[{
+                "name": "inspect",
+                "required_authorities": ["read workspace"],
+                "side_effect": "read",
+                "discriminating_probe": "yes",
+            }],
+        )
+
+        result = self.invoke_dsh_native(contract)
+
+        self.assertTrue(result["ok"], result.get("error"))
+        self.assertEqual(result["value"]["status"], "failed", result)
+        self.assertIn("discriminating_probe must be a boolean", result["value"]["error"])
+        self.assertEqual(result["telemetry"]["starts"], [])
+
     def test_public_host_allows_omitted_activation_budget_and_rejects_malformed_ones(self) -> None:
         self.prepare_dsh_native_core()
         contract = self.write_dsh_failure_contract("unbounded-activation")
@@ -3946,6 +3976,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
                 {
                     "name": "verify_candidate",
                     "side_effect": "read",
+                    "discriminating_probe": True,
                     "produces_artifacts": ["measurement"],
                     "produces_facts": ["verified"],
                     "execution": {
