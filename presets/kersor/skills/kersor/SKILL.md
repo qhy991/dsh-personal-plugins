@@ -138,6 +138,17 @@ the user must not prepare Session JSON by hand.
 For a Mission, the capability registry may contain only authority already
 granted by the user's request. The planner may choose and revise nodes but may
 not invent permissions, verifier commands, output names, or Completion facts.
+When the task can fail repeatedly at a broad candidate gate, register the
+smallest available component/reference/counterexample action that can separate
+the live hypotheses and mark it `discriminating_probe: true`. The marker grants
+no tools or authority. For numerical ports, prefer separate Host-owned
+reference capture, native component replay, and earliest-divergence evaluator
+capabilities when the workspace already provides those commands; do not invent
+them or turn ordinary source review into a probe. New KerSor controllers expose
+the candidate failure streak and, after two failures, require an admitted probe
+before another candidate. If none is admitted, use a non-candidate capability
+to report the missing observation boundary instead of repeating the same full
+build/test loop.
 For an external runtime, bind acceptance to an existing workspace-owned
 deterministic command through a Host evaluator; declare `side_effect: "read"`, use `command-v1` with
 `filesystem_policy: "read-only"`, `network_policy: "denied"`,

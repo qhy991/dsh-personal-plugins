@@ -472,6 +472,11 @@ def mission_needs_write(value: dict[str, Any]) -> bool:
         if not isinstance(name, str) or not name or name in names:
             raise RuntimeError("Mission capability names must be unique and non-empty")
         names.add(name)
+        discriminating_probe = capability.get("discriminating_probe", False)
+        if not isinstance(discriminating_probe, bool):
+            raise RuntimeError(
+                "Mission capability discriminating_probe must be boolean"
+            )
         execution = capability.get("execution", {"kind": "agent"})
         if not isinstance(execution, dict):
             raise RuntimeError("Mission capability execution must be an object")

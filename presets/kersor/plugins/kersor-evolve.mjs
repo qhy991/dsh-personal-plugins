@@ -2245,6 +2245,12 @@ async function contractRuntime(contract, workspace, requestedRuntime) {
     }
     const admitted = requiredAuthorities.every(item => authority.has(item))
     if (admitted) admittedCount += 1
+    if (
+      capability.discriminating_probe !== undefined
+      && typeof capability.discriminating_probe !== 'boolean'
+    ) {
+      throw new Error('runtime=dsh discriminating_probe must be a boolean')
+    }
     const execution = capability.execution ?? {kind: 'agent'}
     if (!isRecord(execution)) throw new Error('runtime=dsh Mission capability execution must be an object')
     const executionKind = execution.kind ?? 'agent'

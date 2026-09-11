@@ -487,7 +487,12 @@ class InstallTests(unittest.TestCase):
         self,
     ) -> None:
         capabilities = self.candidate_verifier_capabilities()
+        capabilities[1]["discriminating_probe"] = True
         self.assertTrue(BRIDGE.mission_needs_write({"capabilities": capabilities}))
+        invalid_probe = json.loads(json.dumps(capabilities))
+        invalid_probe[1]["discriminating_probe"] = "yes"
+        with self.assertRaisesRegex(RuntimeError, "discriminating_probe"):
+            BRIDGE.mission_needs_write({"capabilities": invalid_probe})
         without_output_limit = json.loads(json.dumps(capabilities))
         without_output_limit[1]["execution"]["request"].pop("max_output_bytes")
         self.assertTrue(
