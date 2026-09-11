@@ -2953,6 +2953,55 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         self.assertIn("install-recorded", rejected["value"]["error"])
         self.assertEqual(rejected["telemetry"]["provider_calls"], 0)
 
+    def test_public_host_routes_flash_from_the_trusted_named_preset(self) -> None:
+        self.prepare_dsh_native_core()
+        value = json.loads(
+            (self.core / "config" / "runtime-dsh-autonomous.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        value["broker"].update(
+            provider="deepseek-official",
+            model="deepseek-v4-flash",
+            model_aliases={
+                role: "deepseek-v4-flash"
+                for role in ("haiku", "sonnet", "opus")
+            },
+        )
+        preset = self.core / "config" / "runtime-dsh-deepseek-flash.json"
+        preset.write_text(json.dumps(value), encoding="utf-8")
+        config = self.workspace / "flash-runtime.json"
+        config.write_bytes(preset.read_bytes())
+        contract = self.write_contract(
+            contract_version="kersor-mission-v1",
+            workspace=str(self.workspace),
+            session=str(self.workspace / ".kersor-autonomous" / "flash-probe"),
+            runtime="dsh",
+            runtime_config=config.name,
+            mission={
+                "mission_id": "flash-probe",
+                "goal": "inspect safely",
+                "authority": ["read workspace"],
+                "required_artifacts": [],
+                "required_facts": {},
+                "max_revisions": 1,
+            },
+            capabilities=[{"name": "inspect", "side_effect": "read"}],
+        )
+
+        result = self.invoke_dsh_native(contract)
+
+        self.assertEqual(result["value"]["status"], "completed", result)
+        self.assertEqual(
+            result["telemetry"]["starts"][0]["agent_options"],
+            {"provider": "deepseek-official", "model": "deepseek-v4-flash"},
+        )
+        self.assertEqual(
+            result["value"]["dsh_result"]["model"],
+            "deepseek-v4-flash",
+        )
+        self.assertTrue(result["value"]["dsh_result"]["usage_complete"])
+
     def test_public_host_allows_only_hash_bound_agent_document_reads(self) -> None:
         self.prepare_dsh_native_core()
         relative = ".kersor/agent-documents/0123456789abcdef/handoff.md"

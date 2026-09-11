@@ -861,6 +861,7 @@ def validate_dsh_runtime_config(
     trusted_configs = [
         expected_config,
         (root / "config" / "runtime-dsh-infini-k3.json").resolve(),
+        (root / "config" / "runtime-dsh-deepseek-flash.json").resolve(),
     ]
     config_bytes = None
     first_error = None
