@@ -356,7 +356,9 @@ class InstallTests(unittest.TestCase):
                     "command": "claude",
                     "permission_mode": "dontAsk",
                     "read_only_tools": ["Read", "Glob", "Grep"],
-                    "mutation_tools": ["Read", "Glob", "Grep", "Edit", "Write"],
+                    "mutation_tools": [
+                        "Read", "Glob", "Grep", "Edit", "Write", "Task", "Bash",
+                    ],
                     "safe_mode": True,
                     "no_session_persistence": True,
                     "preflight": True,
@@ -1028,7 +1030,7 @@ class InstallTests(unittest.TestCase):
             ),
             (
                 ("broker", "mutation_tools"),
-                ["Read", "Glob", "Grep", "Edit", "Write", "Bash"],
+                ["Read", "Glob", "Grep", "Edit", "Write", "Task"],
                 "mutation tool allowlist",
             ),
             (("broker", "extra_args"), ["--verbose"], "cannot add"),
