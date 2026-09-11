@@ -1183,11 +1183,12 @@ const ctx = {
     listeners.set(name, current)
     return () => undefined
   },
-  llm: {
-    preparedStreamVersion: request.prepared_stream_version ?? 1,
-  },
+  llm: request.current_stream_runtime === true
+    ? {stream() { throw new Error('the test driver dispatches streams through listeners') }}
+    : {preparedStreamVersion: request.prepared_stream_version ?? 1},
   subagents: {
     async start(provider, value) {
+      child.options = request.child_route ?? value.agentOptions
       telemetry.starts.push({
         provider,
         label: value.label,
@@ -1276,8 +1277,8 @@ const ctx = {
       )
       for (const call of llmCalls) {
         await collectLlmStream({
-          provider: call.provider ?? plugin.DSH_PROVIDER,
-          model: call.model ?? plugin.DSH_MODEL,
+          provider: call.provider ?? child.options.provider,
+          model: call.model ?? child.options.model,
           sessionId: call.session_id === 'other' ? 'unrelated-session' : child.id,
           ...(call.purpose === undefined ? {} : {purpose: call.purpose}),
           messages: [],
@@ -1863,6 +1864,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         late_same_session_probe: bool = False,
         trailing_title_event: bool = False,
         prepared_stream_version: int | None = 1,
+        current_stream_runtime: bool = False,
         invoke_command: bool = False,
         native_advisers: int = 0,
         agent_document: str | None = None,
@@ -1906,6 +1908,8 @@ class KerSorEvolvePluginTests(unittest.TestCase):
             request["trailing_title_event"] = True
         if prepared_stream_version is not None:
             request["prepared_stream_version"] = prepared_stream_version
+        if current_stream_runtime:
+            request["current_stream_runtime"] = True
         if invoke_command:
             request["invoke_command"] = True
         if agent_document is not None:
@@ -2241,14 +2245,14 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         self.assertEqual(result["value"]["status"], "completed", result)
         self.assertEqual(result["value"]["activation_count"], 2)
 
-    def test_dsh_activation_timeout_is_bounded_to_one_hour(self) -> None:
+    def test_dsh_activation_timeout_is_bounded_to_four_hours(self) -> None:
         self.prepare_dsh_native_core()
         contract = self.write_contract(
             contract_version="kersor-mission-v1",
             workspace=str(self.workspace),
             session=str(self.workspace / ".kersor-autonomous" / "hour-timeout"),
             runtime="dsh",
-            activation_timeout_seconds=3600,
+            activation_timeout_seconds=14400,
             mission={
                 "mission_id": "hour-timeout",
                 "goal": "accept the canonical DSH activation ceiling",
@@ -2267,7 +2271,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         self.assertEqual(len(accepted["telemetry"]["starts"]), 1)
 
         contract_value = json.loads(contract.read_text(encoding="utf-8"))
-        contract_value["activation_timeout_seconds"] = 3601
+        contract_value["activation_timeout_seconds"] = 14401
         contract_value["probe_mode"] = "capture-error"
         contract.write_text(json.dumps(contract_value), encoding="utf-8")
 
@@ -2275,7 +2279,7 @@ class KerSorEvolvePluginTests(unittest.TestCase):
 
         self.assertTrue(rejected["ok"], rejected.get("error"))
         self.assertEqual(rejected["value"]["status"], "failed", rejected)
-        self.assertIn("timeout_seconds must be in (0, 3600]", rejected["value"]["error"])
+        self.assertIn("timeout_seconds must be in (0, 14400]", rejected["value"]["error"])
         self.assertEqual(rejected["telemetry"]["starts"], [])
 
     def test_dsh_rejects_malformed_discriminating_probe_before_child_start(self) -> None:
@@ -2380,6 +2384,38 @@ class KerSorEvolvePluginTests(unittest.TestCase):
 
         self.assertIn("prepared-stream admission v1", result["apply_error"])
         self.assertEqual(result["telemetry"]["starts"], [])
+        self.assertEqual(result["telemetry"]["provider_calls"], 0)
+
+    def test_unbounded_activation_accepts_current_stream_runtime(self) -> None:
+        self.prepare_dsh_native_core()
+        contract = self.write_dsh_failure_contract("current-stream-runtime")
+        value = json.loads(contract.read_text(encoding="utf-8"))
+        value["omit_activation_budget"] = True
+        contract.write_text(json.dumps(value), encoding="utf-8")
+
+        result = self.invoke_dsh_native(
+            contract,
+            prepared_stream_version=None,
+            current_stream_runtime=True,
+        )
+
+        self.assertTrue(result["ok"], result.get("error"))
+        self.assertEqual(result["value"]["status"], "completed")
+        self.assertEqual(result["telemetry"]["provider_calls"], 1)
+
+    def test_bounded_activation_rejects_current_stream_without_context(self) -> None:
+        self.prepare_dsh_native_core()
+        contract = self.write_dsh_failure_contract("bounded-current-stream-runtime")
+
+        result = self.invoke_dsh_native(
+            contract,
+            prepared_stream_version=None,
+            current_stream_runtime=True,
+        )
+
+        self.assertTrue(result["ok"], result.get("error"))
+        response = result["value"]["dsh_response"]
+        self.assertEqual(response["error"]["code"], "DSH_CHILD_USAGE_INCOMPLETE")
         self.assertEqual(result["telemetry"]["provider_calls"], 0)
 
     def test_public_host_requires_prepared_context_before_provider_start(self) -> None:
@@ -2864,6 +2900,58 @@ class KerSorEvolvePluginTests(unittest.TestCase):
             "output_tokens": 7,
             "total_tokens": 23,
         })
+
+    def test_public_host_routes_k3_from_the_trusted_named_preset(self) -> None:
+        self.prepare_dsh_native_core()
+        value = json.loads(
+            (self.core / "config" / "runtime-dsh-autonomous.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        value["broker"].update(
+            provider="infini-ai",
+            model="kimi-k3",
+            model_aliases={
+                role: "kimi-k3" for role in ("haiku", "sonnet", "opus")
+            },
+        )
+        preset = self.core / "config" / "runtime-dsh-infini-k3.json"
+        preset.write_text(json.dumps(value), encoding="utf-8")
+        config = self.workspace / "k3-runtime.json"
+        config.write_bytes(preset.read_bytes())
+        contract = self.write_contract(
+            contract_version="kersor-mission-v1",
+            workspace=str(self.workspace),
+            session=str(self.workspace / ".kersor-autonomous" / "k3-probe"),
+            runtime="dsh",
+            runtime_config=config.name,
+            mission={
+                "mission_id": "k3-probe",
+                "goal": "inspect safely",
+                "authority": ["read workspace"],
+                "required_artifacts": [],
+                "required_facts": {},
+                "max_revisions": 1,
+            },
+            capabilities=[{"name": "inspect", "side_effect": "read"}],
+        )
+
+        result = self.invoke_dsh_native(contract)
+
+        self.assertEqual(result["value"]["status"], "completed", result)
+        self.assertEqual(
+            result["telemetry"]["starts"][0]["agent_options"],
+            {"provider": "infini-ai", "model": "kimi-k3"},
+        )
+        self.assertEqual(result["value"]["dsh_result"]["model"], "kimi-k3")
+        self.assertTrue(result["value"]["dsh_result"]["usage_complete"])
+
+        value["broker"]["model"] = "untrusted-model"
+        config.write_text(json.dumps(value), encoding="utf-8")
+        rejected = self.invoke_dsh_native(contract)
+        self.assertEqual(rejected["value"]["status"], "failed", rejected)
+        self.assertIn("install-recorded", rejected["value"]["error"])
+        self.assertEqual(rejected["telemetry"]["provider_calls"], 0)
 
     def test_public_host_allows_only_hash_bound_agent_document_reads(self) -> None:
         self.prepare_dsh_native_core()

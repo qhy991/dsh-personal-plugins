@@ -18,7 +18,7 @@ const BRIDGE = fileURLToPath(new URL('../bin/kersor_bridge.py', import.meta.url)
 const RUNTIME_TOOLS = fileURLToPath(new URL('../.local/runtime-tools.json', import.meta.url))
 const KERSOR_ROOT = fileURLToPath(new URL('../.local/kersor-root', import.meta.url))
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1_000
-const DSH_MAX_ACTIVATION_TIMEOUT_SECONDS = 3600
+const DSH_MAX_ACTIVATION_TIMEOUT_SECONDS = 14400
 const DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024
 const MAX_CONTRACT_BYTES = 1024 * 1024
 const KILL_GRACE_MS = 2_000
@@ -26,6 +26,8 @@ export const DSH_RPC_PROTOCOL = 'kersor-dsh-host-rpc-v3'
 export const DSH_RPC_MAX_FRAME_BYTES = 16 * 1024 * 1024
 export const DSH_PROVIDER = 'deepseek-official'
 export const DSH_MODEL = 'kimi-k2.7-code'
+const DEFAULT_DSH_ROUTE = Object.freeze({provider: DSH_PROVIDER, model: DSH_MODEL})
+const DSH_RUNTIME_CONFIGS = ['runtime-dsh-autonomous.json', 'runtime-dsh-infini-k3.json']
 export const DSH_BUDGET_CHARGE_BASIS = 'dsh-host-attested-actual-or-registration-context-reservation-v1'
 const DSH_RPC_SOCKET_ENV = 'KERSOR_DSH_RPC_SOCKET'
 const DSH_RPC_NONCE_ENV = 'KERSOR_DSH_RPC_NONCE'
@@ -80,6 +82,13 @@ const COMMAND_NAME = 'kersor-evolve'
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function sessionEvents(session) {
+  if (Array.isArray(session?.events)) return session.events
+  if (typeof session?.snapshotEvents !== 'function') return []
+  const events = session.snapshotEvents()
+  return Array.isArray(events) ? events : []
 }
 
 function inside(root, candidate) {
@@ -530,96 +539,113 @@ function budgetFailureStream(message, code = DSH_TOKEN_BUDGET_FINISH_CODE) {
   })()
 }
 
-function createDshBudgetRuntime(ctx) {
-  if (ctx.llm.preparedStreamVersion !== 1) {
-    throw new Error('KerSor DSH Host requires llm prepared-stream admission v1')
+function guardedDshStream(entry, options, next, contextWindow) {
+  const ledger = entry.ledger
+  const route = entry.policy.route ?? DEFAULT_DSH_ROUTE
+  if (
+    options.provider !== route.provider
+    || options.model !== route.model
+    || !DSH_LLM_PURPOSES.has(options.purpose)
+  ) {
+    ledger.poison()
+    return budgetFailureStream(
+      'KerSor DSH activation attempted an unpinned model route or purpose',
+      'DSH_ACTIVATION_MODEL_ROUTE_INVALID',
+    )
   }
-  const sessions = new Map()
-  ctx.on('llm/prepared-stream', (call, next) => {
-    const options = call?.options
-    const entry = sessions.get(String(options?.sessionId ?? ''))
-    if (entry === undefined) return next()
-    const ledger = entry.ledger
-    if (
-      options.provider !== DSH_PROVIDER
-      || options.model !== DSH_MODEL
-      || !DSH_LLM_PURPOSES.has(options.purpose)
-    ) {
+  return (async function* () {
+    if (!Number.isSafeInteger(contextWindow) || contextWindow <= 0) {
       ledger.poison()
-      return budgetFailureStream(
-        'KerSor DSH activation attempted an unpinned model route or purpose',
-        'DSH_ACTIVATION_MODEL_ROUTE_INVALID',
+      yield* budgetFailureStream(
+        'KerSor DSH activation requires a positive exact model context window',
+        'DSH_ACTIVATION_MODEL_CONTEXT_INVALID',
       )
+      return
     }
-    return (async function* () {
-      const currentContextWindow = call?.context?.contextWindow
-      if (!Number.isSafeInteger(currentContextWindow) || currentContextWindow <= 0) {
-        ledger.poison()
-        yield* budgetFailureStream(
-          'KerSor DSH activation requires a positive exact model context window',
-          'DSH_ACTIVATION_MODEL_CONTEXT_INVALID',
-        )
-        return
-      }
-      const reservation = await ledger.admit(
-        options.signal ?? ledger.signal,
-        currentContextWindow,
-      )
-      if (reservation.kind === 'denied') {
-        yield* budgetFailureStream(DSH_TOKEN_BUDGET_ERROR_MESSAGE)
-        return
-      }
-      if (reservation.kind !== 'admitted') {
-        yield* budgetFailureStream('KerSor DSH activation model ledger is closed', 'ABORTED')
-        return
-      }
-      let usage = null
-      let valid = true
-      let finishCount = 0
-      let sawFinish = false
-      const chunks = []
-      try {
-        for await (const chunk of next()) {
-          chunks.push(chunk)
-          if (chunk?.type === 'usage') {
-            if (usage !== null || sawFinish) {
-              valid = false
-            } else {
-              try {
-                usage = childUsageBuckets(chunk.usage)
-              } catch {
-                valid = false
-              }
-            }
-          } else if (chunk?.type === 'finish') {
-            finishCount += 1
-            sawFinish = true
-          } else if (sawFinish) {
+    const reservation = await ledger.admit(
+      options.signal ?? ledger.signal,
+      contextWindow,
+    )
+    if (reservation.kind === 'denied') {
+      yield* budgetFailureStream(DSH_TOKEN_BUDGET_ERROR_MESSAGE)
+      return
+    }
+    if (reservation.kind !== 'admitted') {
+      yield* budgetFailureStream('KerSor DSH activation model ledger is closed', 'ABORTED')
+      return
+    }
+    let usage = null
+    let valid = true
+    let finishCount = 0
+    let sawFinish = false
+    const chunks = []
+    try {
+      for await (const chunk of next()) {
+        chunks.push(chunk)
+        if (chunk?.type === 'usage') {
+          if (usage !== null || sawFinish) {
             valid = false
+          } else {
+            try {
+              usage = childUsageBuckets(chunk.usage)
+            } catch {
+              valid = false
+            }
           }
-          yield chunk
+        } else if (chunk?.type === 'finish') {
+          finishCount += 1
+          sawFinish = true
+        } else if (sawFinish) {
+          valid = false
         }
-      } catch (error) {
-        valid = false
-        throw error
-      } finally {
-        const knownZeroQuota = valid && finishCount === 1 && exactPreUsageQuota(chunks, usage)
-        const complete = valid
-          && finishCount === 1
-          && (knownZeroQuota || (
-            usage !== null && (
-              ledger.limitTokens === null
-              || usage.total_tokens <= reservation.reservedTokens
-            )
-          ))
-        ledger.settle(reservation, {
-          usage: knownZeroQuota ? null : usage,
-          complete,
-          purpose: options.purpose,
-        })
+        yield chunk
       }
-    })()
-  }, {global: true})
+    } catch (error) {
+      valid = false
+      throw error
+    } finally {
+      const knownZeroQuota = valid && finishCount === 1 && exactPreUsageQuota(chunks, usage)
+      const complete = valid
+        && finishCount === 1
+        && (knownZeroQuota || (
+          usage !== null && (
+            ledger.limitTokens === null
+            || usage.total_tokens <= reservation.reservedTokens
+          )
+        ))
+      ledger.settle(reservation, {
+        usage: knownZeroQuota ? null : usage,
+        complete,
+        purpose: options.purpose,
+      })
+    }
+  })()
+}
+
+function createDshBudgetRuntime(ctx) {
+  const sessions = new Map()
+  if (ctx.llm.preparedStreamVersion === 1) {
+    ctx.on('llm/prepared-stream', (call, next) => {
+      const options = call?.options
+      const entry = sessions.get(String(options?.sessionId ?? ''))
+      if (entry === undefined) return next()
+      return guardedDshStream(entry, options, next, call?.context?.contextWindow)
+    }, {global: true})
+  } else if (typeof ctx.llm.stream === 'function') {
+    ctx.on('llm/stream', (options, next) => {
+      const entry = sessions.get(String(options?.sessionId ?? ''))
+      if (entry === undefined) return next()
+      // Current DSH resolves and freezes the route before this waterfall. Its
+      // public event omits context metadata, so only unbounded activations can
+      // use it without inventing a token reservation. A unit reservation is
+      // bookkeeping-only when the ledger has no limit; observed usage remains
+      // the evidence authority.
+      const contextWindow = entry.ledger.limitTokens === null ? 1 : undefined
+      return guardedDshStream(entry, options, next, contextWindow)
+    }, {global: true})
+  } else {
+    throw new Error('KerSor DSH Host requires llm prepared-stream admission v1 or current llm/stream')
+  }
   return {
     create({activationBudget, signal}) {
       return new DshActivationTokenLedger({
@@ -730,7 +756,7 @@ function providerFailureFrom(reason) {
   return {message, code, ...(status === undefined ? {} : {status})}
 }
 
-function finalCanonicalAssistantOutput(events, beforeSeq) {
+function finalCanonicalAssistantOutput(events, beforeSeq, route = DEFAULT_DSH_ROUTE) {
   let output = null
   for (const event of events) {
     if (event?.seq >= beforeSeq) break
@@ -744,8 +770,8 @@ function finalCanonicalAssistantOutput(events, beforeSeq) {
       || message.role !== 'assistant'
       || !isRecord(source)
       || source.kind !== 'model'
-      || source.provider !== DSH_PROVIDER
-      || source.model !== DSH_MODEL
+      || source.provider !== route.provider
+      || source.model !== route.model
       || !Array.isArray(message.content)
       || message.content.some(block => !isRecord(block) || typeof block.type !== 'string')
     ) {
@@ -941,8 +967,8 @@ function conversationUsageEvidence(events) {
   return {usage, complete, meteredSteps}
 }
 
-function childEvidence(agent, result) {
-  const events = agent?.session?.events
+function childEvidence(agent, result, route = DEFAULT_DSH_ROUTE) {
+  const events = sessionEvents(agent?.session)
   if (!Array.isArray(events)) throw new Error('DSH child did not expose a durable Session event log')
   const lifecycle = childLifecycle(events)
   const conversation = conversationUsageEvidence(events)
@@ -1015,7 +1041,7 @@ function childEvidence(agent, result) {
     const turnEnd = lifecycle.turnEnds[0]
     const startStep = childStep(stepStart.data, 'terminal quota step/start')
     const endStep = childStep(stepEnd.data, 'terminal quota step/end')
-    const priorAssistantOutput = finalCanonicalAssistantOutput(events, stepStart.seq)
+    const priorAssistantOutput = finalCanonicalAssistantOutput(events, stepStart.seq, route)
     const priorSteps = lifecycle.startedSteps.slice(0, -1)
     const terminalStepEvents = events.slice(stepStart.seq, stepEnd.seq + 1)
       .filter(event => DSH_STEP_SCOPED_EVENT_TYPES.has(event?.type))
@@ -1065,7 +1091,7 @@ function childEvidence(agent, result) {
 }
 
 function adviserStopReason(agent) {
-  const events = agent?.session?.events
+  const events = sessionEvents(agent?.session)
   if (!Array.isArray(events)) return null
   const terminal = [...events].reverse().find(event => event?.type === 'turn/end')
   return terminalStopReason(terminal?.data?.reason)
@@ -1099,7 +1125,7 @@ function activationConversationEvidence(primaryEvidence, policy) {
     const evidence = childEvidence(adviser.agent, {
       stopReason: stopReason ?? 'error',
       output: [],
-    })
+    }, policy.route)
     addUsage(usage, evidence.conversationUsage.usage)
     complete = complete && evidence.conversationUsage.complete
     advisersValid = advisersValid && stopReason === 'completed' && evidence.usageComplete
@@ -1384,6 +1410,7 @@ async function prepareTransactionArtifacts(
 }
 
 async function readOnlyActivation(value, workspace, missionPolicy) {
+  const route = missionPolicy?.route ?? DEFAULT_DSH_ROUTE
   if (!isRecord(value)) throw new Error('DSH RPC activation must be an object')
   if (value.contract_version !== 'akw-js-runtime-v1') {
     throw new Error('DSH RPC activation contract_version is invalid')
@@ -1399,8 +1426,8 @@ async function readOnlyActivation(value, workspace, missionPolicy) {
       throw new Error('DSH RPC activation project_root must equal the calling workspace')
     }
   }
-  if (value.model !== undefined && value.model !== DSH_MODEL) {
-    throw new Error(`DSH RPC activation model must be ${DSH_MODEL}`)
+  if (value.model !== undefined && value.model !== route.model) {
+    throw new Error(`DSH RPC activation model must be ${route.model}`)
   }
   if (!isRecord(value.options)) {
     throw new Error('DSH RPC activation options must be an object')
@@ -1736,12 +1763,14 @@ async function executeDshActivation(
   budgetRuntime,
 ) {
   const activation = await readOnlyActivation(activationValue, workspace, missionPolicy)
+  const route = missionPolicy?.route ?? DEFAULT_DSH_ROUTE
   const operation = activationSignal(hostSignal, activation.timeoutSeconds)
   let policy
   let run
   let cleanupPromise = null
   try {
     policy = {
+      route,
       guardedAgents: new Set(),
       deniedMutation: null,
       transactionArtifacts: activation.transactionArtifacts,
@@ -1773,7 +1802,7 @@ async function executeDshActivation(
       prompt: activation.prompt,
       parent,
       signal: operation.signal,
-      agentOptions: {provider: DSH_PROVIDER, model: DSH_MODEL},
+      agentOptions: {provider: route.provider, model: route.model},
       ...activation.outputSchema === undefined ? {} : {outputSchema: activation.outputSchema},
       toolFilter: {allow: [
         ...DSH_READ_TOOLS,
@@ -1786,8 +1815,8 @@ async function executeDshActivation(
     }
     budgetRuntime.assertBound(policy, run.localAgent)
     if (
-      run.localAgent.options?.provider !== DSH_PROVIDER
-      || run.localAgent.options?.model !== DSH_MODEL
+      run.localAgent.options?.provider !== route.provider
+      || run.localAgent.options?.model !== route.model
     ) {
       throw new Error('DSH spawn child route does not match the pinned provider and model')
     }
@@ -1799,7 +1828,7 @@ async function executeDshActivation(
     if (!threadId) throw new Error('DSH spawn did not publish a child thread id')
     cleanupPromise = budgetRuntime.close(policy, run)
     await cleanupPromise
-    const evidence = childEvidence(run.localAgent, result)
+    const evidence = childEvidence(run.localAgent, result, route)
     const conversationEvidence = activationConversationEvidence(evidence, policy)
     const nativeSubagents = nativeSubagentEvidence(policy)
     const ledgerEvidence = policy.ledger.snapshot()
@@ -1840,8 +1869,8 @@ async function executeDshActivation(
       usage_observed: ledgerEvidence.usageObserved,
       usage_complete: usageComplete,
       thread_id: threadId,
-      provider: DSH_PROVIDER,
-      model: DSH_MODEL,
+      provider: route.provider,
+      model: route.model,
       model_role: activation.modelRole,
       isolation: 'fresh-dsh-subagent',
       artifacts: [],
@@ -1944,7 +1973,7 @@ async function executeDshActivation(
         receipt,
       )
     }
-    const mutationReceipt = deniedMutationReceipt(run.localAgent.session.events, policy.deniedMutation)
+    const mutationReceipt = deniedMutationReceipt(sessionEvents(run.localAgent.session), policy.deniedMutation)
     if (policy.deniedMutation !== null && mutationReceipt === undefined) {
       throw dshActivationError(
         'DSH_CHILD_EVIDENCE_INVALID',
@@ -2117,8 +2146,9 @@ async function contractRuntime(contract, workspace, requestedRuntime) {
   }
   const protectedFiles = [{path: contract, label: `${version === 'kersor-task-v1' ? 'Task' : 'Mission'} contract`}]
   if (value.runtime_config !== undefined) {
+    selected.runtimeConfig = await realpath(contractOwnedPath(value.runtime_config, 'runtime_config'))
     protectedFiles.push({
-      path: await realpath(contractOwnedPath(value.runtime_config, 'runtime_config')),
+      path: selected.runtimeConfig,
       label: 'runtime config',
     })
   }
@@ -2585,7 +2615,7 @@ async function topLevelWorkspace(agent) {
 }
 
 function toolCallTurn(session, callId) {
-  const events = Array.isArray(session?.events) ? session.events : []
+  const events = sessionEvents(session)
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
     if (event?.type !== 'tool/call' || event.data?.callId !== callId) continue
@@ -2609,7 +2639,7 @@ function isEvolveLaunchEvent(event) {
 }
 
 function hasPriorEvolveCall(session, exec) {
-  const events = Array.isArray(session?.events) ? session.events : []
+  const events = sessionEvents(session)
   const currentCallIds = new Set([exec.callId, exec.rootCallId].filter(value => value !== undefined))
   let currentIndex = -1
   for (let index = events.length - 1; index >= 0; index -= 1) {
@@ -2637,7 +2667,7 @@ function claimSession(session, exec) {
 }
 
 function commandRunIndex(session, commandId) {
-  const events = Array.isArray(session?.events) ? session.events : []
+  const events = sessionEvents(session)
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
     if (event?.type === 'command/run' && event.data?.commandId === commandId) return index
@@ -2649,7 +2679,7 @@ function claimCommandSession(session, commandId) {
   if (!isRecord(session)) throw new Error('kersor_evolve requires a stable DSH session')
   const currentIndex = commandRunIndex(session, commandId)
   if (currentIndex < 0) throw new Error('kersor_evolve could not bind its DSH command lifecycle')
-  const events = session.events
+  const events = sessionEvents(session)
   const prior = events.slice(0, currentIndex).some(isEvolveLaunchEvent)
   if (CLAIMED_SESSIONS.has(session) || prior) {
     throw new Error('kersor_evolve permits only one launch per top-level DSH session; retry in a new session')
@@ -2748,6 +2778,37 @@ function commandArguments(rawInput) {
   return value
 }
 
+async function dshRuntimeBinding(runtime, requestedConfig, workspace) {
+  const requested = requestedConfig ?? path.join(runtime.core, 'config', DSH_RUNTIME_CONFIGS[0])
+  const bytes = await readFile(requested)
+  for (const name of DSH_RUNTIME_CONFIGS) {
+    const candidate = path.join(runtime.core, 'config', name)
+    let trusted
+    try {
+      trusted = await fileOutsideWorkspace(candidate, workspace, 'DSH runtime config')
+    } catch (error) {
+      if (error?.code === 'ENOENT') continue
+      throw error
+    }
+    if (!bytes.equals(await readFile(trusted))) continue
+    const broker = JSON.parse(bytes.toString('utf8')).broker
+    if (
+      !isRecord(broker)
+      || broker.type !== 'dsh-host-rpc'
+      || !['provider', 'model'].every(key => (
+        typeof broker[key] === 'string' && broker[key] && !/\s/u.test(broker[key])
+      ))
+    ) {
+      throw new Error('Trusted DSH runtime config has an invalid model route')
+    }
+    return {
+      route: Object.freeze({provider: broker.provider, model: broker.model}),
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    }
+  }
+  throw new Error('DSH runtime config must match an install-recorded Core runtime preset')
+}
+
 async function executeEvolve(args, {
   ctx,
   budgetRuntime,
@@ -2762,6 +2823,10 @@ async function executeEvolve(args, {
   const predecessorRun = optionalPredecessorRun(args.predecessor_run, workspace, resume)
   const runtime = await installedRuntime(workspace)
   const selectedContract = await contractRuntime(contract, workspace, args.runtime)
+  const dshBinding = selectedContract.runtime === 'dsh'
+    ? await dshRuntimeBinding(runtime, selectedContract.runtimeConfig, workspace)
+    : null
+  if (dshBinding !== null) selectedContract.missionPolicy.route = dshBinding.route
   if (selectedContract.runtime === 'dsh' && !ctx?.subagents) {
     throw new Error('runtime=dsh requires the DSH subagent Host service')
   }
@@ -2781,6 +2846,7 @@ async function executeEvolve(args, {
   if (typeof selectedContract.runtime === 'string') {
     argv.push('--expected-runtime', selectedContract.runtime)
   }
+  if (dshBinding !== null) argv.push('--expected-runtime-config-sha256', dshBinding.sha256)
   if (runDir !== null) argv.push('--run-dir', runDir)
   if (predecessorRun !== null) argv.push('--predecessor-run', predecessorRun)
   if (resume) argv.push('--resume')
