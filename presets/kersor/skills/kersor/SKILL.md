@@ -86,7 +86,7 @@ wrong.
   never inherited. DSH does not add a competing process-wide elapsed-time
   watchdog around the complete multi-activation Core run; each activation and
   Host evaluator retains its own finite timeout. The canonical DSH activation
-  timeout defaults to and is capped at 3600 seconds; Host evaluators keep their
+  timeout is capped at 14400 seconds; Host evaluators keep their
   separate 120-second ceiling. Cancellation and output caps stay active at the
   outer process. Provider CLIs use their
   install-recorded local login. Resume only on a later user turn
@@ -224,17 +224,19 @@ A candidate verifier must be a non-retryable, sealed, read-only `command-v1` Hos
 evaluator whose full request, rollback policy, and candidate gate match the
 frozen Mission; Core runs it while the snapshot is live and commits only an
 accepted candidate. Every activation still uses the owner-only AF_UNIX endpoint
-and a fresh DSH `spawn` child pinned to `deepseek-official/kimi-k2.7-code`.
-`kersor-dsh-host-rpc-v3` permits Core to omit `activation_budget`. The Host still
-binds provider calls at DSH's registration-owned `llm/prepared-stream` seam and
-records usage, but incomplete usage remains observational and does not reject a
-completed worker output. When Core explicitly supplies a positive activation
-budget, primary-worker and adviser requests, retries, automatic title generation,
-and compaction share the existing cumulative reservation ledger; its upper-bound
-receipt and typed `DSH_CHILD_TOKEN_BUDGET_EXHAUSTED` semantics remain unchanged.
-DSH adapter registration is the sole owner of the actual dispatch context
-window, and this nonce-authenticated personal Host is the budget-metering TCB;
-Core does not duplicate or rederive that context. A bounded receipt uses the
+and a fresh DSH `spawn` child pinned to the route in an install-recorded Core
+runtime preset. Supported presets include `deepseek-official/kimi-k2.7-code`
+and `infini-ai/kimi-k3`; the matching model must already be registered in DSH.
+`kersor-dsh-host-rpc-v3` permits Core to omit `activation_budget`. The Host binds
+provider calls at DSH's registration-owned `llm/prepared-stream` seam or the
+current `llm/stream` boundary and records usage, but incomplete usage remains
+observational and does not reject a completed worker output. Because the current
+boundary does not expose the exact dispatch context window, a positive activation
+budget still requires `llm/prepared-stream`; primary-worker and adviser requests,
+retries, automatic title generation, and compaction then share the existing
+cumulative reservation ledger. Its upper-bound receipt and typed
+`DSH_CHILD_TOKEN_BUDGET_EXHAUSTED` semantics remain unchanged. The
+nonce-authenticated personal Host is the budget-metering TCB. A bounded receipt uses the
 `dsh-host-attested-actual-or-registration-context-reservation-v1` basis and
 never relabels a reservation as actual usage. Core validates the receipt's
 arithmetic and declared bounds; it does not independently prove the registration-owned context.

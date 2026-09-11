@@ -38,9 +38,7 @@ DSH_RPC_PROTOCOL = "kersor-dsh-host-rpc-v3"
 DSH_RPC_SOCKET_ENV = "KERSOR_DSH_RPC_SOCKET"
 DSH_RPC_NONCE_ENV = "KERSOR_DSH_RPC_NONCE"
 DSH_RPC_MAX_FRAME_BYTES = 16 * 1024 * 1024
-DSH_PROVIDER = "deepseek-official"
-DSH_MODEL = "kimi-k2.7-code"
-DSH_ACTIVATION_TIMEOUT_SECONDS = 3600
+DSH_ACTIVATION_TIMEOUT_SECONDS = 14400
 MAX_RUNTIME_CONFIG_BYTES = 1 * 1024 * 1024
 MAX_MODEL_ID_LENGTH = 128
 MAX_AUTONOMOUS_BINDING_BYTES = 256 * 1024
@@ -860,7 +858,26 @@ def validate_dsh_runtime_config(
         if configured is None
         else contract_lexical_path(contract, configured, "runtime_config")
     )
-    config_bytes = trusted_runtime_config_bytes(config_path, expected_config)
+    trusted_configs = [
+        expected_config,
+        (root / "config" / "runtime-dsh-infini-k3.json").resolve(),
+    ]
+    config_bytes = None
+    first_error = None
+    for trusted in trusted_configs:
+        if not trusted.is_file():
+            continue
+        try:
+            config_bytes = trusted_runtime_config_bytes(config_path, trusted)
+            break
+        except RuntimeError as error:
+            if first_error is None:
+                first_error = error
+    if config_bytes is None:
+        raise RuntimeError(
+            "runtime config must match an install-recorded Core DSH preset or "
+            f"a byte-identical materialized copy: {first_error}"
+        ) from first_error
     config = required_json_object_bytes(config_bytes, config_path, "runtime config")
     validate_finite_runtime_budget(config)
     broker = config.get("broker")
@@ -870,9 +887,6 @@ def validate_dsh_runtime_config(
         "socket_env": DSH_RPC_SOCKET_ENV,
         "nonce_env": DSH_RPC_NONCE_ENV,
         "max_frame_bytes": DSH_RPC_MAX_FRAME_BYTES,
-        "provider": DSH_PROVIDER,
-        "model": DSH_MODEL,
-        "timeout_seconds": DSH_ACTIVATION_TIMEOUT_SECONDS,
     }
     if not isinstance(broker, dict):
         raise RuntimeError("generic DSH evolve requires broker.type=dsh-host-rpc")
@@ -881,6 +895,35 @@ def validate_dsh_runtime_config(
             raise RuntimeError(
                 f"generic DSH evolve requires broker.{field}={expected_value!r}"
             )
+    timeout_seconds = broker.get("timeout_seconds")
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not math.isfinite(float(timeout_seconds))
+        or timeout_seconds <= 0
+        or timeout_seconds > DSH_ACTIVATION_TIMEOUT_SECONDS
+    ):
+        raise RuntimeError(
+            "generic DSH evolve requires broker.timeout_seconds in "
+            f"(0, {DSH_ACTIVATION_TIMEOUT_SECONDS}]"
+        )
+    for field in ("provider", "model"):
+        item = broker.get(field)
+        if (
+            not isinstance(item, str)
+            or not item
+            or any(character.isspace() or ord(character) < 32 for character in item)
+        ):
+            raise RuntimeError(
+                f"generic DSH evolve requires a non-empty broker.{field} identifier"
+            )
+    model_aliases = broker.get("model_aliases")
+    if model_aliases is not None and model_aliases != {
+        role: broker["model"] for role in ("haiku", "sonnet", "opus")
+    }:
+        raise RuntimeError(
+            "generic DSH evolve model aliases must bind every role to broker.model"
+        )
     return config_path.resolve(), hashlib.sha256(config_bytes).hexdigest()
 
 
@@ -1014,6 +1057,7 @@ def evolve_parser() -> argparse.ArgumentParser:
     result.add_argument("--host-execution", action="store_true")
     result.add_argument("--runtime", choices=sorted(GENERIC_RUNTIMES))
     result.add_argument("--expected-contract-sha256")
+    result.add_argument("--expected-runtime-config-sha256")
     result.add_argument("--expected-runtime", choices=sorted(GENERIC_RUNTIMES))
     result.add_argument("--run-dir", type=Path)
     result.add_argument("--predecessor-run", type=Path)
@@ -1137,6 +1181,11 @@ def exec_evolve(root: Path, args: list[str]) -> None:
             needs_write=True,
             fixed_task=True,
         )
+    if (
+        options.expected_runtime_config_sha256 is not None
+        and options.expected_runtime_config_sha256 != runtime_config_sha256
+    ):
+        raise RuntimeError("runtime config changed after the DSH Host froze its route")
     attested_outer_sandbox = (
         attest_outer_workspace_write(workspace, tools)
         if version == "kersor-task-v1" and needs_outer_workspace_write
