@@ -40,7 +40,9 @@ python tests/submission_tests.py
 2. 添加 `vliw-dsh-takehome-eval` 工作区。
 3. 新建会话，先把顶部的“标准模式”切换成 **KerSor** preset，再发送任务。
    标准模式不会注入 preset-local `kersor` skill；模式选择是实验合同的一部分。
-4. 保持 Workspace Write；选择当前部署可用的模型。
+4. 保持 Workspace Write；选择 `infini-ai/deepseek-v4.1-flash`。KerSor Mission
+   同时必须绑定 `runtime-dsh-infini-deepseek-v4.1-flash.json`；若 DSH 回执中的
+   provider/model 与该冻结路由不一致，Host 会拒绝该轮输出。
 5. 发送下面的任务合同。
 
 ```text

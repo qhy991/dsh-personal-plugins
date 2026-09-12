@@ -384,6 +384,28 @@ class InstallTests(unittest.TestCase):
             }),
             encoding="utf-8",
         )
+        (self.kersor / "config" / "runtime-dsh-infini-deepseek-v4.1-flash.json").write_text(
+            json.dumps({
+                "contract_version": "akw-js-runtime-v1",
+                "budget": {"total_tokens": 4_000_000},
+                "broker": {
+                    "type": "dsh-host-rpc",
+                    "protocol": "kersor-dsh-host-rpc-v3",
+                    "socket_env": "KERSOR_DSH_RPC_SOCKET",
+                    "nonce_env": "KERSOR_DSH_RPC_NONCE",
+                    "max_frame_bytes": 16 * 1024 * 1024,
+                    "provider": "infini-ai",
+                    "model": "deepseek-v4.1-flash",
+                    "model_aliases": {
+                        "haiku": "deepseek-v4.1-flash",
+                        "sonnet": "deepseek-v4.1-flash",
+                        "opus": "deepseek-v4.1-flash",
+                    },
+                    "timeout_seconds": 14400,
+                },
+            }),
+            encoding="utf-8",
+        )
         (self.kersor / "scripts" / "create-session.py").write_text(
             "import json, pathlib, sys\n"
             "payload = json.load(sys.stdin)\n"
@@ -1094,6 +1116,34 @@ class InstallTests(unittest.TestCase):
                 contract,
                 {"runtime_config": local_config.name},
             )
+
+    def test_generic_dsh_config_accepts_the_named_infini_deepseek_v4_1_preset(
+        self,
+    ) -> None:
+        self.prepare_generic_evolve_checkout()
+        workspace = self.root / "dsh-infini-config-workspace"
+        workspace.mkdir()
+        contract = workspace / "mission.json"
+        contract.write_text("{}\n", encoding="utf-8")
+        trusted = (
+            self.kersor
+            / "config"
+            / "runtime-dsh-infini-deepseek-v4.1-flash.json"
+        )
+        local_config = workspace / "runtime-config.json"
+        local_config.write_bytes(trusted.read_bytes())
+
+        observed_path, observed_hash = BRIDGE.validate_dsh_runtime_config(
+            self.kersor,
+            contract,
+            {"runtime_config": local_config.name},
+        )
+
+        self.assertEqual(observed_path, local_config.resolve())
+        self.assertEqual(
+            observed_hash,
+            hashlib.sha256(trusted.read_bytes()).hexdigest(),
+        )
 
     def test_generic_runtime_config_rejects_a_hardlink_to_the_trusted_config(
         self,

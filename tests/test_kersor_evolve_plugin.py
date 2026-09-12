@@ -3002,6 +3002,61 @@ class KerSorEvolvePluginTests(unittest.TestCase):
         )
         self.assertTrue(result["value"]["dsh_result"]["usage_complete"])
 
+    def test_public_host_routes_infini_deepseek_v4_1_flash_from_the_named_preset(
+        self,
+    ) -> None:
+        self.prepare_dsh_native_core()
+        value = json.loads(
+            (self.core / "config" / "runtime-dsh-autonomous.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        value["broker"].update(
+            provider="infini-ai",
+            model="deepseek-v4.1-flash",
+            model_aliases={
+                role: "deepseek-v4.1-flash"
+                for role in ("haiku", "sonnet", "opus")
+            },
+        )
+        preset = self.core / "config" / "runtime-dsh-infini-deepseek-v4.1-flash.json"
+        preset.write_text(json.dumps(value), encoding="utf-8")
+        config = self.workspace / "infini-flash-runtime.json"
+        config.write_bytes(preset.read_bytes())
+        contract = self.write_contract(
+            contract_version="kersor-mission-v1",
+            workspace=str(self.workspace),
+            session=str(self.workspace / ".kersor-autonomous" / "infini-flash-probe"),
+            runtime="dsh",
+            runtime_config=config.name,
+            mission={
+                "mission_id": "infini-flash-probe",
+                "goal": "inspect safely",
+                "authority": ["read workspace"],
+                "required_artifacts": [],
+                "required_facts": {},
+                "max_revisions": 1,
+            },
+            capabilities=[{"name": "inspect", "side_effect": "read"}],
+        )
+
+        result = self.invoke_dsh_native(contract)
+
+        self.assertEqual(result["value"]["status"], "completed", result)
+        self.assertEqual(
+            result["telemetry"]["starts"][0]["agent_options"],
+            {"provider": "infini-ai", "model": "deepseek-v4.1-flash"},
+        )
+        self.assertEqual(
+            result["value"]["dsh_result"]["provider"],
+            "infini-ai",
+        )
+        self.assertEqual(
+            result["value"]["dsh_result"]["model"],
+            "deepseek-v4.1-flash",
+        )
+        self.assertTrue(result["value"]["dsh_result"]["usage_complete"])
+
     def test_public_host_allows_only_hash_bound_agent_document_reads(self) -> None:
         self.prepare_dsh_native_core()
         relative = ".kersor/agent-documents/0123456789abcdef/handoff.md"

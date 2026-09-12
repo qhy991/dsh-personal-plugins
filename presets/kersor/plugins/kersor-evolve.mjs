@@ -30,6 +30,7 @@ const DEFAULT_DSH_ROUTE = Object.freeze({provider: DSH_PROVIDER, model: DSH_MODE
 const DSH_RUNTIME_CONFIGS = [
   'runtime-dsh-autonomous.json',
   'runtime-dsh-infini-k3.json',
+  'runtime-dsh-infini-deepseek-v4.1-flash.json',
   'runtime-dsh-deepseek-flash.json',
 ]
 export const DSH_BUDGET_CHARGE_BASIS = 'dsh-host-attested-actual-or-registration-context-reservation-v1'
